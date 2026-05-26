@@ -5,6 +5,7 @@ Runs in GitHub Actions on schedule. No local cache needed — fetches fresh each
 import sys; sys.path.insert(0, "src")
 
 import json
+import traceback
 import numpy as np
 import pandas as pd
 from datetime import datetime, date
@@ -78,14 +79,14 @@ for var in ["ipi", "imports_capital", "imports_consumer"]:
 
 # BNM data
 try:
-    ir_df = fetch_interest_rate_history(start_year=2015, verbose=False)
+    ir_df = fetch_interest_rate_history(start_year=2020, verbose=False)
     if not ir_df.empty:
         ir_df = ir_df.rename(columns={"value": "interbank"})
         filtered["interbank"] = ir_df[["date", "interbank"]]
-except Exception:
-    pass
+except Exception as e:
+    print(f"BNM interest rate failed (non-fatal): {e}")
 try:
-    fx_df = fetch_exchange_rate_history(start_year=2015, currency_code="USD", verbose=False)
+    fx_df = fetch_exchange_rate_history(start_year=2020, currency_code="USD", verbose=False)
     if not fx_df.empty:
         fx_vals = fx_df["value"].values
         fx_growth = np.full(len(fx_vals), np.nan)
@@ -239,22 +240,30 @@ try:
     X_raw_beq = X_trans[ff:]
     beq = BEQ(BEQParams(lagM=1, lagQ=1, lagY=1, type=901))
     res_e = beq.fit(X_raw_beq, datet[ff:], AN)
-    # Find last quarter-end with valid GDP
     gdp_col = -1
+    # Find last quarter-end with valid GDP
+    last_q = None
     for i in range(len(datet)-ff-1, -1, -1):
         if (datet[ff+i, 1] % 3 == 0) and not np.isnan(res_e.X_sm[i, gdp_col]):
-            nowcasts["beq"] = round(float(res_e.X_sm[current_q_idx, gdp_col]) * sigma[gdp_col] + mu[gdp_col] * 100, 2) if current_q_idx >= 0 else None
-            nowcasts["beq_backcast"] = round(float(res_e.X_sm[last_actual_idx, gdp_col]) * sigma[gdp_col] + mu[gdp_col] * 100, 2)
-            nowcasts["beq_forecast"] = round(float(res_e.X_sm[next_q_idx, gdp_col]) * sigma[gdp_col] + mu[gdp_col] * 100, 2) if next_q_idx >= 0 else None
+            last_q = i
             break
+    if last_q is not None:
+        def _beq_val(idx, s, m):
+            if idx is not None and idx >= 0 and idx < res_e.X_sm.shape[0]:
+                return round((float(res_e.X_sm[idx, gdp_col]) * s[gdp_col] + m[gdp_col]) * 100, 2)
+            return None
+        nowcasts["beq"] = _beq_val(current_q_idx, sigma, mu)
+        nowcasts["beq_backcast"] = _beq_val(last_actual_idx, sigma, mu)
+        nowcasts["beq_forecast"] = _beq_val(next_q_idx, sigma, mu)
 except Exception as e:
     print(f"BEQ failed: {e}")
-    nowcasts["beq"] = None
+    nowcasts["beq"] = nowcasts["beq_backcast"] = nowcasts["beq_forecast"] = None
 
-# Ensemble
-vals = [v for v in nowcasts.values() if v is not None]
-# Ensemble
-vals = [v for v in nowcasts.values() if v is not None]
+# Ensemble (nowcast horizon only)
+dfm_val = nowcasts.get("dfm")
+bvar_val = nowcasts.get("bvar")
+beq_val = nowcasts.get("beq")
+vals = [v for v in [dfm_val, bvar_val, beq_val] if v is not None]
 nowcasts["ensemble"] = round(np.median(vals), 2) if vals else None
 
 # ---------------------------------------------------------------------------

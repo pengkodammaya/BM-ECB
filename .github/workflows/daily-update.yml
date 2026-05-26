@@ -34,7 +34,7 @@ jobs:
 
       - name: Run daily update (fetch + nowcast + leaderboard)
         run: |
-          uv run python scripts/daily_update.py
+          PYTHONPATH="$PWD/src:$PYTHONPATH" uv run python scripts/daily_update.py
         env:
           PYTHONUNBUFFERED: 1
           PYTHONIOENCODING: utf-8
