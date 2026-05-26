@@ -4,6 +4,10 @@ Python port of the [ECB Nowcasting Toolbox](https://github.com/baptiste-meunier/
 
 **Original**: MATLAB + R | **This port**: Python 3.12+ with `uv`
 
+## 📊 [Live Leaderboard →](docs/leaderboard.md)
+
+*Auto-updated daily at 8am MYT via GitHub Actions. Shows latest nowcast, model comparison, and 30-day history.*
+
 ## Model Engines
 
 | Model | Algorithm | Reference |
