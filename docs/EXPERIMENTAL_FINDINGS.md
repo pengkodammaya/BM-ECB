@@ -254,6 +254,25 @@ Added 3 new daily indicators via yfinance:
 - BDRY (BDI proxy) contributes to import forecasting despite limited history (98 months)
 - Per-component indicator subsets are essential — 1-size-fits-all hurts non-trade components
 
+### Naive Forecast Baseline (2026-05-26)
+
+The simplest possible benchmark: forecast current quarter GDP = last quarter's actual (persistence / random walk). 24-vintage backtest:
+
+| Model | MAE (pp) | RMSE (pp) | FDA | N |
+|-------|:------:|:--------:|:---:|:-:|
+| **DFM** | **2.80** | 5.21 | **56.5%** | 24 |
+| BVAR | 2.85 | 5.37 | 30.4% | 24 |
+| ENSEMBLE | 2.86 | 5.21 | 47.8% | 24 |
+| BEQ | 4.05 | 6.20 | 39.1% | 24 |
+| **NAIVE** | **4.48** | **8.93** | **27.3%** | 23 |
+
+**Key findings**:
+- DFM beats naive by 38% (2.80 vs 4.48 pp MAE) — model adds signal beyond persistence
+- All statistical models beat naive on MAE, confirming skill beyond "no change"
+- Naive directional accuracy (27.3%) is worse than a coin flip — GDP growth does not persist quarter-to-quarter
+- Naive's RMSE (8.93) is nearly double DFM's (5.21) — large errors when growth changes direction
+- This validates the nowcasting approach: even simple models add meaningful information over persistence
+
 ---
 
 *Last updated: 2026-05-26. All findings are from the Malaysia nowcasting pipeline using OpenDOSM + BNM + yfinance + FRED public APIs.*

@@ -631,6 +631,10 @@ if not df_demand.empty:
 for ck, val in COMP_AR1.items():
     nowcasts[ck + "_ar1"] = val
 
+# Naive forecast = last quarter actual for each component
+for ck in ["consumption", "investment", "government", "exports_comp", "imports_comp"]:
+    nowcasts[ck + "_naive"] = comp_levels_yoy.get(ck)  # same as _actual
+
 # Latest actual GDP
 actual_pct = None
 for i in range(len(X_est)-1, -1, -1):
@@ -640,6 +644,7 @@ for i in range(len(X_est)-1, -1, -1):
 
 nowcasts["date"] = today_str
 nowcasts["actual_gdp_pct"] = round(actual_pct, 2) if actual_pct else None
+nowcasts["naive"] = nowcasts["actual_gdp_pct"]  # naive = last quarter actual
 
 # ---------------------------------------------------------------------------
 # 4. Append to daily log
@@ -697,7 +702,7 @@ md += f"**Updated:** {today_str} | **Nowcasting:** {nowcast_label} | **Reference
 md += "## Current Quarter Nowcast (QoQ SA %)\n\n"
 md += f"*Nowcasting GDP for **{nowcast_label}**. Advance estimate expected ~mid-{(current_quarter*3+1)%12 or 12}.*\n\n"
 
-all_models = ["DFM", "BVAR", "BEQ", "AR(1)", "ENSEMBLE"]
+all_models = ["DFM", "BVAR", "BEQ", "AR(1)", "NAIVE", "ENSEMBLE"]
 model_errors = {}
 for model in all_models:
     col = model.lower()
@@ -734,7 +739,7 @@ md += "\n## Model Leaderboard\n\n"
 md += "*Daily nowcast accuracy vs best available reference. Metrics appear after 3+ days.*\n\n"
 if len(log) >= 3:
     lb_rows = []
-    for model in ["dfm", "bvar", "beq", "ar1", "ensemble"]:
+    for model in ["dfm", "bvar", "beq", "ar1", "naive", "ensemble"]:
         col = model
         if col not in log.columns:
             continue
@@ -762,6 +767,8 @@ if len(log) >= 3:
         style_note = ""
         if r["model"] == "AR(1)":
             style_note = " *(baseline)*"
+        elif r["model"] == "NAIVE":
+            style_note = " *(last Q)*"
         elif r["model"] == "ENSEMBLE":
             style_note = " *(combined)*"
         md += f"| {r['model']}{style_note} | {r['MAE (pp)']:.3f} | {r['RMSE (pp)']:.3f} | {r['FDA (%)']:.1f}% | {int(r['N'])} | {latest_str} |\n"
@@ -769,20 +776,20 @@ else:
     md += f"*Leaderboard requires 3+ daily observations. Currently: {len(log)}. First metrics expected soon.*\n\n"
     md += "| Model | MAE (pp) | RMSE (pp) | FDA (%) | N | Latest |\n"
     md += "|-------|----------|-----------|---------|---|--------|\n"
-    for model in ["DFM", "BVAR", "BEQ", "AR(1)", "ENSEMBLE"]:
+    for model in ["DFM", "BVAR", "BEQ", "AR(1)", "NAIVE", "ENSEMBLE"]:
         col = model.lower()
         val = nowcasts.get(col)
         latest_str = f"{val:+.1f}%" if val is not None else "—"
-        style_note = " *(baseline)*" if model == "AR(1)" else " *(combined)*" if model == "ENSEMBLE" else ""
+        style_note = " *(baseline)*" if model == "AR(1)" else " *(last Q)*" if model == "NAIVE" else " *(combined)*" if model == "ENSEMBLE" else ""
         md += f"| {model}{style_note} | — | — | — | {len(log)} | {latest_str} |\n"
 
 md += f"\n## Recent Nowcasts ({min(30, len(log))} days)\n\n"
-md += "| Date | DFM | BVAR | BEQ | AR(1) | ENSEMBLE | Reference |\n"
-md += "|------|-----|------|-----|-------|----------|----------|\n"
+md += "| Date | DFM | BVAR | BEQ | AR(1) | NAIVE | ENSEMBLE | Reference |\n"
+md += "|------|-----|------|-----|-------|-------|----------|----------|\n"
 ref_str = f"{adv_reference:+.1f}%" if adv_reference is not None else "—"
 for _, row in log.tail(30).iterrows():
     vals = []
-    for m in ["dfm", "bvar", "beq", "ar1", "ensemble"]:
+    for m in ["dfm", "bvar", "beq", "ar1", "naive", "ensemble"]:
         v = row.get(m)
         vals.append(f"{v:+.1f}%" if pd.notna(v) else "—")
     md += f"| {row['date']} | {vals[0]} | {vals[1]} | {vals[2]} | {vals[3]} | {vals[4]} | {ref_str} |\n"
@@ -801,40 +808,43 @@ comp_labels = {
 for ck, (clabel, ccode) in comp_labels.items():
     dfm_val = nowcasts.get(ck)
     ar1_val = nowcasts.get(ck + "_ar1")
+    naive_val = nowcasts.get(ck + "_naive")
     act_val = nowcasts.get(ck + "_actual")
     
-    dfm_str = f"`{dfm_val:+.1f}%`" if dfm_val is not None else "—"
-    ar1_str = f"`{ar1_val:+.1f}%`" if ar1_val is not None else "—"
-    act_str = f"`{act_val:+.1f}%`" if act_val is not None else "—"
+    dfm_f = f"{dfm_val:+.1f}%" if dfm_val is not None else "—"
+    ar1_f = f"{ar1_val:+.1f}%" if ar1_val is not None else "—"
+    naive_f = f"{naive_val:+.1f}%" if naive_val is not None else "—"
+    act_f = f"`{act_val:+.1f}%`" if act_val is not None else "—"
     
-    # Color winner green, loser red (if actual available)
+    # Errors vs reference (last quarter actual)
     dfm_err = abs(dfm_val - act_val) if (dfm_val is not None and act_val is not None) else None
     ar1_err = abs(ar1_val - act_val) if (ar1_val is not None and act_val is not None) else None
+    naive_err = 0.0 if naive_val is not None and act_val is not None else None  # naive IS the reference
     
+    # Color: green = winner (closest to reference), red = loser
     if dfm_err is not None and ar1_err is not None:
-        if dfm_err < ar1_err:
-            dfm_color = "green"
-            ar1_color = "red"
-        elif ar1_err < dfm_err:
-            dfm_color = "red"
-            ar1_color = "green"
-        else:
-            dfm_color = ar1_color = "white"
-        dfm_str_rich = f'<span style="color:{dfm_color}">{dfm_val:+.1f}%</span>'
-        ar1_str_rich = f'<span style="color:{ar1_color}">{ar1_val:+.1f}%</span>'
+        errors = {"DFM": dfm_err, "AR(1)": ar1_err, "NAIVE": naive_err}
+        min_err = min(errors.values())
+        colors = {m: "green" if e == min_err else "red" for m, e in errors.items()}
+        dfm_rich = f'<span style="color:{colors["DFM"]}">{dfm_f}</span>'
+        ar1_rich = f'<span style="color:{colors["AR(1)"]}">{ar1_f}</span>'
+        naive_rich = f'<span style="color:{colors["NAIVE"]}">{naive_f}</span>'
     else:
-        dfm_str_rich = dfm_str
-        ar1_str_rich = ar1_str
+        dfm_rich = f"`{dfm_f}`" if dfm_val is not None else "—"
+        ar1_rich = f"`{ar1_f}`" if ar1_val is not None else "—"
+        naive_rich = f"`{naive_f}`" if naive_val is not None else "—"
     
     md += f"### {clabel} ({ccode})\n\n"
     md += "| Model | Nowcast | Reference (Actual) |\n"
     md += "|-------|---------|--------------------|\n"
-    if dfm_err is not None and ar1_err is not None:
-        md += f"| DFM | {dfm_str_rich} ({dfm_err:+.1f}pp err) | {act_str} |\n"
-        md += f"| AR(1) *(baseline)* | {ar1_str_rich} ({ar1_err:+.1f}pp err) | {act_str} |\n"
+    if dfm_err is not None:
+        md += f"| DFM | {dfm_rich} ({dfm_err:+.1f}pp) | {act_f} |\n"
+        md += f"| AR(1) *(baseline)* | {ar1_rich} ({ar1_err:+.1f}pp) | {act_f} |\n"
+        md += f"| NAIVE *(last Q)* | {naive_rich} (0.0pp) | {act_f} |\n"
     else:
-        md += f"| DFM | {dfm_str_rich} | {act_str} |\n"
-        md += f"| AR(1) *(baseline)* | {ar1_str_rich} | {act_str} |\n"
+        md += f"| DFM | {dfm_rich} | {act_f} |\n"
+        md += f"| AR(1) *(baseline)* | {ar1_rich} | {act_f} |\n"
+        md += f"| NAIVE *(last Q)* | {naive_rich} | {act_f} |\n"
     md += "\n"
 
 # Show GDP-identity derived imports separately

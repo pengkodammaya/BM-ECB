@@ -259,6 +259,19 @@ for i, vdate in enumerate(vintage_dates):
             break
     row["actual_gdp_pct"] = round(actual_pct, 2) if not np.isnan(actual_pct) else np.nan
 
+    # --- NAIVE (last known quarter GDP = forecast) ---
+    naive_pct = np.nan
+    for t in range(len(datet)-1, -1, -1):
+        m = int(datet[t, 1])
+        if m % 3 != 0:
+            continue
+        target_pos = datet[t, 0] * 100 + m
+        current_pos = vyear * 100 + q_end_m
+        if target_pos < current_pos and not np.isnan(X_raw[t, gdp_idx]):
+            naive_pct = X_raw[t, gdp_idx] * 100
+            break
+    row["naive_pct"] = round(naive_pct, 2) if not np.isnan(naive_pct) else np.nan
+
     # --- DFM ---
     try:
         dfm = DFM(DFMParams(r=3, p=2, max_iter=30, thresh=1e-5, idio=1, block_factors=0))
@@ -309,7 +322,7 @@ for i, vdate in enumerate(vintage_dates):
 
     if (i + 1) % 3 == 0:
         models_done = sum(1 for c in ["dfm_pct","bvar_pct","beq_pct"] if c in row and not np.isnan(row[c]))
-        console.print(f"  [dim]{q_label}: DFM={row.get('dfm_pct','?'):.1f}% BVAR={row.get('bvar_pct','?'):.1f}% BEQ={row.get('beq_pct','?'):.1f}%  actual={actual_pct:+.1f}%[/dim]")
+        console.print(f"  [dim]{q_label}: DFM={row.get('dfm_pct','?'):.1f}% BVAR={row.get('bvar_pct','?'):.1f}% BEQ={row.get('beq_pct','?'):.1f}% NAIVE={row.get('naive_pct','?'):.1f}%  actual={actual_pct:+.1f}%[/dim]")
 
 console.print(f"  [dim]Total: {len(results)} vintages[/dim]")
 
@@ -317,7 +330,7 @@ console.print(f"  [dim]Total: {len(results)} vintages[/dim]")
 # 3. Ensemble
 # ---------------------------------------------------------------------------
 df = pd.DataFrame(results)
-for col in ["dfm_pct", "bvar_pct", "beq_pct"]:
+for col in ["dfm_pct", "bvar_pct", "beq_pct", "naive_pct"]:
     if col in df.columns:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
@@ -413,7 +426,7 @@ table.add_column("FDA (%)", justify="right")
 table.add_column("N", justify="right")
 
 lb_rows = []
-for label, col in [("DFM", "dfm_pct"), ("BVAR", "bvar_pct"), ("BEQ", "beq_pct"), ("ENSEMBLE", "ensemble_pct")]:
+for label, col in [("DFM", "dfm_pct"), ("BVAR", "bvar_pct"), ("BEQ", "beq_pct"), ("NAIVE", "naive_pct"), ("ENSEMBLE", "ensemble_pct")]:
     if col not in df.columns:
         continue
     sub = df[[col, "actual_gdp_pct"]].dropna()
@@ -528,7 +541,7 @@ table2.add_column("FDA (%)", justify="right")
 table2.add_column("N", justify="right")
 
 lb_rows2 = []
-for label, col in [("DFM", "dfm_pct"), ("BVAR", "bvar_pct"), ("BEQ", "beq_pct"), ("ENSEMBLE", "ensemble_pct")]:
+for label, col in [("DFM", "dfm_pct"), ("BVAR", "bvar_pct"), ("BEQ", "beq_pct"), ("NAIVE", "naive_pct"), ("ENSEMBLE", "ensemble_pct")]:
     if col not in df.columns:
         continue
     sub = post_covid[[col, "actual_gdp_pct"]].dropna()
