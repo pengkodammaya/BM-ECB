@@ -38,3 +38,7 @@ Thumbs.db
 *.log
 temp_*.csv
 temp_*.ics
+
+# Local secrets (FRED API key, etc.)
+.fred_key
+
