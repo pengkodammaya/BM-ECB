@@ -258,74 +258,39 @@ if len(log) >= 3:
     lb_df.to_csv(Path("docs/leaderboard.csv"), index=False)
 
     # -------------------------------------------------------------------
-    # 6. Generate HTML dashboard
+    # 6. Generate markdown leaderboard (rendered natively by GitHub)
     # -------------------------------------------------------------------
-    html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Malaysia GDP Nowcasting — Live Dashboard</title>
-<style>
-body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; background: #f5f5f5; }}
-.card {{ background: white; border-radius: 8px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
-h1 {{ color: #1a1a2e; margin: 0 0 8px 0; }}
-h2 {{ color: #16213e; margin: 0 0 16px 0; font-size: 1.2em; }}
-table {{ width: 100%; border-collapse: collapse; }}
-th, td {{ padding: 10px 14px; text-align: right; border-bottom: 1px solid #eee; }}
-th {{ background: #f8f9fa; color: #555; font-weight: 600; text-transform: uppercase; font-size: 0.8em; }}
-th:first-child, td:first-child {{ text-align: left; }}
-tr:hover {{ background: #f8f9ff; }}
-.nowcast-badge {{ font-size: 2em; font-weight: bold; color: #16213e; }}
-.meta {{ color: #888; font-size: 0.85em; margin-top: 8px; }}
-.updated {{ color: #28a745; }}
-.stale {{ color: #dc3545; }}
-.best {{ background: #d4edda !important; }}
-</style>
-</head>
-<body>
-<div class="card">
-<h1>Malaysia GDP Nowcasting Dashboard</h1>
-<p class="meta">Live nowcast updated daily via GitHub Actions | Last update: {today_str}</p>
-</div>
-<div class="card">
-<h2>Latest Nowcast</h2>
-"""
+    md = f"# Malaysia GDP Nowcasting — Live Leaderboard\n\n"
+    md += f"**Last updated:** {today_str} | **Source:** [OpenDOSM](https://open.dosm.gov.my) + [BNM](https://apikijangportal.bnm.gov.my)\n\n"
+    md += "## Latest Nowcast\n\n"
     for model in ["DFM", "BVAR", "BEQ", "ENSEMBLE"]:
         col = model.lower()
         val = nowcasts.get(col)
         if val is not None:
-            html += f'<p><strong>{model}:</strong> <span class="nowcast-badge">{val:+.2f}%</span> QoQ SA</p>'
+            md += f"- **{model}:** `{val:+.2f}%` QoQ SA\n"
     if actual_pct:
-        html += f'<p class="meta">Latest actual GDP: {actual_pct:+.1f}%</p>'
+        md += f"\n*Latest actual GDP: {actual_pct:+.1f}%*\n"
 
-    html += '</div><div class="card"><h2>Model Leaderboard</h2><table><tr><th>Model</th><th>MAE (pp)</th><th>RMSE (pp)</th><th>FDA (%)</th><th>N</th><th>Latest</th></tr>'
+    md += "\n## Model Leaderboard\n\n"
+    md += "| Model | MAE (pp) | RMSE (pp) | FDA (%) | N | Latest |\n"
+    md += "|-------|----------|-----------|---------|---|--------|\n"
     for _, r in lb_df.iterrows():
-        style = ' class="best"' if r["model"] == "ENSEMBLE" else ""
         latest = r.get("last_nowcast", "—")
         latest_str = f"{latest:+.1f}%" if isinstance(latest, (int, float)) else "—"
-        html += f'<tr{style}><td>{r["model"]}</td><td>{r["MAE (pp)"]:.3f}</td><td>{r["RMSE (pp)"]:.3f}</td><td>{r["FDA (%)"]:.1f}%</td><td>{int(r["N"])}</td><td>{latest_str}</td></tr>'
-    html += '</table></div>'
+        md += f"| {r['model']} | {r['MAE (pp)']:.3f} | {r['RMSE (pp)']:.3f} | {r['FDA (%)']:.1f}% | {int(r['N'])} | {latest_str} |\n"
 
-    # Add daily log chart (last 30 days)
-    if len(log) >= 2:
-        recent = log.tail(30)
-        html += '<div class="card"><h2>Recent Nowcasts (30 days)</h2><table><tr><th>Date</th><th>DFM</th><th>BVAR</th><th>BEQ</th><th>ENSEMBLE</th><th>Actual</th></tr>'
-        for _, row in recent.iterrows():
-            html += '<tr>'
-            html += f'<td>{row["date"]}</td>'
-            for m in ["dfm", "bvar", "beq", "ensemble", "actual_gdp_pct"]:
-                v = row.get(m)
-                v_str = f'{v:+.1f}%' if pd.notna(v) else '—'
-                html += f'<td>{v_str}</td>'
-            html += '</tr>'
-        html += '</table></div>'
+    md += f"\n## Recent Nowcasts (30 days)\n\n"
+    md += "| Date | DFM | BVAR | BEQ | ENSEMBLE | Actual |\n"
+    md += "|------|-----|------|-----|----------|--------|\n"
+    for _, row in log.tail(30).iterrows():
+        vals = []
+        for m in ["dfm", "bvar", "beq", "ensemble", "actual_gdp_pct"]:
+            v = row.get(m)
+            vals.append(f"{v:+.1f}%" if pd.notna(v) else "—")
+        md += f"| {row['date']} | {vals[0]} | {vals[1]} | {vals[2]} | {vals[3]} | {vals[4]} |\n"
 
-    html += f'<div class="card"><p class="meta">Source: <a href="https://open.dosm.gov.my">OpenDOSM</a> + <a href="https://apikijangportal.bnm.gov.my">BNM</a> | Port of <a href="https://github.com/baptiste-meunier/Nowcasting_toolbox">ECB Nowcasting Toolbox</a> | <a href="https://github.com/pengkodammaya/BM-ECB">GitHub</a></p></div>'
-    html += '</body></html>'
-
-    (Path("docs") / "index.html").write_text(html)
-    print("Dashboard generated.")
+    md += f"\n---\n*Auto-generated daily via GitHub Actions. [View source](https://github.com/pengkodammaya/BM-ECB)*\n"
+    (Path("docs") / "leaderboard.md").write_text(md)
 
 print(f"[{datetime.now().isoformat()}] Daily update complete.")
 print(json.dumps(nowcasts, indent=2))
