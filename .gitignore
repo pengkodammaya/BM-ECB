@@ -22,6 +22,9 @@ output/
 data/malaysia/*
 !data/malaysia/dosm_advance_estimates.csv
 
+# Keep docs/ for GitHub Pages dashboard
+# (leaderboard and daily log are auto-generated)
+
 .coverage
 coverage.xml
 htmlcov/
