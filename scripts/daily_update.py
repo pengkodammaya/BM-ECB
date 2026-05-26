@@ -121,10 +121,14 @@ md = [df["date"].min() for df in filtered.values()]
 Mx = [df["date"].max() for df in filtered.values()]
 gd = max(filtered["gdp"]["date"].min(), pd.Timestamp("2018-01-01"))
 ed = max(Mx)
-datet = generate_dates(gd.year, gd.month, ed.year, ed.month)
+# Extend grid 6 months into future for forecasting
+ed_extended = ed + pd.DateOffset(months=6)
+datet = generate_dates(gd.year, gd.month, ed_extended.year, ed_extended.month)
 T = len(datet)
 nM = len(MN)
 X = np.full((T, nM + 1), np.nan)
+
+# Fill known data (automatically leaves future months as NaN)
 
 for j, name in enumerate(MN):
     df = filtered[name]
@@ -159,17 +163,55 @@ X_est = X_std[ff:]
 client.close()
 
 # ---------------------------------------------------------------------------
-# 3. Run all 3 models
+# 3. Run all 3 models — produce nowcasts at 3 horizons
 # ---------------------------------------------------------------------------
 nowcasts = {}
 today_str = date.today().isoformat()
+
+# Determine the current quarter and year
+today_dt = date.today()
+current_quarter = (today_dt.month - 1) // 3 + 1
+current_year = today_dt.year
+
+# Find the last row with actual GDP (backcast quarter)
+last_actual_idx = np.where(~np.isnan(X_est[:, -1]))[0][-1] if np.any(~np.isnan(X_est[:, -1])) else len(X_est) - 1
+
+# Find the CURRENT quarter end month in the grid (the quarter we're NOWCASTING)
+current_q_end_m = current_quarter * 3
+current_q_idx = -1
+for i in range(len(datet) - ff):
+    if datet[ff + i, 0] == current_year and datet[ff + i, 1] == current_q_end_m:
+        current_q_idx = i
+        break
+
+# Find the NEXT quarter end month (1-quarter-ahead forecast)
+next_q_end_m = current_q_end_m + 3
+next_q_year = current_year + (1 if next_q_end_m > 12 else 0)
+next_q_end_m = ((next_q_end_m - 1) % 12) + 1
+next_q_idx = -1
+for i in range(len(datet) - ff):
+    if datet[ff + i, 0] == next_q_year and datet[ff + i, 1] == next_q_end_m:
+        next_q_idx = i
+        break
+
+# Label quarters
+backcast_label = f"Q{((datet[ff + last_actual_idx, 1]) // 3)} {int(datet[ff + last_actual_idx, 0])}"
+nowcast_label = f"Q{current_quarter} {current_year}" if current_q_idx >= 0 else "N/A"
+forecast_label = f"Q{next_q_end_m // 3} {next_q_year}" if next_q_idx >= 0 else "N/A"
 
 # DFM
 try:
     dfm = DFM(DFMParams(r=3, p=2, max_iter=50, thresh=1e-5, idio=1))
     res = dfm.fit(X_est)
-    nw = float(res.X_sm[-1, -1]) * sigma[-1] + mu[-1]
-    nowcasts["dfm"] = round(nw * 100, 2)
+    
+    def _extract(res, idx, sigma_arr, mu_arr, gdp_col=-1):
+        if idx is not None and idx >= 0 and idx < res.X_sm.shape[0]:
+            return round((float(res.X_sm[idx, gdp_col]) * sigma_arr[gdp_col] + mu_arr[gdp_col]) * 100, 2)
+        return None
+
+    nowcasts["dfm"] = _extract(res, current_q_idx, sigma, mu)  # nowcast
+    nowcasts["dfm_backcast"] = _extract(res, last_actual_idx, sigma, mu)
+    nowcasts["dfm_forecast"] = _extract(res, next_q_idx, sigma, mu)
 except Exception as e:
     print(f"DFM failed: {e}")
     nowcasts["dfm"] = None
@@ -185,8 +227,9 @@ try:
             X_filled[nm, j] = np.interp(idx_arr[nm], idx_arr[vl], col[vl])
     bvar = BVAR(BVARParams(bvar_lags=3, bvar_thresh=1e-5, bvar_max_iter=15))
     res_b = bvar.fit(X_filled, datet[ff:])
-    nw = float(res_b.X_sm[-1, -1]) * sigma[-1] + mu[-1]
-    nowcasts["bvar"] = round(nw * 100, 2)
+    nowcasts["bvar"] = _extract(res_b, current_q_idx, sigma, mu)
+    nowcasts["bvar_backcast"] = _extract(res_b, last_actual_idx, sigma, mu)
+    nowcasts["bvar_forecast"] = _extract(res_b, next_q_idx, sigma, mu)
 except Exception as e:
     print(f"BVAR failed: {e}")
     nowcasts["bvar"] = None
@@ -200,9 +243,10 @@ try:
     gdp_col = -1
     for i in range(len(datet)-ff-1, -1, -1):
         if (datet[ff+i, 1] % 3 == 0) and not np.isnan(res_e.X_sm[i, gdp_col]):
-            nw = float(res_e.X_sm[i, gdp_col])
+            nowcasts["beq"] = round(float(res_e.X_sm[current_q_idx, gdp_col]) * sigma[gdp_col] + mu[gdp_col] * 100, 2) if current_q_idx >= 0 else None
+            nowcasts["beq_backcast"] = round(float(res_e.X_sm[last_actual_idx, gdp_col]) * sigma[gdp_col] + mu[gdp_col] * 100, 2)
+            nowcasts["beq_forecast"] = round(float(res_e.X_sm[next_q_idx, gdp_col]) * sigma[gdp_col] + mu[gdp_col] * 100, 2) if next_q_idx >= 0 else None
             break
-    nowcasts["beq"] = round(nw * 100, 2)
 except Exception as e:
     print(f"BEQ failed: {e}")
     nowcasts["beq"] = None
@@ -329,15 +373,30 @@ if len(log) >= 3:
 # 6. Generate markdown leaderboard (always, even with <3 data points)
 # -------------------------------------------------------------------
 md = f"# Malaysia GDP Nowcasting — Live Leaderboard\n\n"
-md += f"**Last updated:** {today_str} | **Source:** [OpenDOSM](https://open.dosm.gov.my) + [BNM](https://apikijangportal.bnm.gov.my)\n\n"
-md += "## Latest Nowcast\n\n"
+md += f"**Last updated:** {today_str} | **Nowcast quarter:** {nowcast_label} | **Source:** [OpenDOSM](https://open.dosm.gov.my) + [BNM](https://apikijangportal.bnm.gov.my)\n\n"
+md += "## Current Quarter Nowcast (QoQ SA %)\n\n"
+md += f"*Nowcasting GDP for **{nowcast_label}**. GDP for this quarter is not yet released.*\n\n"
 for model in ["DFM", "BVAR", "BEQ", "ENSEMBLE"]:
     col = model.lower()
     val = nowcasts.get(col)
     if val is not None:
-        md += f"- **{model}:** `{val:+.2f}%` QoQ SA\n"
+        md += f"- **{model}:** `{val:+.2f}%`\n"
+
+md += f"\n## Backcast: {backcast_label} (QoQ SA %)\n\n"
+md += f"*Model estimate for the most recent quarter with released GDP.*\n\n"
+for model in ["DFM", "BVAR", "BEQ"]:
+    bc = nowcasts.get(f"{model.lower()}_backcast")
+    if bc is not None:
+        md += f"- **{model}:** `{bc:+.2f}%`\n"
+
 if actual_pct:
-    md += f"\n*Latest actual GDP: {actual_pct:+.1f}%*\n"
+    md += f"\n*DOSM official (ground truth): `{actual_pct:+.1f}%`*\n"
+
+md += f"\n## 1-Quarter-Ahead Forecast: {forecast_label} (QoQ SA %)\n\n"
+for model in ["DFM", "BVAR", "BEQ"]:
+    fc = nowcasts.get(f"{model.lower()}_forecast")
+    if fc is not None:
+        md += f"- **{model}:** `{fc:+.2f}%`\n"
 
 md += "\n## Model Leaderboard\n\n"
 if len(log) >= 3:
