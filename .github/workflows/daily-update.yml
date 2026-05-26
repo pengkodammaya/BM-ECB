@@ -20,12 +20,14 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install dependencies (pip, no build system needed)
-        run: |
-          pip install numpy scipy pandas openpyxl pyarrow scikit-learn statsmodels pydantic click httpx rich
+      - name: Install dependencies
+        run: pip install numpy scipy pandas openpyxl pyarrow scikit-learn statsmodels pydantic click httpx rich yfinance
 
       - name: Ensure data directories exist
         run: mkdir -p data/malaysia output/malaysia
+
+      - name: Setup FRED API key
+        run: echo "${{ secrets.FRED_API_KEY }}" > .fred_key
 
       - name: Run daily update
         run: |
