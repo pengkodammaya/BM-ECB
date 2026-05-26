@@ -125,12 +125,15 @@ if "fx_usd" in filtered:
         DATASETS["fx_lag6"] = ("fx_lag6", "fx_lag6", 0, "financial", {})
 
 # ---------------------------------------------------------------------------
-# 1.6 Global demand indicators (S&P 500, Shanghai Comp, Brent crude) via yfinance
+# 1.6 Global demand / commodity indicators via yfinance
 # ---------------------------------------------------------------------------
 GLOBAL_INDICATORS = {
-    "sp500": ("^GSPC", "global_equity"),    # S&P 500 — US/world demand proxy
+    "sp500": ("^GSPC", "global_equity"),      # S&P 500 — US/world demand proxy
     "shcomp": ("000001.SS", "global_equity"), # Shanghai Composite — China demand
-    "brent":  ("BZ=F", "global_commodity"),   # Brent crude — commodity price
+    "sox":    ("^SOX", "global_equity"),       # Philly semi — E&E leads MY exports 1-3mo
+    "brent":  ("BZ=F", "global_commodity"),    # Brent crude — energy commodity benchmark
+    "cpo":    ("CPO=F", "global_commodity"),   # Crude palm oil — MY #1 agri-commodity
+    "bdry":   ("BDRY", "global_demand"),       # Dry bulk shipping — trade volume proxy
 }
 
 for label, (ticker, group) in GLOBAL_INDICATORS.items():

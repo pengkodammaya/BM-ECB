@@ -230,6 +230,30 @@ Where `_lvl` are absolute MYR levels from the API and `_g` are the DFM nowcast g
 - **All components have strong directional accuracy** (78-96% FDA) — the DFM rarely gets the sign wrong.
 - The backtest validates that component-level nowcasting with the DFM is viable and robust, even if single-point daily nowcasts can be noisy.
 
+### Update: High-Frequency Global Indicators (2026-05-26)
+
+Added 3 new daily indicators via yfinance:
+- **SOX** (`^SOX`): Philadelphia Semiconductor Index — E&E = 40% of Malaysian exports
+- **CPO** (`CPO=F`): CME Malaysian Crude Palm Oil Futures — Malaysia's #1 agri-commodity
+- **BDRY** (`BDRY`): Breakwave Dry Bulk Shipping ETF — trade volume proxy (BDI removed from FRED in 2021)
+
+24-vintage backtest with per-component filtering:
+
+| Component | Without Global | With Global | Change |
+|-----------|:------:|:------:|:------:|
+| Consumption (e1) | 0.69 | **0.55** | -20% |
+| Exports (e5) | 1.60 | **1.49** | -7% |
+| Imports (e6) | 2.71 | **2.24** | -17% |
+| Investment (e3) | 0.74 | 1.20 | +62% (noise) |
+| Government (e2) | 1.03 | 1.16 | +13% (noise) |
+
+**Key findings**:
+- SOX, CPO, and BDRY meaningfully improve trade-linked components (exports/imports/consumption)
+- Global indicators add noise to investment and government — excluded from those component filters in production
+- CPO delivers despite having fewer obs (130 months vs 136) — commodity prices are inherently cyclical and informative
+- BDRY (BDI proxy) contributes to import forecasting despite limited history (98 months)
+- Per-component indicator subsets are essential — 1-size-fits-all hurts non-trade components
+
 ---
 
-*Last updated: 2026-05-26. All findings are from the Malaysia nowcasting pipeline using OpenDOSM + BNM public APIs.*
+*Last updated: 2026-05-26. All findings are from the Malaysia nowcasting pipeline using OpenDOSM + BNM + yfinance + FRED public APIs.*

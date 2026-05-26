@@ -1,4 +1,5 @@
-"""Backtest: evaluate component-level nowcast accuracy (C, I, G, X, M)."""
+"""Backtest: evaluate component-level nowcast accuracy (C, I, G, X, M).
+Includes global high-frequency indicators (SOX, CPO, BDRY) via yfinance."""
 import sys; sys.path.insert(0,"src")
 import numpy as np
 import pandas as pd
@@ -16,6 +17,7 @@ from nowcasting_toolbox.data.sources.arc_parser import build_publication_schedul
 from nowcasting_toolbox.eval.metrics import compute_mae, compute_fda, compute_rmse
 from nowcasting_toolbox.dfm import DFM
 from nowcasting_toolbox.config import DFMParams
+import yfinance as yf
 
 console = Console()
 
@@ -60,6 +62,37 @@ for name, (did, col, tcode, group, filters) in MONTHLY.items():
     df = df.sort_values("date").drop_duplicates("date")
     filtered[name] = df
 
+# ---------------------------------------------------------------------------
+# 1b. Global high-frequency indicators via yfinance
+# ---------------------------------------------------------------------------
+GLOBAL_INDICATORS = {
+    "sp500": ("^GSPC", "global_equity"),
+    "shcomp": ("000001.SS", "global_equity"),
+    "sox":    ("^SOX", "global_equity"),
+    "brent":  ("BZ=F", "global_commodity"),
+    "cpo":    ("CPO=F", "global_commodity"),
+    "bdry":   ("BDRY", "global_demand"),
+}
+for label, (ticker, group) in GLOBAL_INDICATORS.items():
+    try:
+        raw = yf.download(ticker, start="2015-01-01", progress=False)
+        if raw.empty:
+            continue
+        if isinstance(raw.columns, pd.MultiIndex):
+            close = raw["Close"].iloc[:, 0] if raw["Close"].ndim == 2 else raw["Close"]
+        else:
+            close = raw["Close"]
+        monthly = close.resample("ME").last().dropna()
+        growth = np.log(monthly).diff().dropna()
+        df = growth.reset_index()
+        df.columns = ["date", label]
+        df["date"] = pd.to_datetime(df["date"])
+        MONTHLY[label] = (label, label, 0, group, {})
+        filtered[label] = df
+        console.print(f"  [dim]Loaded {label} ({ticker}): {len(df)} monthly obs[/dim]")
+    except Exception as e:
+        console.print(f"  [yellow]Skipping {label}: {e}[/yellow]")
+
 for var in ["ipi", "imports_capital", "imports_consumer"]:
     if var in filtered:
         filtered[var][var] = filtered[var][var] / 100.0
@@ -92,8 +125,23 @@ for label, (tcode, series_type) in COMPONENTS.items():
         sub["value"]
     ))
 
-monthly_names = sorted(filtered.keys())
-nM = len(monthly_names)
+# ---------------------------------------------------------------------------
+# 1c. Per-component indicator mapping (matches daily_update.py)
+# ---------------------------------------------------------------------------
+COMPONENT_INDICATORS = {
+    "Consumption (e1)": [n for n in filtered if n != "gdp"],
+    "Investment (e3)":  [n for n in filtered if MONTHLY[n][3] in ("industry", "leading", "external", "coincident")],
+    "Government (e2)":  [n for n in filtered if n != "gdp"],  # all: no BNM in backtest
+    "Exports (e5)":     [n for n in filtered if MONTHLY[n][3] in ("external", "financial", "industry", "global_equity", "global_commodity", "global_demand")],
+    "Imports (e6)":     [n for n in filtered if MONTHLY[n][3] in ("external", "services", "prices", "global_commodity")],
+}
+# Fallback: if a subset is too small (<3 indicators), use all
+for ck, indicators in COMPONENT_INDICATORS.items():
+    if len(indicators) < 3:
+        COMPONENT_INDICATORS[ck] = [n for n in filtered if n != "gdp"]
+
+monthly_names_all = sorted(filtered.keys())
+nM_all = len(monthly_names_all)
 
 # Build common grid using GDP SA range
 gdp_sa = client.fetch("gdp_qtr_real_sa", limit=20000)
@@ -105,9 +153,9 @@ ed_end = max(max_dates)
 
 datet_full = generate_dates(gd_start.year, gd_start.month, ed_end.year, ed_end.month)
 T = len(datet_full)
-X_monthly = np.full((T, nM), np.nan)
+X_monthly = np.full((T, nM_all), np.nan)
 
-for j, name in enumerate(monthly_names):
+for j, name in enumerate(monthly_names_all):
     df = filtered[name]
     for _, row in df.iterrows():
         y, m = row["date"].year, row["date"].month
@@ -117,7 +165,7 @@ for j, name in enumerate(monthly_names):
 
 # Transform monthly indicators
 Xm_trans = X_monthly.copy()
-for j, name in enumerate(monthly_names):
+for j, name in enumerate(monthly_names_all):
     tcode = MONTHLY[name][2]
     Xm_trans[:, j] = transform_series(X_monthly[:, j].copy(), tcode, "monthly")
 
@@ -128,27 +176,34 @@ client.close()
 # ---------------------------------------------------------------------------
 arc_schedule = build_publication_schedule(years=[2023, 2024, 2025, 2026], cache_dir=Path("data/malaysia"))
 vb = ARCVintageBuilder(schedule=arc_schedule)
-DID_MAP = ["ipi", "cpi_headline", "cpi_core", "ppi", "u_rate", "u_rate", "u_rate_youth",
-           "leading", "coincident", "exports", "imports_capital", "imports_consumer", "wrt"]
 
 vintage_dates = generate_vintage_dates(2020, 2, 2025, 11, frequency="quarterly", day_of_month=15)
 
 # ---------------------------------------------------------------------------
-# 3. For each component, run DFM at each vintage
+# 3. Build vintages once (all indicators), then loop components
 # ---------------------------------------------------------------------------
 console.print("[cyan]Component Backtest[/cyan]")
 all_results = {label: {"preds": [], "acts": []} for label in COMPONENTS}
 
+# Pre-build full vintage matrices for each vintage date
+vintage_matrices = {}
+for vdate in vintage_dates:
+    Xm_full_vint = vb.build(Xm_trans.copy(), datet_full, vdate, var_names=monthly_names_all, dataset_ids=None)
+    vintage_matrices[vdate] = Xm_full_vint
+
 for label, (tcode, series_type) in COMPONENTS.items():
     console.print(f"\n  [bold]{label}[/bold]")
+
+    # Filter to component-specific indicators
+    comp_vars = sorted(COMPONENT_INDICATORS.get(label, monthly_names_all))
+    comp_indices = [i for i, n in enumerate(monthly_names_all) if n in comp_vars]
 
     for vdate in vintage_dates:
         vmonth = vdate.month
         vyear = vdate.year
         q_end_m = ((vmonth - 1) // 3) * 3 + 3
 
-        # Build monthly indicator vintage
-        Xm_vint = vb.build(Xm_trans.copy(), datet_full, vdate, var_names=monthly_names, dataset_ids=DID_MAP[:nM] if len(DID_MAP) >= nM else None)
+        Xm_vint = vintage_matrices[vdate][:, comp_indices] if comp_indices else vintage_matrices[vdate]
 
         # Build component target column at quarter-end rows
         comp_target = np.full((T, 1), np.nan)
