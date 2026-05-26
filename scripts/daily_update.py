@@ -164,6 +164,55 @@ for label, (ticker, group) in GLOBAL_INDICATORS.items():
         print(f"  yfinance {label}: {len(df_out)} monthly obs")
     except Exception as e:
         print(f"  yfinance {label} failed: {e}")
+
+# ---------------------------------------------------------------------------
+# 1.7 FRED economic data (US industrial production, capacity, sentiment)
+# ---------------------------------------------------------------------------
+FRED_SERIES = {
+    "us_ip":      ("INDPRO", "global_demand"),   # US Industrial Production
+    "us_caputil": ("TCU", "global_demand"),       # US Capacity Utilization
+    "us_sentiment": ("UMCSENT", "global_demand"), # Consumer sentiment
+}
+
+fred_key_path = Path(".fred_key")
+if fred_key_path.exists():
+    fred_key = fred_key_path.read_text().strip()
+    for label, (sid, group) in FRED_SERIES.items():
+        try:
+            import httpx
+            url = "https://api.stlouisfed.org/fred/series/observations"
+            params = {
+                "series_id": sid, "api_key": fred_key, "file_type": "json",
+                "observation_start": "2015-01-01",
+            }
+            resp = httpx.get(url, params=params, timeout=15)
+            data = resp.json()
+            obs = data.get("observations", [])
+            records = [(o["date"], float(o["value"])) for o in obs if o["value"] != "."]
+            if len(records) < 24:
+                continue
+            df_fred = pd.DataFrame(records, columns=["date", label])
+            df_fred["date"] = pd.to_datetime(df_fred["date"])
+            # Resample to month-end (some daily, some monthly)
+            df_fred = df_fred.set_index("date").resample("ME").last().dropna().reset_index()
+            # For indices (INDPRO, TCU): compute MoM growth; for sentiment: use level
+            if sid in ("INDPRO", "TCU"):
+                vals = df_fred[label].values
+                growth = np.full(len(vals), np.nan)
+                for i in range(1, len(vals)):
+                    if vals[i-1] > 0:
+                        growth[i] = np.log(vals[i]) - np.log(vals[i-1])
+                df_fred[label] = growth
+                df_fred = df_fred.dropna()
+                tcode = 0  # already growth
+            else:
+                tcode = 0  # level
+            filtered[label] = df_fred
+            DATASETS[label] = (label, label, tcode, group, {})
+            print(f"  FRED {label}: {len(df_fred)} monthly obs")
+        except Exception as e:
+            print(f"  FRED {label} failed: {e}")
+
 # ---------------------------------------------------------------------------
 try:
     sitc_df = client.fetch("trade_sitc_1d", limit=20000)
@@ -189,7 +238,7 @@ COMPONENT_INDICATORS = {
     # Government: labour + financial (fiscal policy correlates with employment)
     "government":  [n for n in DATASETS if DATASETS[n][3] in ("labour", "financial") and n != "gdp"],
     # Exports: external + financial + industry + global
-    "exports_comp":[n for n in DATASETS if DATASETS[n][3] in ("external", "financial", "industry", "global_equity", "global_commodity") and n != "gdp"],
+    "exports_comp":[n for n in DATASETS if DATASETS[n][3] in ("external", "financial", "industry", "global_equity", "global_commodity", "global_demand") and n != "gdp"],
     # Imports: external + services + prices + global commodity
     "imports_comp":[n for n in DATASETS if DATASETS[n][3] in ("external", "services", "prices", "global_commodity") and n != "gdp"],
 }
