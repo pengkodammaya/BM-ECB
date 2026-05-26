@@ -267,21 +267,49 @@ vals = [v for v in [dfm_val, bvar_val, beq_val] if v is not None]
 nowcasts["ensemble"] = round(np.median(vals), 2) if vals else None
 
 # ---------------------------------------------------------------------------
-# 3b. Component-level nowcasts: Investment, Exports, Imports
+# 3b. Component-level nowcasts: C, I, G, X, M with GDP identity reconciliation
 # ---------------------------------------------------------------------------
 client2 = OpenDOSMClient()
+
+# Fetch demand-side data ONCE for all components
+df_demand = client2.fetch("gdp_qtr_real_demand", limit=20000)
+if df_demand is None:
+    df_demand = pd.DataFrame()
+
 COMPONENTS = [
-    ("investment", "gdp_qtr_real_demand", "e3", "growth_yoy"),
-    ("exports_comp", "gdp_qtr_real_demand", "e5", "growth_yoy"),
-    ("imports_comp", "gdp_qtr_real_demand", "e6", "growth_yoy"),
+    ("consumption", "e1", "growth_yoy"),
+    ("investment",  "e3", "growth_yoy"),
+    ("government",  "e2", "growth_yoy"),
+    ("exports_comp","e5", "growth_yoy"),
+    ("imports_comp","e6", "growth_yoy"),
 ]
 
-for comp_key, comp_did, comp_type, comp_series in COMPONENTS:
+# Collect absolute levels for GDP identity
+comp_levels = {}
+comp_levels_yoy = {}
+
+# Extract absolute levels and actual YoY from pre-fetched demand data
+if not df_demand.empty:
+    for comp_key, comp_type, _ in COMPONENTS:
+        try:
+            abs_data = df_demand[(df_demand["type"] == comp_type) & (df_demand["series"] == "abs")]
+            if len(abs_data) > 0:
+                abs_data = abs_data.copy()
+                abs_data["date"] = pd.to_datetime(abs_data["date"])
+                comp_levels[comp_key] = abs_data.sort_values("date").iloc[-1]["value"]
+            yoy_data = df_demand[(df_demand["type"] == comp_type) & (df_demand["series"] == "growth_yoy")]
+            if len(yoy_data) > 0:
+                yoy_data = yoy_data.copy()
+                yoy_data["date"] = pd.to_datetime(yoy_data["date"])
+                comp_levels_yoy[comp_key] = yoy_data.sort_values("date").iloc[-1]["value"]
+        except Exception:
+            pass
+
+# Now run component-level nowcasts using pre-fetched data
+for comp_key, comp_type, comp_series in COMPONENTS:
     try:
-        df_comp = client2.fetch(comp_did, limit=20000)
-        if df_comp is None or df_comp.empty:
-            continue
-        comp_val = df_comp[(df_comp["type"] == comp_type) & (df_comp["series"] == comp_series)].copy()
+        # Filter component data from pre-fetched demand DataFrame
+        comp_val = df_demand[(df_demand["type"] == comp_type) & (df_demand["series"] == comp_series)].copy()
         if len(comp_val) == 0:
             continue
         comp_val = comp_val[["date", "value"]].rename(columns={"value": "target"})
@@ -291,7 +319,7 @@ for comp_key, comp_did, comp_type, comp_series in COMPONENTS:
 
         # Reuse same monthly indicator grid, swap target
         Xc = np.full((T, nM + 1), np.nan)
-        Xc[:, :nM] = X[:, :nM]  # copy monthly indicators
+        Xc[:, :nM] = X[:, :nM]
         for _, row in comp_val.iterrows():
             y, m = row["date"].year, row["date"].month
             qem = ((m - 1) // 3) * 3 + 3
@@ -300,10 +328,11 @@ for comp_key, comp_did, comp_type, comp_series in COMPONENTS:
                 Xc[idx[0], -1] = row["target"]
 
         Xc_trans = Xc.copy()
-        for j, name in enumerate(AN):
+        for j, name in enumerate(MN + ["gdp"]):
             tcode = DATASETS.get(name, (None, None, 0, None, {}))[2]
             freq = "quarterly" if name == "gdp" else "monthly"
             Xc_trans[:, j] = transform_series(Xc[:, j].copy(), tcode, freq)
+        Xc_trans[:, -1] = Xc[:, -1].copy()
 
         muc = np.nanmean(Xc_trans, axis=0)
         sigmac = np.nanstd(Xc_trans, axis=0)
@@ -319,18 +348,52 @@ for comp_key, comp_did, comp_type, comp_series in COMPONENTS:
         res_c = dfm_c.fit(Xc_est)
         nwc = float(res_c.X_sm[-1, -1]) * sigmac[-1] + muc[-1]
         nowcasts[comp_key] = round(nwc * 100, 2)
-
-        # Also fetch actual latest value
-        for i in range(len(Xc_est)-1, -1, -1):
-            if not np.isnan(Xc_est[i, -1]):
-                act_comp = (Xc_est[i, -1] * sigmac[-1] + muc[-1]) * 100
-                nowcasts[comp_key + "_actual"] = round(act_comp, 2)
-                break
     except Exception as e:
         print(f"  Component {comp_key}: {e}")
         nowcasts[comp_key] = None
 
 client2.close()
+
+# ---------------------------------------------------------------------------
+# 3c. GDP Identity Reconciliation: derive imports from C+I+G+X-GDP
+# ---------------------------------------------------------------------------
+# GDP = C + I + G + X - M  (expenditure approach)
+# => M_growth = (C*C_growth + I*I_growth + G*G_growth + X*X_growth - GDP*GDP_growth) / M
+try:
+    # Get absolute levels of each component
+    c_level = comp_levels.get("consumption", 0)
+    i_level = comp_levels.get("investment", 0)
+    g_level = comp_levels.get("government", 0)
+    x_level = comp_levels.get("exports_comp", 0)
+    m_level_abs = abs(comp_levels.get("imports_comp", 1))  # imports stored negative
+    
+    # Get nowcasts in decimal form
+    c_growth = nowcasts.get("consumption", 0)
+    i_growth = nowcasts.get("investment", 0)
+    g_growth = nowcasts.get("government", 0)
+    x_growth = nowcasts.get("exports_comp", 0)
+    gdp_growth = nowcasts.get("dfm", 0)  # main GDP nowcast
+    
+    if all(v is not None for v in [c_growth, i_growth, g_growth, x_growth, gdp_growth, c_level, i_level, g_level, x_level, m_level_abs]):
+        # Convert to decimal
+        c_g = c_growth / 100
+        i_g = i_growth / 100
+        g_g = g_growth / 100
+        x_g = x_growth / 100
+        gdp_g = gdp_growth / 100
+        
+        # GDP identity: GDP = C + I + G + X - M
+        # In growth terms: GDP*GDP_g = C*C_g + I*I_g + G*G_g + X*X_g - M*M_g
+        # => M*M_g = C*C_g + I*I_g + G*G_g + X*X_g - GDP*GDP_g
+        m_g = (c_level * c_g + i_level * i_g + g_level * g_g + x_level * x_g - (c_level + i_level + g_level + x_level - m_level_abs) * gdp_g) / m_level_abs
+        nowcasts["imports_identity"] = round(m_g * 100, 2)
+except Exception as e:
+    print(f"GDP identity derivation failed: {e}")
+    nowcasts["imports_identity"] = None
+
+# Add actual YoY growth for components
+for ck in ["consumption", "investment", "government", "exports_comp", "imports_comp"]:
+    nowcasts[ck + "_actual"] = comp_levels_yoy.get(ck)
 
 # Latest actual GDP
 actual_pct = None
@@ -455,13 +518,29 @@ for _, row in log.tail(30).iterrows():
     md += f"| {row['date']} | {vals[0]} | {vals[1]} | {vals[2]} | {vals[3]} | {vals[4]} |\n"
 
     md += f"\n## Component Nowcasts (YoY %)\n\n"
-    comp_labels = {"investment": "Investment (GFCF)", "exports_comp": "Exports", "imports_comp": "Imports"}
+    comp_labels = {
+        "consumption": "Consumption (Private)",
+        "government": "Government Spending",
+        "investment": "Investment (GFCF)",
+        "exports_comp": "Exports",
+        "imports_comp": "Imports (direct model)",
+    }
     for ck, cl in comp_labels.items():
         v = nowcasts.get(ck)
         a = nowcasts.get(ck + "_actual")
         v_str = f"`{v:+.1f}%`" if v is not None else "—"
         a_str = f"`{a:+.1f}%`" if a is not None else "—"
         md += f"- **{cl}:** nowcast {v_str} | actual {a_str}\n"
+
+    # Show GDP-identity derived imports
+    imp_id = nowcasts.get("imports_identity")
+    imp_dir = nowcasts.get("imports_comp")
+    imp_act = nowcasts.get("imports_comp_actual")
+    if imp_id is not None:
+        act_str = f"`{imp_act:+.1f}%`" if imp_act is not None else "—"
+        dir_str = f"`{imp_dir:+.1f}%`" if imp_dir is not None else "—"
+        md += f"- **Imports (GDP identity):** nowcast `{imp_id:+.1f}%` | actual {act_str}\n"
+        md += f"  *Derived from: C+I+G+X-GDP identity. Direct model nowcast was {dir_str}.*\n"
 
 md += f"\n## Ground Truth Definition\n\n"
 md += f"- **Main GDP:** QoQ SA growth from DOSM `gdp_qtr_real_sa` (seasonally adjusted, constant 2015 prices)\n"
