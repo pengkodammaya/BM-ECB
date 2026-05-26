@@ -104,6 +104,56 @@ for k in ["interbank", "fx_usd"]:
     if k in filtered:
         DATASETS[k] = (k, k, 0, "financial", {})
 
+# ---------------------------------------------------------------------------
+# 1.5 Add lagged FX features (3-month, 6-month) for export passthrough
+# ---------------------------------------------------------------------------
+if "fx_usd" in filtered:
+    fx_df = filtered["fx_usd"].copy().sort_values("date")
+    fx_vals = fx_df["fx_usd"].values
+    fx_lag3 = np.full(len(fx_vals), np.nan)
+    fx_lag6 = np.full(len(fx_vals), np.nan)
+    fx_lag3[3:] = fx_vals[:-3]
+    fx_lag6[6:] = fx_vals[:-6]
+    fx_df["fx_lag3"] = fx_lag3
+    fx_df["fx_lag6"] = fx_lag6
+    fx_final = fx_df[["date", "fx_lag3", "fx_lag6"]].dropna()
+    if len(fx_final) > 0:
+        filtered["fx_lag3"] = fx_final[["date", "fx_lag3"]]
+        filtered["fx_lag6"] = fx_final[["date", "fx_lag6"]]
+        DATASETS["fx_lag3"] = ("fx_lag3", "fx_lag3", 0, "financial", {})
+        DATASETS["fx_lag6"] = ("fx_lag6", "fx_lag6", 0, "financial", {})
+
+# ---------------------------------------------------------------------------
+# 1.6 Add SITC trade section data (E&E, commodities) as indicators
+# ---------------------------------------------------------------------------
+try:
+    sitc_df = client.fetch("trade_sitc_1d", limit=20000)
+    if sitc_df is not None and len(sitc_df) > 0:
+        # Section 7 = machinery/transport (E&E), Section 3 = mineral fuels, overall = total
+        for section, label in [("overall", "sitc_total"), ("7", "sitc_machinery")]:
+            sub = sitc_df[(sitc_df["section"] == section)].copy()
+            if len(sub) > 0:
+                sub = sub[["date", "exports"]].dropna().rename(columns={"exports": label})
+                sub["date"] = pd.to_datetime(sub["date"])
+                sub = sub.sort_values("date").drop_duplicates("date")
+                filtered[label] = sub
+                DATASETS[label] = (label, label, 1, "external", {})  # dlog transform
+except Exception as e:
+    print(f"SITC data failed (non-fatal): {e}")
+
+# Define component-specific indicator subsets
+COMPONENT_INDICATORS = {
+    "consumption": [n for n in DATASETS if DATASETS[n][3] in ("labour", "prices", "services", "external") and n != "gdp"],
+    "investment":  [n for n in DATASETS if DATASETS[n][3] in ("industry", "financial", "leading", "external") and n != "gdp"],
+    "government":  [n for n in DATASETS if DATASETS[n][3] in ("labour", "financial") and n != "gdp"],
+    "exports_comp":[n for n in DATASETS if DATASETS[n][3] in ("external", "financial", "industry") and n != "gdp"],
+    "imports_comp":[n for n in DATASETS if DATASETS[n][3] in ("external", "services", "prices") and n != "gdp"],
+}
+# Fallback: if a subset is too small (<3 indicators), use all
+for ck, indicators in COMPONENT_INDICATORS.items():
+    if len(indicators) < 3:
+        COMPONENT_INDICATORS[ck] = [n for n in DATASETS if n != "gdp"]
+
 # GDP QoQ
 gdp_df = filtered["gdp"].copy().sort_values("date")
 gv = gdp_df["gdp"].values
@@ -344,9 +394,14 @@ if not df_demand.empty:
         except Exception:
             pass
 
-# Now run component-level nowcasts using pre-fetched data
+# Now run component-level nowcasts using targeted indicator subsets
 for comp_key, comp_type, comp_series in COMPONENTS:
     try:
+        # Get targeted indicators for this component
+        target_indicators = COMPONENT_INDICATORS.get(comp_key, MN)
+        target_names = [n for n in target_indicators if n in filtered]
+        n_comp = len(target_names)
+
         # Filter component data from pre-fetched demand DataFrame
         comp_val = df_demand[(df_demand["type"] == comp_type) & (df_demand["series"] == comp_series)].copy()
         if len(comp_val) == 0:
@@ -356,9 +411,16 @@ for comp_key, comp_type, comp_series in COMPONENTS:
         comp_val = comp_val.sort_values("date").dropna()
         comp_val["target"] = comp_val["target"] / 100.0
 
-        # Reuse same monthly indicator grid, swap target
-        Xc = np.full((T, nM + 1), np.nan)
-        Xc[:, :nM] = X[:, :nM]
+        # Build component-specific grid with targeted indicators
+        Xc = np.full((T, n_comp + 1), np.nan)
+        for j, name in enumerate(target_names):
+            if name in filtered:
+                df = filtered[name]
+                for _, row in df.iterrows():
+                    y, m = row["date"].year, row["date"].month
+                    idx = np.where((datet[:, 0] == y) & (datet[:, 1] == m))[0]
+                    if len(idx) > 0:
+                        Xc[idx[0], j] = row[name]
         for _, row in comp_val.iterrows():
             y, m = row["date"].year, row["date"].month
             qem = ((m - 1) // 3) * 3 + 3
@@ -367,10 +429,9 @@ for comp_key, comp_type, comp_series in COMPONENTS:
                 Xc[idx[0], -1] = row["target"]
 
         Xc_trans = Xc.copy()
-        for j, name in enumerate(MN + ["gdp"]):
+        for j, name in enumerate(target_names):
             tcode = DATASETS.get(name, (None, None, 0, None, {}))[2]
-            freq = "quarterly" if name == "gdp" else "monthly"
-            Xc_trans[:, j] = transform_series(Xc[:, j].copy(), tcode, freq)
+            Xc_trans[:, j] = transform_series(Xc[:, j].copy(), tcode, "monthly")
         Xc_trans[:, -1] = Xc[:, -1].copy()
 
         muc = np.nanmean(Xc_trans, axis=0)
