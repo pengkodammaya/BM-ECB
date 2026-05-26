@@ -1,2 +1,2 @@
-date,dfm,bvar,beq,ensemble,actual_gdp_pct
-2026-05-26,2.23,-0.29,1.0,1.0,-0.01
+date,dfm,bvar,beq,ensemble,actual_gdp_pct,investment,exports_comp,imports_comp
+2026-05-26,2.23,-0.29,1.0,1.0,-0.01,9.26,2.91,6.59

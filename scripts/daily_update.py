@@ -209,7 +209,68 @@ except Exception as e:
 
 # Ensemble
 vals = [v for v in nowcasts.values() if v is not None]
+# Ensemble
+vals = [v for v in nowcasts.values() if v is not None]
 nowcasts["ensemble"] = round(np.median(vals), 2) if vals else None
+
+# ---------------------------------------------------------------------------
+# 3b. Component-level nowcasts: Investment, Exports, Imports
+# ---------------------------------------------------------------------------
+client2 = OpenDOSMClient()
+COMPONENTS = [
+    ("investment", "gdp_qtr_real_demand", "e3", "growth_yoy"),
+    ("exports_comp", "gdp_qtr_real_demand", "e5", "growth_yoy"),
+    ("imports_comp", "gdp_qtr_real_demand", "e6", "growth_yoy"),
+]
+
+for comp_key, comp_did, comp_type, comp_series in COMPONENTS:
+    try:
+        df_comp = client2.fetch(comp_did, limit=20000)
+        if df_comp is None or df_comp.empty:
+            continue
+        comp_val = df_comp[(df_comp["type"] == comp_type) & (df_comp["series"] == comp_series)].copy()
+        if len(comp_val) == 0:
+            continue
+        comp_val = comp_val[["date", "value"]].rename(columns={"value": "target"})
+        comp_val["date"] = pd.to_datetime(comp_val["date"])
+        comp_val = comp_val.sort_values("date").dropna()
+        comp_val["target"] = comp_val["target"] / 100.0
+
+        # Reuse same monthly indicator grid, swap target
+        Xc = np.full((T, nM + 1), np.nan)
+        Xc[:, :nM] = X[:, :nM]  # copy monthly indicators
+        for _, row in comp_val.iterrows():
+            y, m = row["date"].year, row["date"].month
+            qem = ((m - 1) // 3) * 3 + 3
+            idx = np.where((datet[:, 0] == y) & (datet[:, 1] == qem))[0]
+            if len(idx) > 0:
+                Xc[idx[0], -1] = row["target"]
+
+        Xc_trans = Xc.copy()
+        for j, name in enumerate(AN):
+            tcode = DATASETS.get(name, (None, None, 0, None, {}))[2]
+            freq = "quarterly" if name == "gdp" else "monthly"
+            Xc_trans[:, j] = transform_series(Xc[:, j].copy(), tcode, freq)
+
+        muc = np.nanmean(Xc_trans, axis=0)
+        sigmac = np.nanstd(Xc_trans, axis=0)
+        sigmac[sigmac < 1e-10] = 1.0
+        Xc_std = (Xc_trans - muc) / sigmac
+        ffc = np.where(~np.all(np.isnan(Xc_std), axis=1))[0][0]
+        Xc_est = Xc_std[ffc:]
+
+        if np.sum(~np.isnan(Xc_est[:, -1])) < 5:
+            continue
+
+        dfm_c = DFM(DFMParams(r=3, p=2, max_iter=30, thresh=1e-5, idio=1))
+        res_c = dfm_c.fit(Xc_est)
+        nwc = float(res_c.X_sm[-1, -1]) * sigmac[-1] + muc[-1]
+        nowcasts[comp_key] = round(nwc * 100, 2)
+    except Exception as e:
+        print(f"  Component {comp_key}: {e}")
+        nowcasts[comp_key] = None
+
+client2.close()
 
 # Latest actual GDP
 actual_pct = None
@@ -317,6 +378,13 @@ for _, row in log.tail(30).iterrows():
         v = row.get(m)
         vals.append(f"{v:+.1f}%" if pd.notna(v) else "—")
     md += f"| {row['date']} | {vals[0]} | {vals[1]} | {vals[2]} | {vals[3]} | {vals[4]} |\n"
+
+    md += f"\n## Component Nowcasts (YoY %)\n\n"
+    comp_labels = {"investment": "Investment (GFCF)", "exports_comp": "Exports", "imports_comp": "Imports"}
+    for ck, cl in comp_labels.items():
+        v = nowcasts.get(ck)
+        v_str = f"`{v:+.1f}%`" if v is not None else "—"
+        md += f"- **{cl}:** {v_str}\n"
 
 md += f"\n---\n*Auto-generated daily at 8am MYT via GitHub Actions. [View source](https://github.com/pengkodammaya/BM-ECB)*\n"
 (Path("docs") / "leaderboard.md").write_text(md)
