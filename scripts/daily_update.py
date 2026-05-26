@@ -266,6 +266,13 @@ for comp_key, comp_did, comp_type, comp_series in COMPONENTS:
         res_c = dfm_c.fit(Xc_est)
         nwc = float(res_c.X_sm[-1, -1]) * sigmac[-1] + muc[-1]
         nowcasts[comp_key] = round(nwc * 100, 2)
+
+        # Also fetch actual latest value
+        for i in range(len(Xc_est)-1, -1, -1):
+            if not np.isnan(Xc_est[i, -1]):
+                act_comp = (Xc_est[i, -1] * sigmac[-1] + muc[-1]) * 100
+                nowcasts[comp_key + "_actual"] = round(act_comp, 2)
+                break
     except Exception as e:
         print(f"  Component {comp_key}: {e}")
         nowcasts[comp_key] = None
@@ -383,10 +390,17 @@ for _, row in log.tail(30).iterrows():
     comp_labels = {"investment": "Investment (GFCF)", "exports_comp": "Exports", "imports_comp": "Imports"}
     for ck, cl in comp_labels.items():
         v = nowcasts.get(ck)
+        a = nowcasts.get(ck + "_actual")
         v_str = f"`{v:+.1f}%`" if v is not None else "—"
-        md += f"- **{cl}:** {v_str}\n"
+        a_str = f"`{a:+.1f}%`" if a is not None else "—"
+        md += f"- **{cl}:** nowcast {v_str} | actual {a_str}\n"
 
-md += f"\n---\n*Auto-generated daily at 8am MYT via GitHub Actions. [View source](https://github.com/pengkodammaya/BM-ECB)*\n"
+md += f"\n## Ground Truth Definition\n\n"
+md += f"- **Main GDP:** QoQ SA growth from DOSM `gdp_qtr_real_sa` (seasonally adjusted, constant 2015 prices)\n"
+md += f"- **Components:** YoY growth from DOSM `gdp_qtr_real_demand` (expenditure approach, non-SA)\n"
+md += f"- **Source:** [OpenDOSM API](https://open.dosm.gov.my) — live data, fetched fresh each run\n"
+md += f"- **Latest vintage:** {today_str}\n\n"
+md += f"---\n*Auto-generated daily at 8am MYT via GitHub Actions. [View source](https://github.com/pengkodammaya/BM-ECB)*\n"
 (Path("docs") / "leaderboard.md").write_text(md)
 
 print(f"[{datetime.now().isoformat()}] Daily update complete.")
