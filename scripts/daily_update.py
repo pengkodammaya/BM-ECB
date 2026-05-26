@@ -257,40 +257,69 @@ if len(log) >= 3:
     lb_df = pd.DataFrame(lb_rows)
     lb_df.to_csv(Path("docs/leaderboard.csv"), index=False)
 
-    # -------------------------------------------------------------------
-    # 6. Generate markdown leaderboard (rendered natively by GitHub)
-    # -------------------------------------------------------------------
-    md = f"# Malaysia GDP Nowcasting — Live Leaderboard\n\n"
-    md += f"**Last updated:** {today_str} | **Source:** [OpenDOSM](https://open.dosm.gov.my) + [BNM](https://apikijangportal.bnm.gov.my)\n\n"
-    md += "## Latest Nowcast\n\n"
-    for model in ["DFM", "BVAR", "BEQ", "ENSEMBLE"]:
-        col = model.lower()
-        val = nowcasts.get(col)
-        if val is not None:
-            md += f"- **{model}:** `{val:+.2f}%` QoQ SA\n"
-    if actual_pct:
-        md += f"\n*Latest actual GDP: {actual_pct:+.1f}%*\n"
+# -------------------------------------------------------------------
+# 6. Generate markdown leaderboard (always, even with <3 data points)
+# -------------------------------------------------------------------
+md = f"# Malaysia GDP Nowcasting — Live Leaderboard\n\n"
+md += f"**Last updated:** {today_str} | **Source:** [OpenDOSM](https://open.dosm.gov.my) + [BNM](https://apikijangportal.bnm.gov.my)\n\n"
+md += "## Latest Nowcast\n\n"
+for model in ["DFM", "BVAR", "BEQ", "ENSEMBLE"]:
+    col = model.lower()
+    val = nowcasts.get(col)
+    if val is not None:
+        md += f"- **{model}:** `{val:+.2f}%` QoQ SA\n"
+if actual_pct:
+    md += f"\n*Latest actual GDP: {actual_pct:+.1f}%*\n"
 
-    md += "\n## Model Leaderboard\n\n"
+md += "\n## Model Leaderboard\n\n"
+if len(log) >= 3:
+    lb_rows = []
+    for model in ["dfm", "bvar", "beq", "ensemble"]:
+        col = model
+        sub = log[[col, "actual_gdp_pct"]].dropna()
+        if len(sub) < 3:
+            continue
+        pred = sub[col].values
+        act = sub["actual_gdp_pct"].values
+        lb_rows.append({
+            "model": model.upper(),
+            "MAE (pp)": round(compute_mae(act, pred), 3),
+            "RMSE (pp)": round(compute_rmse(act, pred), 3),
+            "FDA (%)": round(compute_fda(act, pred) * 100, 1),
+            "N": len(sub),
+            "last_nowcast": nowcasts[model],
+        })
+    lb_df = pd.DataFrame(lb_rows)
+    lb_df.to_csv(Path("docs/leaderboard.csv"), index=False)
+
     md += "| Model | MAE (pp) | RMSE (pp) | FDA (%) | N | Latest |\n"
     md += "|-------|----------|-----------|---------|---|--------|\n"
     for _, r in lb_df.iterrows():
         latest = r.get("last_nowcast", "—")
         latest_str = f"{latest:+.1f}%" if isinstance(latest, (int, float)) else "—"
         md += f"| {r['model']} | {r['MAE (pp)']:.3f} | {r['RMSE (pp)']:.3f} | {r['FDA (%)']:.1f}% | {int(r['N'])} | {latest_str} |\n"
+else:
+    md += f"*Leaderboard requires 3+ daily observations. Currently: {len(log)}. First metrics expected soon.*\n\n"
+    md += "| Model | MAE (pp) | RMSE (pp) | FDA (%) | N | Latest |\n"
+    md += "|-------|----------|-----------|---------|---|--------|\n"
+    for model in ["DFM", "BVAR", "BEQ", "ENSEMBLE"]:
+        col = model.lower()
+        val = nowcasts.get(col)
+        latest_str = f"{val:+.1f}%" if val is not None else "—"
+        md += f"| {model} | — | — | — | {len(log)} | {latest_str} |\n"
 
-    md += f"\n## Recent Nowcasts (30 days)\n\n"
-    md += "| Date | DFM | BVAR | BEQ | ENSEMBLE | Actual |\n"
-    md += "|------|-----|------|-----|----------|--------|\n"
-    for _, row in log.tail(30).iterrows():
-        vals = []
-        for m in ["dfm", "bvar", "beq", "ensemble", "actual_gdp_pct"]:
-            v = row.get(m)
-            vals.append(f"{v:+.1f}%" if pd.notna(v) else "—")
-        md += f"| {row['date']} | {vals[0]} | {vals[1]} | {vals[2]} | {vals[3]} | {vals[4]} |\n"
+md += f"\n## Recent Nowcasts ({min(30, len(log))} days)\n\n"
+md += "| Date | DFM | BVAR | BEQ | ENSEMBLE | Actual |\n"
+md += "|------|-----|------|-----|----------|--------|\n"
+for _, row in log.tail(30).iterrows():
+    vals = []
+    for m in ["dfm", "bvar", "beq", "ensemble", "actual_gdp_pct"]:
+        v = row.get(m)
+        vals.append(f"{v:+.1f}%" if pd.notna(v) else "—")
+    md += f"| {row['date']} | {vals[0]} | {vals[1]} | {vals[2]} | {vals[3]} | {vals[4]} |\n"
 
-    md += f"\n---\n*Auto-generated daily via GitHub Actions. [View source](https://github.com/pengkodammaya/BM-ECB)*\n"
-    (Path("docs") / "leaderboard.md").write_text(md)
+md += f"\n---\n*Auto-generated daily at 8am MYT via GitHub Actions. [View source](https://github.com/pengkodammaya/BM-ECB)*\n"
+(Path("docs") / "leaderboard.md").write_text(md)
 
 print(f"[{datetime.now().isoformat()}] Daily update complete.")
 print(json.dumps(nowcasts, indent=2))
