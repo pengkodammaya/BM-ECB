@@ -434,6 +434,35 @@ except Exception as e:
 for ck in ["consumption", "investment", "government", "exports_comp", "imports_comp"]:
     nowcasts[ck + "_actual"] = comp_levels_yoy.get(ck)
 
+# ---------------------------------------------------------------------------
+# 3.7 Component AR(1) benchmarks (simple momentum for each component)
+# ---------------------------------------------------------------------------
+COMP_AR1 = {}
+if not df_demand.empty:
+    for comp_key, comp_type, _ in COMPONENTS:
+        try:
+            # Get component YoY growth series
+            comp_yoy = df_demand[(df_demand["type"] == comp_type) & (df_demand["series"] == "growth_yoy")].copy()
+            if len(comp_yoy) < 5:
+                continue
+            comp_yoy["date"] = pd.to_datetime(comp_yoy["date"])
+            comp_yoy = comp_yoy.sort_values("date")
+            y_vals = comp_yoy["value"].values  # already in %
+            y_lag = y_vals[:-1]
+            y_curr = y_vals[1:]
+            valid = ~np.isnan(y_lag) & ~np.isnan(y_curr)
+            if np.sum(valid) >= 4:
+                X_ar = np.column_stack([np.ones(np.sum(valid)), y_lag[valid]])
+                ar_coeffs = np.linalg.lstsq(X_ar, y_curr[valid], rcond=None)[0]
+                ar_fc = ar_coeffs[0] + ar_coeffs[1] * y_vals[-1]
+                COMP_AR1[comp_key] = round(ar_fc, 2)
+        except Exception as e:
+            print(f"  AR(1) {comp_key}: {e}")
+
+# Merge component AR(1) into nowcasts
+for ck, val in COMP_AR1.items():
+    nowcasts[ck + "_ar1"] = val
+
 # Latest actual GDP
 actual_pct = None
 for i in range(len(X_est)-1, -1, -1):
@@ -582,30 +611,43 @@ for _, row in log.tail(30).iterrows():
         vals.append(f"{v:+.1f}%" if pd.notna(v) else "—")
     md += f"| {row['date']} | {vals[0]} | {vals[1]} | {vals[2]} | {vals[3]} | {vals[4]} | {ref_str} |\n"
 
-    md += f"\n## Component Nowcasts (YoY %)\n\n"
-    comp_labels = {
-        "consumption": "Consumption (Private)",
-        "government": "Government Spending",
-        "investment": "Investment (GFCF)",
-        "exports_comp": "Exports",
-        "imports_comp": "Imports (direct model)",
-    }
-    for ck, cl in comp_labels.items():
-        v = nowcasts.get(ck)
-        a = nowcasts.get(ck + "_actual")
-        v_str = f"`{v:+.1f}%`" if v is not None else "—"
-        a_str = f"`{a:+.1f}%`" if a is not None else "—"
-        md += f"- **{cl}:** nowcast {v_str} | actual {a_str}\n"
+    md += f"\n## Component Leaderboard (YoY %)\n\n"
+md += "*DFM nowcast vs AR(1) baseline for each expenditure component.*\n\n"
 
-    # Show GDP-identity derived imports
-    imp_id = nowcasts.get("imports_identity")
-    imp_dir = nowcasts.get("imports_comp")
-    imp_act = nowcasts.get("imports_comp_actual")
-    if imp_id is not None:
-        act_str = f"`{imp_act:+.1f}%`" if imp_act is not None else "—"
-        dir_str = f"`{imp_dir:+.1f}%`" if imp_dir is not None else "—"
-        md += f"- **Imports (GDP identity):** nowcast `{imp_id:+.1f}%` | actual {act_str}\n"
-        md += f"  *Derived from: C+I+G+X-GDP identity. Direct model nowcast was {dir_str}.*\n"
+comp_labels = {
+    "consumption": ("Consumption (Private)", "C"),
+    "government": ("Government Spending", "G"),
+    "investment": ("Investment (GFCF)", "I"),
+    "exports_comp": ("Exports", "X"),
+    "imports_comp": ("Imports", "M"),
+}
+
+for ck, (clabel, ccode) in comp_labels.items():
+    dfm_val = nowcasts.get(ck)
+    ar1_val = nowcasts.get(ck + "_ar1")
+    act_val = nowcasts.get(ck + "_actual")
+    
+    dfm_str = f"`{dfm_val:+.1f}%`" if dfm_val is not None else "—"
+    ar1_str = f"`{ar1_val:+.1f}%`" if ar1_val is not None else "—"
+    act_str = f"`{act_val:+.1f}%`" if act_val is not None else "—"
+    
+    md += f"### {clabel} ({ccode})\n\n"
+    md += "| Model | Nowcast | Reference (Actual) |\n"
+    md += "|-------|---------|--------------------|\n"
+    md += f"| DFM | {dfm_str} | {act_str} |\n"
+    md += f"| AR(1) *(baseline)* | {ar1_str} | {act_str} |\n"
+    md += "\n"
+
+# Show GDP-identity derived imports separately
+imp_id = nowcasts.get("imports_identity")
+imp_dir = nowcasts.get("imports_comp")
+imp_act = nowcasts.get("imports_comp_actual")
+if imp_id is not None:
+    act_str = f"`{imp_act:+.1f}%`" if imp_act is not None else "—"
+    dir_str = f"`{imp_dir:+.1f}%`" if imp_dir is not None else "—"
+    md += f"#### GDP-Identity Derived Imports\n"
+    md += f"- **Imports (identity):** nowcast `{imp_id:+.1f}%` vs actual {act_str}\n"
+    md += f"- *Derived from C+I+G+X-GDP. Direct DFM was {dir_str}.*\n"
 
 md += f"\n## Ground Truth Definition\n\n"
 md += f"- **Main GDP:** QoQ SA growth from DOSM `gdp_qtr_real_sa` (seasonally adjusted, constant 2015 prices)\n"

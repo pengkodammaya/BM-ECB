@@ -49,15 +49,48 @@
 |------|-----|------|-----|-------|----------|----------|
 | 2026-05-26 | +1.8% | +0.1% | +1.1% | +1.5% | +1.1% | -0.0% |
 
-## Component Nowcasts (YoY %)
+## Component Leaderboard (YoY %)
 
-- **Consumption (Private):** nowcast `+8.6%` | actual `+4.7%`
-- **Government Spending:** nowcast `+4.2%` | actual `+4.1%`
-- **Investment (GFCF):** nowcast `+10.1%` | actual `+7.3%`
-- **Exports:** nowcast `+3.4%` | actual `+5.2%`
-- **Imports (direct model):** nowcast `+3.3%` | actual `+4.6%`
-- **Imports (GDP identity):** nowcast `+13.6%` | actual `+4.6%`
-  *Derived from: C+I+G+X-GDP identity. Direct model nowcast was `+3.3%`.*
+*DFM nowcast vs AR(1) baseline for each expenditure component.*
+
+### Consumption (Private) (C)
+
+| Model | Nowcast | Reference (Actual) |
+|-------|---------|--------------------|
+| DFM | `+8.6%` | `+4.7%` |
+| AR(1) *(baseline)* | `+5.1%` | `+4.7%` |
+
+### Government Spending (G)
+
+| Model | Nowcast | Reference (Actual) |
+|-------|---------|--------------------|
+| DFM | `+4.2%` | `+4.1%` |
+| AR(1) *(baseline)* | `+4.3%` | `+4.1%` |
+
+### Investment (GFCF) (I)
+
+| Model | Nowcast | Reference (Actual) |
+|-------|---------|--------------------|
+| DFM | `+10.1%` | `+7.3%` |
+| AR(1) *(baseline)* | `+5.4%` | `+7.3%` |
+
+### Exports (X)
+
+| Model | Nowcast | Reference (Actual) |
+|-------|---------|--------------------|
+| DFM | `+3.4%` | `+5.2%` |
+| AR(1) *(baseline)* | `+4.9%` | `+5.2%` |
+
+### Imports (M)
+
+| Model | Nowcast | Reference (Actual) |
+|-------|---------|--------------------|
+| DFM | `+3.3%` | `+4.6%` |
+| AR(1) *(baseline)* | `+4.8%` | `+4.6%` |
+
+#### GDP-Identity Derived Imports
+- **Imports (identity):** nowcast `+13.6%` vs actual `+4.6%`
+- *Derived from C+I+G+X-GDP. Direct DFM was `+3.3%`.*
 
 ## Ground Truth Definition
 
