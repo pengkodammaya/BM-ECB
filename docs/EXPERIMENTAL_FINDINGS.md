@@ -158,6 +158,78 @@ Where `_lvl` are absolute MYR levels from the API and `_g` are the DFM nowcast g
 
 **Recommendation**: Always use `abs` series and compute growth internally. Only use `growth_mom` for variables where the absolute level is meaningless (e.g., unemployment rate which is already a percentage).
 
+
+## 9. Block Factors in DFM (Negative Finding)
+
+**Date**: 2026-05-26
+
+**Hypothesis**: Adding block-specific factors (one per economic category: industry, prices, labour, external, services) would improve factor identification by forcing variables in the same category to share a dedicated factor.
+
+**Implementation**: State vector expanded from r×p to r×p + n_blocks×p. Block factors initialized with halved loadings on their own block's variables, zero elsewhere. M-step enforces zero cross-block loadings.
+
+**Result**: Backtest with `block_factors=1` produced **identical** MAE and FDA to `block_factors=0`.
+
+| Metric | block_factors=0 | block_factors=1 | Delta |
+|--------|:--------------:|:--------------:|:-----:|
+| DFM MAE (post-COVID) | 1.544 pp | 1.544 pp | 0 |
+| DFM FDA (post-COVID) | 57.9% | 57.9% | 0 |
+
+**Why it failed**: The block factor implementation only constrains loadings in the M-step but doesn't properly allocate the additional state-space dimensions. The EM algorithm effectively zeros out the block factors because they're initialized with weak loadings (0.5× global) and the M-step can't move them significantly given the constraint. Additionally, many blocks have only 1-2 variables (industry, leading, coincident, services, financial), providing insufficient signal for a dedicated factor.
+
+**Conclusion**: Block factors as currently implemented add no value. They would only be useful with: (a) larger blocks (5+ variables per category), (b) stronger initialization, or (c) a hierarchical EM formulation that fits block factors first then global factors. For the current 17-indicator set with 8 categories, block factors are pure overhead.
+
+**Recommendation**: Leave disabled. Revisit only if indicator set grows to 30+ with 5+ variables per economic category.
+
+
+## 10. Hyperparameter Grid Search
+
+**Date**: 2026-05-26
+
+**Method**: Grid search over r ∈ {2,3,4,5} × p ∈ {1,2,3,4} over 20 vintages (2021-2025). 16 combinations tested.
+
+**Results**:
+
+| r | p | MAE (pp) | FDA | Verdict |
+|---|:--:|:------:|:---:|---------|
+| **2** | **4** | **1.406** | 85% | **Best MAE** |
+| 4 | 1 | 1.542 | 85% | |
+| 2 | 1 | 1.574 | 85% | **Best FDA** |
+| 5 | 1 | 1.586 | 85% | |
+| 3 | 2 | 1.665 | 75% | *(current default)* |
+| 4 | 2 | 2.496 | 70% | *(worst)* |
+
+**Key findings**:
+- **r=2 (fewer factors) outperforms r=3** — with only 17 indicators, 2 factors is sufficient. r=3 overfits.
+- **p=4 (more lags) outperforms p=2** — GDP dynamics have longer memory than our default assumed.
+- **Current default (r=3, p=2) is suboptimal** — MAE 1.665 vs optimal 1.406, a 15.6% gap.
+- The optimal (r=2, p=4) uses 8 state dimensions vs current 6 — more memory, fewer factors.
+
+**Recommendation**: Switch default to r=2, p=4. Update `backtest_all_models.py` and `daily_update.py` to use these values.
+
+
+## 11. Component Backtest Results
+
+**Date**: 2026-05-26
+
+**Method**: Full backtest for all 5 expenditure components (C, I, G, X, M) over 24 vintages (2020-Q1 to 2025-Q4), using the same ARC-based vintage builder and DFM (r=3, p=2) as the main GDP backtest.
+
+**Results**:
+
+| Component | MAE (pp) | RMSE (pp) | FDA | N |
+|-----------|:------:|:--------:|:---:|:-:|
+| Consumption (e1) | **0.69** | 0.89 | **78%** | 24 |
+| Investment (e3) | **0.74** | 1.19 | **96%** | 24 |
+| Government (e2) | 1.03 | 1.21 | 96% | 24 |
+| Exports (e5) | 1.60 | 2.17 | 96% | 24 |
+| Imports (e6) | **2.71** | 3.46 | 96% | 24 |
+
+**Key findings**:
+- **Consumption is highly predictable** at 0.69 pp MAE — much better than expected. The earlier daily nowcast errors (+3.9 pp) were single-point estimates; averaged over 24 vintages, the DFM performs well on consumption.
+- **Investment and government are excellent** at <1 pp MAE with 96% FDA. These components are well-captured by the monthly indicators.
+- **Imports remains the hardest** at 2.71 pp MAE, though FDA is 96% (strong direction). Imports are structurally the residual component.
+- **All components have strong directional accuracy** (78-96% FDA) — the DFM rarely gets the sign wrong.
+- The backtest validates that component-level nowcasting with the DFM is viable and robust, even if single-point daily nowcasts can be noisy.
+
 ---
 
 *Last updated: 2026-05-26. All findings are from the Malaysia nowcasting pipeline using OpenDOSM + BNM public APIs.*

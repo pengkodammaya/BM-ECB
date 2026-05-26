@@ -261,8 +261,7 @@ for i, vdate in enumerate(vintage_dates):
 
     # --- DFM ---
     try:
-        dfm = DFM(DFMParams(r=3, p=2, max_iter=30, thresh=1e-5, idio=1, block_factors=1))
-        dfm.set_groups(ALL_GROUPS)
+        dfm = DFM(DFMParams(r=3, p=2, max_iter=30, thresh=1e-5, idio=1, block_factors=0))
         res = dfm.fit(X_vint_std)
         q_end_idx = -1
         for t in range(len(datet_vint)):
