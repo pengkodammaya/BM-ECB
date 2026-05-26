@@ -15,12 +15,12 @@ env/
 .ruff_cache/
 .ipynb_checkpoints/
 
-data/
-output/
+/data/
+/output/
 
-!data/malaysia/
-data/malaysia/*
-!data/malaysia/dosm_advance_estimates.csv
+!/data/malaysia/
+/data/malaysia/*
+!/data/malaysia/dosm_advance_estimates.csv
 
 # Keep docs/ for GitHub Pages dashboard
 # (leaderboard and daily log are auto-generated)
