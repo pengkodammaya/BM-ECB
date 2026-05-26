@@ -1,2 +1,2 @@
 date,dfm,bvar,beq,ensemble,actual_gdp_pct,investment,exports_comp,imports_comp,investment_actual,exports_comp_actual,imports_comp_actual,dfm_backcast,dfm_forecast,bvar_backcast,bvar_forecast,beq_backcast,beq_forecast,consumption,government,consumption_actual,government_actual,imports_identity,ar1,consumption_ar1,investment_ar1,government_ar1,exports_comp_ar1,imports_comp_ar1
-2026-05-26,2.42,0.89,1.09,1.09,-0.01,5.24,4.06,4.7,7.3,5.2,4.6,0.28,1.52,0.93,0.52,1.04,1.05,7.13,4.65,4.7,4.1,10.22,1.46,5.12,5.41,4.26,4.93,4.75
+2026-05-26,2.34,0.88,1.09,1.09,-0.01,5.24,4.06,4.7,7.3,5.2,4.6,0.82,1.65,0.93,0.51,1.04,1.05,7.53,4.65,4.7,4.1,10.74,1.46,5.12,5.41,4.26,4.93,4.75

@@ -39,6 +39,7 @@ DATASETS = {
     "imports_capital": ("trade_enduse_bec", "imports", 0, "external", {"bec": "000", "end_use": "capital", "series": "growth_mom"}),
     "imports_consumer": ("trade_enduse_bec", "imports", 0, "external", {"bec": "000", "end_use": "consumption", "series": "growth_mom"}),
     "wrt": ("iowrt", "sales", 1, "services", {"series": "abs"}),
+    "wrt_volume": ("iowrt", "volume", 1, "consumption", {"series": "abs"}),  # real retail activity
     "gdp": ("gdp_qtr_real_sa", "value", 0, "target", {"series": "abs"}),
 }
 MN = [n for n in DATASETS if n != "gdp"]
