@@ -27,20 +27,15 @@ jobs:
       - name: Ensure data directories exist
         run: mkdir -p data/malaysia output/malaysia
 
-      - name: Debug: list source files
-        run: |
-          echo "=== Source tree ==="
-          find src/nowcasting_toolbox -name "*.py" | head -60
-          echo "=== Checking data/__init__.py ==="
-          cat src/nowcasting_toolbox/data/__init__.py
-
       - name: Run daily update
         run: |
-          cd "$GITHUB_WORKSPACE"
-          export PYTHONPATH="$PWD/src:$PYTHONPATH"
+          export PYTHONPATH="$GITHUB_WORKSPACE/src"
           echo "PYTHONPATH=$PYTHONPATH"
-          python -c "import sys; print(sys.path[:5])"
-          python -c "from nowcasting_toolbox.data.sources.opendosm import OpenDOSMClient; print('Import OK')"
+          echo "=== Source files ==="
+          ls src/nowcasting_toolbox/data/__init__.py
+          echo "=== Test import ==="
+          python -c "from nowcasting_toolbox.data.sources.opendosm import OpenDOSMClient; print('OK')"
+          echo "=== Running ==="
           python scripts/daily_update.py
 
       - name: Commit updated leaderboard
