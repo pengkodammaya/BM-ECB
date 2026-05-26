@@ -612,7 +612,7 @@ for _, row in log.tail(30).iterrows():
     md += f"| {row['date']} | {vals[0]} | {vals[1]} | {vals[2]} | {vals[3]} | {vals[4]} | {ref_str} |\n"
 
     md += f"\n## Component Leaderboard (YoY %)\n\n"
-md += "*DFM nowcast vs AR(1) baseline for each expenditure component.*\n\n"
+md += f"*DFM nowcast vs AR(1) baseline for each expenditure component. Actual values are the latest from DOSM API (Q1 2026, released May 15).*\n\n"
 
 comp_labels = {
     "consumption": ("Consumption (Private)", "C"),
