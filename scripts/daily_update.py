@@ -698,14 +698,22 @@ md += "## Current Quarter Nowcast (QoQ SA %)\n\n"
 md += f"*Nowcasting GDP for **{nowcast_label}**. Advance estimate expected ~mid-{(current_quarter*3+1)%12 or 12}.*\n\n"
 
 all_models = ["DFM", "BVAR", "BEQ", "AR(1)", "ENSEMBLE"]
+model_errors = {}
 for model in all_models:
     col = model.lower()
     val = nowcasts.get(col)
     if val is not None:
+        err = abs(val - adv_reference) if adv_reference is not None else None
+        model_errors[model] = err
         md += f"- **{model}:** `{val:+.2f}%`\n"
 
 if adv_reference is not None:
     md += f"\n*Reference (best available): `{adv_reference:+.1f}%` — {adv_reference_source}*\n"
+    # Highlight closest model(s)
+    if model_errors:
+        min_err = min(model_errors.values())
+        best_models = [m for m, e in model_errors.items() if e == min_err]
+        md += f"\n**Closest to reference:** {', '.join(best_models)} ({min_err:+.2f}pp err)\n"
 
 md += f"\n## Backcast: {backcast_label} (QoQ SA %)\n\n"
 md += f"*Model estimate for the most recent quarter with released GDP.*\n\n"
@@ -799,11 +807,34 @@ for ck, (clabel, ccode) in comp_labels.items():
     ar1_str = f"`{ar1_val:+.1f}%`" if ar1_val is not None else "—"
     act_str = f"`{act_val:+.1f}%`" if act_val is not None else "—"
     
+    # Color winner green, loser red (if actual available)
+    dfm_err = abs(dfm_val - act_val) if (dfm_val is not None and act_val is not None) else None
+    ar1_err = abs(ar1_val - act_val) if (ar1_val is not None and act_val is not None) else None
+    
+    if dfm_err is not None and ar1_err is not None:
+        if dfm_err < ar1_err:
+            dfm_color = "green"
+            ar1_color = "red"
+        elif ar1_err < dfm_err:
+            dfm_color = "red"
+            ar1_color = "green"
+        else:
+            dfm_color = ar1_color = "white"
+        dfm_str_rich = f'<span style="color:{dfm_color}">{dfm_val:+.1f}%</span>'
+        ar1_str_rich = f'<span style="color:{ar1_color}">{ar1_val:+.1f}%</span>'
+    else:
+        dfm_str_rich = dfm_str
+        ar1_str_rich = ar1_str
+    
     md += f"### {clabel} ({ccode})\n\n"
     md += "| Model | Nowcast | Reference (Actual) |\n"
     md += "|-------|---------|--------------------|\n"
-    md += f"| DFM | {dfm_str} | {act_str} |\n"
-    md += f"| AR(1) *(baseline)* | {ar1_str} | {act_str} |\n"
+    if dfm_err is not None and ar1_err is not None:
+        md += f"| DFM | {dfm_str_rich} ({dfm_err:+.1f}pp err) | {act_str} |\n"
+        md += f"| AR(1) *(baseline)* | {ar1_str_rich} ({ar1_err:+.1f}pp err) | {act_str} |\n"
+    else:
+        md += f"| DFM | {dfm_str_rich} | {act_str} |\n"
+        md += f"| AR(1) *(baseline)* | {ar1_str_rich} | {act_str} |\n"
     md += "\n"
 
 # Show GDP-identity derived imports separately
