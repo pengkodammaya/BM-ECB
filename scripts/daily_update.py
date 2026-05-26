@@ -267,6 +267,45 @@ vals = [v for v in [dfm_val, bvar_val, beq_val] if v is not None]
 nowcasts["ensemble"] = round(np.median(vals), 2) if vals else None
 
 # ---------------------------------------------------------------------------
+# 3.5 AR(1) benchmark
+# ---------------------------------------------------------------------------
+try:
+    # Extract GDP values at quarter-end months (in standardized space)
+    gdp_qoq = X_est[:, -1]
+    q_end_mask = np.array([datet[ff + i, 1] % 3 == 0 for i in range(len(X_est))])
+    valid_mask = q_end_mask & ~np.isnan(gdp_qoq)
+    gdp_vals = gdp_qoq[valid_mask]
+    if len(gdp_vals) >= 4:
+        y_lag = gdp_vals[:-1]
+        y_curr = gdp_vals[1:]
+        valid = ~np.isnan(y_lag) & ~np.isnan(y_curr)
+        if np.sum(valid) >= 4:
+            X_ar = np.column_stack([np.ones(np.sum(valid)), y_lag[valid]])
+            ar_coeffs = np.linalg.lstsq(X_ar, y_curr[valid], rcond=None)[0]
+            last_gdp = gdp_vals[-1] if not np.isnan(gdp_vals[-1]) else gdp_vals[-2]
+            ar_std = ar_coeffs[0] + ar_coeffs[1] * last_gdp
+            ar_pct = (ar_std * sigma[-1] + mu[-1]) * 100  # un-standardize
+            nowcasts["ar1"] = round(ar_pct, 2)
+except Exception as e:
+    print(f"AR(1) failed: {e}")
+    nowcasts["ar1"] = None
+
+# ---------------------------------------------------------------------------
+# 3.6 DOSM Advance Estimate lookup
+# ---------------------------------------------------------------------------
+dosm_advance = None
+advance_path = Path("data/malaysia/dosm_advance_estimates.csv")
+if advance_path.exists():
+    try:
+        adv_df = pd.read_csv(advance_path)
+        # Find advance estimate for the current quarter
+        adv_row = adv_df[adv_df["quarter"] == f"{current_year}-Q{current_quarter}"]
+        if len(adv_row) > 0:
+            dosm_advance = adv_row.iloc[0]
+    except Exception:
+        pass
+
+# ---------------------------------------------------------------------------
 # 3b. Component-level nowcasts: C, I, G, X, M with GDP identity reconciliation
 # ---------------------------------------------------------------------------
 client2 = OpenDOSMClient()
@@ -442,17 +481,34 @@ if len(log) >= 3:
     lb_df.to_csv(Path("docs/leaderboard.csv"), index=False)
 
 # -------------------------------------------------------------------
-# 6. Generate markdown leaderboard (always, even with <3 data points)
+# 6. Generate markdown leaderboard with AR(1) + DOSM advance + timing labels
 # -------------------------------------------------------------------
+# Determine reference: DOSM advance if available for current quarter, else latest actual
+adv_q_label = f"{current_year}-Q{current_quarter}"
+adv_reference = None
+adv_reference_source = ""
+if dosm_advance is not None:
+    adv_reference = dosm_advance.get("overall_yoy")
+    adv_reference_source = f"DOSM Advance ({dosm_advance.get('release_date', '?')})"
+elif actual_pct is not None:
+    adv_reference = actual_pct
+    adv_reference_source = f"DOSM Actual (latest: {backcast_label}) — advance for {nowcast_label} pending"
+
 md = f"# Malaysia GDP Nowcasting — Live Leaderboard\n\n"
-md += f"**Last updated:** {today_str} | **Nowcast quarter:** {nowcast_label} | **Source:** [OpenDOSM](https://open.dosm.gov.my) + [BNM](https://apikijangportal.bnm.gov.my)\n\n"
+md += f"**Updated:** {today_str} | **Nowcasting:** {nowcast_label} | **Reference:** {adv_reference_source}\n\n"
+
 md += "## Current Quarter Nowcast (QoQ SA %)\n\n"
-md += f"*Nowcasting GDP for **{nowcast_label}**. GDP for this quarter is not yet released.*\n\n"
-for model in ["DFM", "BVAR", "BEQ", "ENSEMBLE"]:
+md += f"*Nowcasting GDP for **{nowcast_label}**. Advance estimate expected ~mid-{(current_quarter*3+1)%12 or 12}.*\n\n"
+
+all_models = ["DFM", "BVAR", "BEQ", "AR(1)", "ENSEMBLE"]
+for model in all_models:
     col = model.lower()
     val = nowcasts.get(col)
     if val is not None:
         md += f"- **{model}:** `{val:+.2f}%`\n"
+
+if adv_reference is not None:
+    md += f"\n*Reference (best available): `{adv_reference:+.1f}%` — {adv_reference_source}*\n"
 
 md += f"\n## Backcast: {backcast_label} (QoQ SA %)\n\n"
 md += f"*Model estimate for the most recent quarter with released GDP.*\n\n"
@@ -460,9 +516,8 @@ for model in ["DFM", "BVAR", "BEQ"]:
     bc = nowcasts.get(f"{model.lower()}_backcast")
     if bc is not None:
         md += f"- **{model}:** `{bc:+.2f}%`\n"
-
 if actual_pct:
-    md += f"\n*DOSM official (ground truth): `{actual_pct:+.1f}%`*\n"
+    md += f"\n*DOSM official: `{actual_pct:+.1f}%`*\n"
 
 md += f"\n## 1-Quarter-Ahead Forecast: {forecast_label} (QoQ SA %)\n\n"
 for model in ["DFM", "BVAR", "BEQ"]:
@@ -471,10 +526,13 @@ for model in ["DFM", "BVAR", "BEQ"]:
         md += f"- **{model}:** `{fc:+.2f}%`\n"
 
 md += "\n## Model Leaderboard\n\n"
+md += "*Daily nowcast accuracy vs best available reference. Metrics appear after 3+ days.*\n\n"
 if len(log) >= 3:
     lb_rows = []
-    for model in ["dfm", "bvar", "beq", "ensemble"]:
+    for model in ["dfm", "bvar", "beq", "ar1", "ensemble"]:
         col = model
+        if col not in log.columns:
+            continue
         sub = log[[col, "actual_gdp_pct"]].dropna()
         if len(sub) < 3:
             continue
@@ -486,7 +544,7 @@ if len(log) >= 3:
             "RMSE (pp)": round(compute_rmse(act, pred), 3),
             "FDA (%)": round(compute_fda(act, pred) * 100, 1),
             "N": len(sub),
-            "last_nowcast": nowcasts[model],
+            "last_nowcast": nowcasts.get(model),
         })
     lb_df = pd.DataFrame(lb_rows)
     lb_df.to_csv(Path("docs/leaderboard.csv"), index=False)
@@ -496,26 +554,33 @@ if len(log) >= 3:
     for _, r in lb_df.iterrows():
         latest = r.get("last_nowcast", "—")
         latest_str = f"{latest:+.1f}%" if isinstance(latest, (int, float)) else "—"
-        md += f"| {r['model']} | {r['MAE (pp)']:.3f} | {r['RMSE (pp)']:.3f} | {r['FDA (%)']:.1f}% | {int(r['N'])} | {latest_str} |\n"
+        style_note = ""
+        if r["model"] == "AR(1)":
+            style_note = " *(baseline)*"
+        elif r["model"] == "ENSEMBLE":
+            style_note = " *(combined)*"
+        md += f"| {r['model']}{style_note} | {r['MAE (pp)']:.3f} | {r['RMSE (pp)']:.3f} | {r['FDA (%)']:.1f}% | {int(r['N'])} | {latest_str} |\n"
 else:
     md += f"*Leaderboard requires 3+ daily observations. Currently: {len(log)}. First metrics expected soon.*\n\n"
     md += "| Model | MAE (pp) | RMSE (pp) | FDA (%) | N | Latest |\n"
     md += "|-------|----------|-----------|---------|---|--------|\n"
-    for model in ["DFM", "BVAR", "BEQ", "ENSEMBLE"]:
+    for model in ["DFM", "BVAR", "BEQ", "AR(1)", "ENSEMBLE"]:
         col = model.lower()
         val = nowcasts.get(col)
         latest_str = f"{val:+.1f}%" if val is not None else "—"
-        md += f"| {model} | — | — | — | {len(log)} | {latest_str} |\n"
+        style_note = " *(baseline)*" if model == "AR(1)" else " *(combined)*" if model == "ENSEMBLE" else ""
+        md += f"| {model}{style_note} | — | — | — | {len(log)} | {latest_str} |\n"
 
 md += f"\n## Recent Nowcasts ({min(30, len(log))} days)\n\n"
-md += "| Date | DFM | BVAR | BEQ | ENSEMBLE | Actual |\n"
-md += "|------|-----|------|-----|----------|--------|\n"
+md += "| Date | DFM | BVAR | BEQ | AR(1) | ENSEMBLE | Reference |\n"
+md += "|------|-----|------|-----|-------|----------|----------|\n"
+ref_str = f"{adv_reference:+.1f}%" if adv_reference is not None else "—"
 for _, row in log.tail(30).iterrows():
     vals = []
-    for m in ["dfm", "bvar", "beq", "ensemble", "actual_gdp_pct"]:
+    for m in ["dfm", "bvar", "beq", "ar1", "ensemble"]:
         v = row.get(m)
         vals.append(f"{v:+.1f}%" if pd.notna(v) else "—")
-    md += f"| {row['date']} | {vals[0]} | {vals[1]} | {vals[2]} | {vals[3]} | {vals[4]} |\n"
+    md += f"| {row['date']} | {vals[0]} | {vals[1]} | {vals[2]} | {vals[3]} | {vals[4]} | {ref_str} |\n"
 
     md += f"\n## Component Nowcasts (YoY %)\n\n"
     comp_labels = {
