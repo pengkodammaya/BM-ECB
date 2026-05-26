@@ -1,0 +1,98 @@
+{
+  "do_eval": 0,
+  "do_loop": 0,
+  "do_range": 0,
+  "do_mae": 0,
+  "do_subset": 0,
+  "do_covid": 0,
+  "m": 6,
+  "startyear": 2010,
+  "startmonth": 1,
+  "country": {
+    "name": "malaysia",
+    "model": "DFM"
+  },
+  "dfm": {
+    "p": 4,
+    "r": 5,
+    "idio": 1,
+    "thresh": 0.0001,
+    "max_iter": 100,
+    "block_factors": 0
+  },
+  "bvar": {
+    "bvar_lags": 5,
+    "bvar_thresh": 1e-06,
+    "bvar_max_iter": 200
+  },
+  "beq": {
+    "lagM": 1,
+    "lagQ": 1,
+    "lagY": 1,
+    "type": 904,
+    "Dum": []
+  },
+  "mae": {
+    "Bac": {
+      "mae_1st": 0.15,
+      "mae_2nd": 0.15,
+      "mae_3rd": 0.15,
+      "fda_1st": 0.88,
+      "fda_2nd": 0.88,
+      "fda_3rd": 0.88
+    },
+    "Now": {
+      "mae_1st": 0.15,
+      "mae_2nd": 0.15,
+      "mae_3rd": 0.15,
+      "fda_1st": 0.88,
+      "fda_2nd": 0.88,
+      "fda_3rd": 0.88
+    },
+    "For": {
+      "mae_1st": 0.15,
+      "mae_2nd": 0.15,
+      "mae_3rd": 0.15,
+      "fda_1st": 0.88,
+      "fda_2nd": 0.88,
+      "fda_3rd": 0.88
+    }
+  },
+  "eval": {
+    "data_update_lastyear": 2023,
+    "data_update_lastmonth": 10,
+    "eval_startyear": 2020,
+    "eval_startmonth": 10,
+    "eval_endyear": 2022,
+    "eval_endmonth": 10,
+    "gdp_rel": 2
+  },
+  "loop": {
+    "n_iter": 10,
+    "name_loop": "b1",
+    "min_startyear": 2008,
+    "max_startyear": 2014,
+    "startmonth": 1,
+    "min_var": 5,
+    "max_var": 10,
+    "min_p": 1,
+    "max_p": 4,
+    "min_r": 2,
+    "max_r": 6,
+    "min_lagM": 1,
+    "max_lagM": 4,
+    "min_lagQ": 1,
+    "max_lagQ": 4,
+    "min_lagY": 1,
+    "max_lagY": 2,
+    "min_bvar_lags": 2,
+    "max_bvar_lags": 4,
+    "do_random": 1,
+    "list_name": "Eval_list_DFM.xlsx",
+    "name_customloop": "customloop",
+    "alter_covid": 1
+  },
+  "var_keep": [],
+  "data_dir": "data",
+  "cache_ttl_hours": 6
+}
