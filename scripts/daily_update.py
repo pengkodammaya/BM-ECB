@@ -124,7 +124,45 @@ if "fx_usd" in filtered:
         DATASETS["fx_lag6"] = ("fx_lag6", "fx_lag6", 0, "financial", {})
 
 # ---------------------------------------------------------------------------
-# 1.6 Add SITC trade section data (E&E, commodities) as indicators
+# 1.6 Global demand indicators (S&P 500, Shanghai Comp, Brent crude) via yfinance
+# ---------------------------------------------------------------------------
+GLOBAL_INDICATORS = {
+    "sp500": ("^GSPC", "global_equity"),    # S&P 500 — US/world demand proxy
+    "shcomp": ("000001.SS", "global_equity"), # Shanghai Composite — China demand
+    "brent":  ("BZ=F", "global_commodity"),   # Brent crude — commodity price
+}
+
+for label, (ticker, group) in GLOBAL_INDICATORS.items():
+    try:
+        import yfinance as yf
+        data = yf.download(ticker, start="2015-01-01", progress=False)
+        if data is None or len(data) == 0:
+            print(f"  yfinance {label}: no data")
+            continue
+        # Handle multi-level columns (yfinance v0.2+)
+        if isinstance(data.columns, pd.MultiIndex):
+            close_col = ("Close", ticker) if ("Close", ticker) in data.columns else data.columns[0]
+        else:
+            close_col = "Close" if "Close" in data.columns else "Adj Close"
+        # Use close price, resample to month-end
+        monthly = data[close_col].resample("ME").last().dropna()
+        if len(monthly) < 24:
+            continue
+        # Compute MoM growth (dlog)
+        vals = monthly.values
+        growth = np.full(len(vals), np.nan)
+        for i in range(1, len(vals)):
+            if vals[i-1] > 0:
+                growth[i] = np.log(vals[i]) - np.log(vals[i-1])
+        df_out = pd.DataFrame({
+            "date": monthly.index,
+            label: growth,
+        }).dropna()
+        filtered[label] = df_out
+        DATASETS[label] = (label, label, 0, group, {})  # transform 0 = already growth
+        print(f"  yfinance {label}: {len(df_out)} monthly obs")
+    except Exception as e:
+        print(f"  yfinance {label} failed: {e}")
 # ---------------------------------------------------------------------------
 try:
     sitc_df = client.fetch("trade_sitc_1d", limit=20000)
@@ -143,16 +181,30 @@ except Exception as e:
 
 # Define component-specific indicator subsets
 COMPONENT_INDICATORS = {
-    "consumption": [n for n in DATASETS if DATASETS[n][3] in ("labour", "prices", "services", "external") and n != "gdp"],
+    # Consumption touches every sector — use ALL indicators with more lags
+    "consumption": [n for n in DATASETS if n != "gdp"],
+    # Investment: industry + financial + leading + external
     "investment":  [n for n in DATASETS if DATASETS[n][3] in ("industry", "financial", "leading", "external") and n != "gdp"],
+    # Government: labour + financial (fiscal policy correlates with employment)
     "government":  [n for n in DATASETS if DATASETS[n][3] in ("labour", "financial") and n != "gdp"],
-    "exports_comp":[n for n in DATASETS if DATASETS[n][3] in ("external", "financial", "industry") and n != "gdp"],
-    "imports_comp":[n for n in DATASETS if DATASETS[n][3] in ("external", "services", "prices") and n != "gdp"],
+    # Exports: external + financial + industry + global
+    "exports_comp":[n for n in DATASETS if DATASETS[n][3] in ("external", "financial", "industry", "global_equity", "global_commodity") and n != "gdp"],
+    # Imports: external + services + prices + global commodity
+    "imports_comp":[n for n in DATASETS if DATASETS[n][3] in ("external", "services", "prices", "global_commodity") and n != "gdp"],
 }
 # Fallback: if a subset is too small (<3 indicators), use all
 for ck, indicators in COMPONENT_INDICATORS.items():
     if len(indicators) < 3:
         COMPONENT_INDICATORS[ck] = [n for n in DATASETS if n != "gdp"]
+
+# Use optimized hyperparameters for each component
+COMPONENT_PARAMS = {
+    "consumption": (2, 4),  # more lags (consumption smoothing), fewer factors
+    "investment":  (3, 2),  # balanced
+    "government":  (2, 2),  # simple model
+    "exports_comp":(3, 2),  # balanced
+    "imports_comp":(3, 2),  # balanced
+}
 
 # GDP QoQ
 gdp_df = filtered["gdp"].copy().sort_values("date")
@@ -444,7 +496,9 @@ for comp_key, comp_type, comp_series in COMPONENTS:
         if np.sum(~np.isnan(Xc_est[:, -1])) < 5:
             continue
 
-        dfm_c = DFM(DFMParams(r=3, p=2, max_iter=30, thresh=1e-5, idio=1))
+        # Use component-specific hyperparameters
+        cr, cp = COMPONENT_PARAMS.get(comp_key, (3, 2))
+        dfm_c = DFM(DFMParams(r=cr, p=cp, max_iter=30, thresh=1e-5, idio=1))
         res_c = dfm_c.fit(Xc_est)
         nwc = float(res_c.X_sm[-1, -1]) * sigmac[-1] + muc[-1]
         nowcasts[comp_key] = round(nwc * 100, 2)
