@@ -821,14 +821,14 @@ for ck, (clabel, ccode) in comp_labels.items():
     ar1_err = abs(ar1_val - act_val) if (ar1_val is not None and act_val is not None) else None
     naive_err = 0.0 if naive_val is not None and act_val is not None else None  # naive IS the reference
     
-    # Emoji indicators (GitHub strips HTML style attributes)
+    # Emoji rank: 🟢🏅=1st, 🟠=2nd, 🔴=3rd
     if dfm_err is not None and ar1_err is not None:
         errors = {"DFM": dfm_err, "AR(1)": ar1_err, "NAIVE": naive_err or 0.0}
-        min_err = min(errors.values())
-        emoji = {m: " 🟢" if e == min_err else " 🔴" for m, e in errors.items()}
-        dfm_rich = f"{emoji['DFM']} {dfm_f}"
-        ar1_rich = f"{emoji['AR(1)']} {ar1_f}"
-        naive_rich = f"{emoji['NAIVE']} {naive_f}"
+        ranked = sorted(errors.items(), key=lambda x: x[1])
+        rank_emoji = {ranked[0][0]: " 🟢", ranked[1][0]: " 🟠", ranked[2][0]: " 🔴"}
+        dfm_rich = f"{rank_emoji['DFM']} {dfm_f}"
+        ar1_rich = f"{rank_emoji['AR(1)']} {ar1_f}"
+        naive_rich = f"{rank_emoji['NAIVE']} {naive_f}"
     else:
         dfm_rich = f"`{dfm_f}`" if dfm_val is not None else "—"
         ar1_rich = f"`{ar1_f}`" if ar1_val is not None else "—"
