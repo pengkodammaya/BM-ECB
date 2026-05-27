@@ -287,7 +287,7 @@ for label, (tcode, series_type) in COMPONENTS.items():
 # 4. Report
 # ---------------------------------------------------------------------------
 console.print()
-table = Table(title="Component Nowcast Accuracy (DFM + BVAR, 24 Vintage Backtest)")
+table = Table(title="Component Nowcast Accuracy (BVAR primary + DFM, Backtest)")
 table.add_column("Component", style="bold")
 table.add_column("DFM MAE", justify="right")
 table.add_column("BVAR MAE", justify="right")
