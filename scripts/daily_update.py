@@ -565,7 +565,7 @@ for comp_key, comp_type, comp_series in COMPONENTS:
                 if np.any(nm) and np.sum(vl) >= 2:
                     idx_arr = np.arange(len(col))
                     Xc_filled[nm, j] = np.interp(idx_arr[nm], idx_arr[vl], col[vl])
-            bvar_c = BVAR(BVARParams(bvar_lags=3, bvar_thresh=1e-5, bvar_max_iter=10))
+            bvar_c = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
             res_bc = bvar_c.fit(Xc_filled, datet[ffc:])
             nwb = float(res_bc.X_sm[-1, -1]) * sigmac[-1] + muc[-1]
             nowcasts[comp_key + "_bvar"] = round(nwb * 100, 2)
