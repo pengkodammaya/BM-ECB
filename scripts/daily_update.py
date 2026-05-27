@@ -572,19 +572,8 @@ for comp_key, comp_type, comp_series in COMPONENTS:
         except Exception as e:
             nowcasts[comp_key + "_bvar"] = None
 
-        # --- BEQ for component ---
-        try:
-            Xc_raw = Xc_trans[ffc:]
-            all_names = target_names + ["target"]
-            beq_c = BEQ(BEQParams(lagM=1, lagQ=1, lagY=1, type=901))
-            res_ec = beq_c.fit(Xc_raw, datet[ffc:], all_names)
-            if res_ec.X_sm is not None and res_ec.X_sm.shape[0] > 0:
-                nwe = float(res_ec.X_sm[-1, -1])
-                nowcasts[comp_key + "_beq"] = round(nwe * 100, 2)
-            else:
-                nowcasts[comp_key + "_beq"] = None
-        except Exception:
-            nowcasts[comp_key + "_beq"] = None
+        # --- BEQ for component: skip (BVAR interpolation fails on component subsets) ---
+        nowcasts[comp_key + "_beq"] = None
     except Exception as e:
         print(f"  Component {comp_key}: {e}")
         nowcasts[comp_key] = None
