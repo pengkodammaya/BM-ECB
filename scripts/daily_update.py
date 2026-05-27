@@ -131,6 +131,8 @@ GLOBAL_INDICATORS = {
     "sp500": ("^GSPC", "global_equity"),      # S&P 500 — US/world demand proxy
     "shcomp": ("000001.SS", "global_equity"), # Shanghai Composite — China demand
     "sox":    ("^SOX", "global_equity"),       # Philly semi — E&E leads MY exports 1-3mo
+    "klci":   ("^KLSE", "global_equity"),      # KLCI — Malaysian stock sentiment
+    "sti":    ("^STI", "global_equity"),        # Straits Times — Singapore (#1 trade partner)
     "brent":  ("BZ=F", "global_commodity"),    # Brent crude — energy commodity benchmark
     "cpo":    ("CPO=F", "global_commodity"),   # Crude palm oil — MY #1 agri-commodity
     "bdry":   ("BDRY", "global_demand"),       # Dry bulk shipping — trade volume proxy
@@ -386,6 +388,22 @@ try:
     nowcasts["bvar"] = _extract(res_b, current_q_idx, sigma, mu)
     nowcasts["bvar_backcast"] = _extract(res_b, last_actual_idx, sigma, mu)
     nowcasts["bvar_forecast"] = _extract(res_b, next_q_idx, sigma, mu)
+
+    # Fan chart from BVAR posterior draws
+    if res_b.B_draws is not None and res_b.Sigma_draws is not None:
+        from nowcasting_toolbox.fan_chart import bvar_fan_chart
+        lags = 3
+        N = X_filled.shape[1]
+        # Last observation vector for forecasting
+        x_last = X_filled[current_q_idx - lags + 1:current_q_idx + 1].flatten()
+        if len(x_last) == N * lags:
+            fc = bvar_fan_chart(
+                res_b.B_draws, res_b.Sigma_draws, x_last,
+                n_forecast=1, lags=lags, target_idx=-1,
+                sigma_y=sigma[-1], mu_y=mu[-1],
+            )
+            nowcasts["bvar_ci_10"] = round(float(fc["percentiles"][10][0]) * 100, 2)
+            nowcasts["bvar_ci_90"] = round(float(fc["percentiles"][90][0]) * 100, 2)
 except Exception as e:
     print(f"BVAR failed: {e}")
     nowcasts["bvar"] = None
@@ -414,12 +432,32 @@ except Exception as e:
     print(f"BEQ failed: {e}")
     nowcasts["beq"] = nowcasts["beq_backcast"] = nowcasts["beq_forecast"] = None
 
-# Ensemble (nowcast horizon only)
-dfm_val = nowcasts.get("dfm")
-bvar_val = nowcasts.get("bvar")
-beq_val = nowcasts.get("beq")
-vals = [v for v in [dfm_val, bvar_val, beq_val] if v is not None]
-nowcasts["ensemble"] = round(np.median(vals), 2) if vals else None
+# Weighted ensemble (inverse MAE² weighting, falls back to simple median)
+log_path_ens = Path("docs/daily_log.csv")
+if log_path_ens.exists():
+    log_ens = pd.read_csv(log_path_ens)
+    if len(log_ens) >= 3:
+        weights = {}
+        for m in ["dfm", "bvar", "beq"]:
+            if m in log_ens.columns:
+                sub = log_ens[[m, "actual_gdp_pct"]].dropna()
+                if len(sub) >= 3:
+                    mae = compute_mae(sub["actual_gdp_pct"].values, sub[m].values)
+                    weights[m] = 1.0 / (mae ** 2 + 0.01)  # +0.01 prevents divide by zero
+        if weights:
+            total_w = sum(weights.values())
+            ensemble_val = sum(nowcasts.get(m, 0) * weights.get(m, 0) / total_w
+                              for m in ["dfm", "bvar", "beq"] if nowcasts.get(m) is not None)
+            nowcasts["ensemble"] = round(ensemble_val, 2)
+        else:
+            vals = [v for v in [nowcasts.get("dfm"), nowcasts.get("bvar"), nowcasts.get("beq")] if v is not None]
+            nowcasts["ensemble"] = round(np.median(vals), 2) if vals else None
+    else:
+        vals = [v for v in [nowcasts.get("dfm"), nowcasts.get("bvar"), nowcasts.get("beq")] if v is not None]
+        nowcasts["ensemble"] = round(np.median(vals), 2) if vals else None
+else:
+    vals = [v for v in [nowcasts.get("dfm"), nowcasts.get("bvar"), nowcasts.get("beq")] if v is not None]
+    nowcasts["ensemble"] = round(np.median(vals), 2) if vals else None
 
 # ---------------------------------------------------------------------------
 # 3.5 AR(1) benchmark
@@ -730,7 +768,13 @@ for model in all_models:
     if val is not None:
         err = abs(val - adv_reference) if adv_reference is not None else None
         model_errors[model] = err
-        md += f"- **{model}:** `{val:+.2f}%`\n"
+        ci_str = ""
+        if model == "BVAR":
+            ci_10 = nowcasts.get("bvar_ci_10")
+            ci_90 = nowcasts.get("bvar_ci_90")
+            if ci_10 is not None and ci_90 is not None:
+                ci_str = f" (CI: `{ci_10:+.1f}%` to `{ci_90:+.1f}%`)"
+        md += f"- **{model}:** `{val:+.2f}%`{ci_str}\n"
 
 if adv_reference is not None:
     md += f"\n*Reference (best available): `{adv_reference:+.1f}%` — {adv_reference_source}*\n"

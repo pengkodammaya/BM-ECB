@@ -90,7 +90,7 @@ def block_bvar(
     lambda_opt, theta_opt, miu_opt, alpha_opt = np.exp(phi_opt)
 
     # ---------- Gibbs sampler ----------
-    B, Sigma = _gibbs_sampler(
+    B, Sigma, B_draws, Sigma_draws = _gibbs_sampler(
         X_filled, lags, lambda_opt, theta_opt, miu_opt, alpha_opt,
         m_series, stationary, n_draws=100, burn_in=30,
     )
@@ -102,6 +102,8 @@ def block_bvar(
         "X_sm": X_sm,
         "B": B,
         "Sigma": Sigma,
+        "B_draws": B_draws,
+        "Sigma_draws": Sigma_draws,
         "lambda": lambda_opt,
         "theta": theta_opt,
         "miu": miu_opt,
@@ -242,7 +244,7 @@ def _gibbs_sampler(
     B_mean = np.mean(B_store[burn_in:], axis=0)
     Sigma_mean = np.mean(Sigma_store[burn_in:], axis=0)
 
-    return B_mean, Sigma_mean
+    return B_mean, Sigma_mean, B_store[burn_in:], Sigma_store[burn_in:]
 
 
 def _inv_wishart_rvs(rng: np.random.Generator, df: int, scale: FloatArray) -> FloatArray:

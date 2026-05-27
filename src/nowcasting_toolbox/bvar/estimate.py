@@ -28,6 +28,8 @@ class BVARResult:
     X_sm: FloatArray
     B: Optional[FloatArray] = None        # (N, N*p) coefficient matrix
     Sigma: Optional[FloatArray] = None    # (N, N) residual covariance
+    B_draws: Optional[FloatArray] = None  # (n_draws, N, N*p) posterior draws
+    Sigma_draws: Optional[FloatArray] = None  # (n_draws, N, N) posterior draws
     lambda_opt: float = 0.2
     theta_opt: float = 1.0
     miu_opt: float = 1.0
@@ -125,6 +127,8 @@ class BVAR:
             X_sm=X_sm,
             B=result.get("B"),
             Sigma=result.get("Sigma"),
+            B_draws=result.get("B_draws"),
+            Sigma_draws=result.get("Sigma_draws"),
             lambda_opt=float(result.get("lambda", 0.2)),
             theta_opt=float(result.get("theta", 1.0)),
             miu_opt=float(result.get("miu", 1.0)),
