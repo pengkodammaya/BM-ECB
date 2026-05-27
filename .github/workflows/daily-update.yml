@@ -32,11 +32,11 @@ jobs:
       - name: Run daily update
         run: |
           export PYTHONPATH="$GITHUB_WORKSPACE/src"
-          echo "PYTHONPATH=$PYTHONPATH"
-          echo "=== Source files ==="
-          ls src/nowcasting_toolbox/data/__init__.py
-          echo "=== Test import ==="
-          python -c "from nowcasting_toolbox.data.sources.opendosm import OpenDOSMClient; print('OK')"
+          echo "=== Git HEAD ==="
+          git log --oneline -3
+          echo "=== Check for naive code ==="
+          grep -c "naive" scripts/daily_update.py || echo "NOT FOUND"
+          grep -c "color:" scripts/daily_update.py || echo "NOT FOUND"
           echo "=== Running ==="
           python scripts/daily_update.py
 
@@ -45,9 +45,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/leaderboard.csv docs/daily_log.csv docs/leaderboard.md 2>/dev/null || true
-          if git diff --staged --quiet; then
-            echo "No changes to commit."
-          else
-            git commit -m "Daily update: $(date +%Y-%m-%d)"
-            git push
-          fi
+          git commit --allow-empty -m "Daily update: $(date +%Y-%m-%d)" || true
+          git push
