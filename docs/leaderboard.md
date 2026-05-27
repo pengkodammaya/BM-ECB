@@ -4,21 +4,24 @@
 
 ## Current Quarter Nowcast (QoQ SA %)
 
-*Nowcasting GDP for **Q2 2026**.*
+*Nowcasting GDP for **Q2 2026**. Advance estimate expected ~mid-7.*
 
-- **DFM:** `+2.14%`
-- **BVAR:** `+0.92%`
-- **BEQ:** `+1.09%`
-- **ENSEMBLE:** `+1.09%`
+- **DFM:** `+2.10%`
+- **BVAR:** `+0.90%`
+- **BEQ:** `+1.08%`
+- **NAIVE:** `-0.01%`
+- **ENSEMBLE:** `+1.08%`
 
-*Reference (best available): `-0.0%` — DOSM Actual (latest: Q1 2026)*
+*Reference (best available): `-0.0%` — DOSM Actual (latest: Q1 2026) — advance for Q2 2026 pending*
 
-**Closest to reference:** BVAR (+0.93pp err)
+**Closest to reference:** NAIVE (+0.00pp err)
 
 ## Backcast: Q1 2026 (QoQ SA %)
 
-- **DFM:** `+1.78%`
-- **BVAR:** `+0.99%`
+*Model estimate for the most recent quarter with released GDP.*
+
+- **DFM:** `+2.07%`
+- **BVAR:** `+0.92%`
 - **BEQ:** `+1.05%`
 
 *DOSM official: `-0.0%`*
@@ -33,26 +36,30 @@
 
 *Daily nowcast accuracy vs best available reference. Metrics appear after 3+ days.*
 
-*Leaderboard requires 3+ daily observations. Currently: 1.*
+*Leaderboard requires 3+ daily observations. Currently: 2. First metrics expected soon.*
 
 | Model | MAE (pp) | RMSE (pp) | FDA (%) | N | Latest |
 |-------|----------|-----------|---------|---|--------|
-| DFM | — | — | — | 1 | +2.1% |
-| BVAR | — | — | — | 1 | +0.9% |
-| BEQ | — | — | — | 1 | +1.1% |
-| AR(1) *(baseline)* | — | — | — | 1 | — |
-| NAIVE *(last Q)* | — | — | — | 1 | — |
-| ENSEMBLE *(combined)* | — | — | — | 1 | +1.1% |
+| DFM | — | — | — | 2 | +2.1% |
+| BVAR | — | — | — | 2 | +0.9% |
+| BEQ | — | — | — | 2 | +1.1% |
+| AR(1) *(baseline)* | — | — | — | 2 | — |
+| NAIVE *(last Q)* | — | — | — | 2 | -0.0% |
+| ENSEMBLE *(combined)* | — | — | — | 2 | +1.1% |
 
-## Recent Nowcasts (1 days)
+## Recent Nowcasts (2 days)
 
 | Date | DFM | BVAR | BEQ | AR(1) | NAIVE | ENSEMBLE | Reference |
 |------|-----|------|-----|-------|-------|----------|----------|
-| 2026-05-26 | +2.1% | +0.9% | +1.1% | +1.5% | — | +1.1% | -0.0% |
+| 2026-05-26 | +2.1% | +0.9% | +1.1% | +1.5% | — | -0.0% |
 
 ## Component Leaderboard (YoY %)
 
-*DFM nowcast vs AR(1) vs NAIVE baseline for each expenditure component.*
+| 2026-05-27 | +2.1% | +0.9% | +1.1% | +1.5% | -0.0% | -0.0% |
+
+## Component Leaderboard (YoY %)
+
+*DFM nowcast vs AR(1) baseline for each expenditure component. Actual values are the latest from DOSM API (Q1 2026, released May 15).*
 
 ### Consumption (Private) (C)
 
@@ -61,7 +68,8 @@
 | NAIVE *(last Q)* |  🟢 +4.7% (+0.0pp) | `+4.7%` |
 | BVAR |  🟡 +4.7% (+0.0pp) | `+4.7%` |
 | AR(1) *(baseline)* |  🟠 +5.1% (+0.4pp) | `+4.7%` |
-| DFM |  🟤 +7.5% (+2.8pp) | `+4.7%` |
+| DFM |  🟤 +7.0% (+2.3pp) | `+4.7%` |
+| BEQ |  🔴 +nan% (+nanpp) | `+4.7%` |
 
 ### Government Spending (G)
 
@@ -71,40 +79,47 @@
 | BVAR |  🟡 +4.1% (+0.0pp) | `+4.1%` |
 | AR(1) *(baseline)* |  🟠 +4.3% (+0.2pp) | `+4.1%` |
 | DFM |  🟤 +4.7% (+0.6pp) | `+4.1%` |
+| BEQ |  🔴 +nan% (+nanpp) | `+4.1%` |
 
 ### Investment (GFCF) (I)
 
 | Model | Nowcast | Reference (Actual) |
 |-------|---------|--------------------|
 | NAIVE *(last Q)* |  🟢 +7.3% (+0.0pp) | `+7.3%` |
-| BVAR |  🟡 +6.9% (+0.4pp) | `+7.3%` |
+| BVAR |  🟡 +7.3% (+0.0pp) | `+7.3%` |
 | AR(1) *(baseline)* |  🟠 +5.4% (+1.9pp) | `+7.3%` |
 | DFM |  🟤 +5.2% (+2.1pp) | `+7.3%` |
+| BEQ |  🔴 +nan% (+nanpp) | `+7.3%` |
 
 ### Exports (X)
 
 | Model | Nowcast | Reference (Actual) |
 |-------|---------|--------------------|
 | NAIVE *(last Q)* |  🟢 +5.2% (+0.0pp) | `+5.2%` |
-| AR(1) *(baseline)* |  🟡 +4.9% (+0.3pp) | `+5.2%` |
-| BVAR |  🟠 +4.8% (+0.4pp) | `+5.2%` |
-| DFM |  🟤 +4.0% (+1.2pp) | `+5.2%` |
+| BVAR |  🟡 +5.1% (+0.1pp) | `+5.2%` |
+| AR(1) *(baseline)* |  🟠 +4.9% (+0.3pp) | `+5.2%` |
+| DFM |  🟤 +4.1% (+1.1pp) | `+5.2%` |
+| BEQ |  🔴 +nan% (+nanpp) | `+5.2%` |
 
 ### Imports (M)
 
 | Model | Nowcast | Reference (Actual) |
 |-------|---------|--------------------|
-| NAIVE *(last Q)* |  🟢 +4.6% (+0.0pp) | `+4.6%` |
+| BVAR |  🟢 +4.6% (+0.0pp) | `+4.6%` |
 | DFM |  🟡 +4.7% (+0.1pp) | `+4.6%` |
-| AR(1) *(baseline)* |  🟠 +4.8% (+0.2pp) | `+4.6%` |
-| BVAR |  🟤 +4.8% (+0.2pp) | `+4.6%` |
+| BEQ |  🟠 +nan% (+nanpp) | `+4.6%` |
+| NAIVE *(last Q)* |  🟤 +4.6% (+0.0pp) | `+4.6%` |
+| AR(1) *(baseline)* |  🔴 +4.8% (+0.2pp) | `+4.6%` |
 
+#### GDP-Identity Derived Imports
+- **Imports (identity):** nowcast `+10.7%` vs actual `+4.6%`
+- *Derived from C+I+G+X-GDP. Direct DFM was `+4.7%`.*
 
 ## Ground Truth Definition
 
-- **Main GDP:** QoQ SA growth from DOSM `gdp_qtr_real_sa`
-- **Components:** YoY growth from DOSM `gdp_qtr_real_demand`
-- **Source:** [OpenDOSM API](https://open.dosm.gov.my)
+- **Main GDP:** QoQ SA growth from DOSM `gdp_qtr_real_sa` (seasonally adjusted, constant 2015 prices)
+- **Components:** YoY growth from DOSM `gdp_qtr_real_demand` (expenditure approach, non-SA)
+- **Source:** [OpenDOSM API](https://open.dosm.gov.my) — live data, fetched fresh each run
 - **Latest vintage:** 2026-05-27
 
 ---
