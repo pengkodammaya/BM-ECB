@@ -1,6 +1,6 @@
-# Malaysia GDP Nowcasting — Live Leaderboard
+# Malaysia GDP Nowcasting â€” Live Leaderboard
 
-**Updated:** 2026-05-27 | **Nowcasting:** Q2 2026 | **Reference:** DOSM Actual (latest: Q1 2026) — advance for Q2 2026 pending
+**Updated:** 2026-05-27 | **Nowcasting:** Q2 2026 | **Reference:** DOSM Actual (latest: Q1 2026) â€” advance for Q2 2026 pending
 
 ## Current Quarter Nowcast (QoQ SA %)
 
@@ -11,7 +11,7 @@
 - **BEQ:** `+1.09%`
 - **ENSEMBLE:** `+1.09%`
 
-*Reference (best available): `-0.0%` — DOSM Actual (latest: Q1 2026)*
+*Reference (best available): `-0.0%` â€” DOSM Actual (latest: Q1 2026)*
 
 **Closest to reference:** BVAR (+0.93pp err)
 
@@ -37,18 +37,18 @@
 
 | Model | MAE (pp) | RMSE (pp) | FDA (%) | N | Latest |
 |-------|----------|-----------|---------|---|--------|
-| DFM | — | — | — | 1 | +2.1% |
-| BVAR | — | — | — | 1 | +0.9% |
-| BEQ | — | — | — | 1 | +1.1% |
-| AR(1) *(baseline)* | — | — | — | 1 | — |
-| NAIVE *(last Q)* | — | — | — | 1 | — |
-| ENSEMBLE *(combined)* | — | — | — | 1 | +1.1% |
+| DFM | â€” | â€” | â€” | 1 | +2.1% |
+| BVAR | â€” | â€” | â€” | 1 | +0.9% |
+| BEQ | â€” | â€” | â€” | 1 | +1.1% |
+| AR(1) *(baseline)* | â€” | â€” | â€” | 1 | â€” |
+| NAIVE *(last Q)* | â€” | â€” | â€” | 1 | â€” |
+| ENSEMBLE *(combined)* | â€” | â€” | â€” | 1 | +1.1% |
 
 ## Recent Nowcasts (1 days)
 
 | Date | DFM | BVAR | BEQ | AR(1) | NAIVE | ENSEMBLE | Reference |
 |------|-----|------|-----|-------|-------|----------|----------|
-| 2026-05-26 | +2.1% | +0.9% | +1.1% | +1.5% | — | +1.1% | -0.0% |
+| 2026-05-26 | +2.1% | +0.9% | +1.1% | +1.5% | â€” | +1.1% | -0.0% |
 
 ## Component Leaderboard (YoY %)
 
@@ -58,41 +58,41 @@
 
 | Model | Nowcast | Reference (Actual) |
 |-------|---------|--------------------|
-| DFM | <span style="color:red">+7.5%</span> (+2.8pp) | `+4.7%` |
-| AR(1) *(baseline)* | <span style="color:red">+5.1%</span> (+0.4pp) | `+4.7%` |
-| NAIVE *(last Q)* | <span style="color:green">+4.7%</span> (0.0pp) | `+4.7%` |
+| DFM |  ðŸ”´ +7.5% (+2.8pp) | `+4.7%` |
+| AR(1) *(baseline)* |  ðŸ”´ +5.1% (+0.4pp) | `+4.7%` |
+| NAIVE *(last Q)* |  ðŸŸ¢ +4.7% (0.0pp) | `+4.7%` |
 
 ### Government Spending (G)
 
 | Model | Nowcast | Reference (Actual) |
 |-------|---------|--------------------|
-| DFM | <span style="color:red">+4.7%</span> (+0.6pp) | `+4.1%` |
-| AR(1) *(baseline)* | <span style="color:red">+4.3%</span> (+0.2pp) | `+4.1%` |
-| NAIVE *(last Q)* | <span style="color:green">+4.1%</span> (0.0pp) | `+4.1%` |
+| DFM |  ðŸ”´ +4.7% (+0.6pp) | `+4.1%` |
+| AR(1) *(baseline)* |  ðŸ”´ +4.3% (+0.2pp) | `+4.1%` |
+| NAIVE *(last Q)* |  ðŸŸ¢ +4.1% (0.0pp) | `+4.1%` |
 
 ### Investment (GFCF) (I)
 
 | Model | Nowcast | Reference (Actual) |
 |-------|---------|--------------------|
-| DFM | <span style="color:red">+5.2%</span> (+2.1pp) | `+7.3%` |
-| AR(1) *(baseline)* | <span style="color:red">+5.4%</span> (+1.9pp) | `+7.3%` |
-| NAIVE *(last Q)* | <span style="color:green">+7.3%</span> (0.0pp) | `+7.3%` |
+| DFM |  ðŸ”´ +5.2% (+2.1pp) | `+7.3%` |
+| AR(1) *(baseline)* |  ðŸ”´ +5.4% (+1.9pp) | `+7.3%` |
+| NAIVE *(last Q)* |  ðŸŸ¢ +7.3% (0.0pp) | `+7.3%` |
 
 ### Exports (X)
 
 | Model | Nowcast | Reference (Actual) |
 |-------|---------|--------------------|
-| DFM | <span style="color:red">+4.0%</span> (+1.2pp) | `+5.2%` |
-| AR(1) *(baseline)* | <span style="color:red">+4.9%</span> (+0.3pp) | `+5.2%` |
-| NAIVE *(last Q)* | <span style="color:green">+5.2%</span> (0.0pp) | `+5.2%` |
+| DFM |  ðŸ”´ +4.0% (+1.2pp) | `+5.2%` |
+| AR(1) *(baseline)* |  ðŸ”´ +4.9% (+0.3pp) | `+5.2%` |
+| NAIVE *(last Q)* |  ðŸŸ¢ +5.2% (0.0pp) | `+5.2%` |
 
 ### Imports (M)
 
 | Model | Nowcast | Reference (Actual) |
 |-------|---------|--------------------|
-| DFM | <span style="color:red">+4.7%</span> (+0.1pp) | `+4.6%` |
-| AR(1) *(baseline)* | <span style="color:red">+4.8%</span> (+0.2pp) | `+4.6%` |
-| NAIVE *(last Q)* | <span style="color:green">+4.6%</span> (0.0pp) | `+4.6%` |
+| DFM |  ðŸ”´ +4.7% (+0.1pp) | `+4.6%` |
+| AR(1) *(baseline)* |  ðŸ”´ +4.8% (+0.2pp) | `+4.6%` |
+| NAIVE *(last Q)* |  ðŸŸ¢ +4.6% (0.0pp) | `+4.6%` |
 
 
 ## Ground Truth Definition

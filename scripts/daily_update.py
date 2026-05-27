@@ -821,14 +821,14 @@ for ck, (clabel, ccode) in comp_labels.items():
     ar1_err = abs(ar1_val - act_val) if (ar1_val is not None and act_val is not None) else None
     naive_err = 0.0 if naive_val is not None and act_val is not None else None  # naive IS the reference
     
-    # Color: green = winner (closest to reference), red = loser
+    # Emoji indicators (GitHub strips HTML style attributes)
     if dfm_err is not None and ar1_err is not None:
-        errors = {"DFM": dfm_err, "AR(1)": ar1_err, "NAIVE": naive_err}
+        errors = {"DFM": dfm_err, "AR(1)": ar1_err, "NAIVE": naive_err or 0.0}
         min_err = min(errors.values())
-        colors = {m: "green" if e == min_err else "red" for m, e in errors.items()}
-        dfm_rich = f'<span style="color:{colors["DFM"]}">{dfm_f}</span>'
-        ar1_rich = f'<span style="color:{colors["AR(1)"]}">{ar1_f}</span>'
-        naive_rich = f'<span style="color:{colors["NAIVE"]}">{naive_f}</span>'
+        emoji = {m: " 🟢" if e == min_err else " 🔴" for m, e in errors.items()}
+        dfm_rich = f"{emoji['DFM']} {dfm_f}"
+        ar1_rich = f"{emoji['AR(1)']} {ar1_f}"
+        naive_rich = f"{emoji['NAIVE']} {naive_f}"
     else:
         dfm_rich = f"`{dfm_f}`" if dfm_val is not None else "—"
         ar1_rich = f"`{ar1_f}`" if ar1_val is not None else "—"
@@ -864,7 +864,7 @@ md += f"- **Components:** YoY growth from DOSM `gdp_qtr_real_demand` (expenditur
 md += f"- **Source:** [OpenDOSM API](https://open.dosm.gov.my) — live data, fetched fresh each run\n"
 md += f"- **Latest vintage:** {today_str}\n\n"
 md += f"---\n*Auto-generated daily at 8am MYT via GitHub Actions. [View source](https://github.com/pengkodammaya/BM-ECB)*\n"
-(Path("docs") / "leaderboard.md").write_text(md)
+(Path("docs") / "leaderboard.md").write_text(md, encoding="utf-8")
 
 print(f"[{datetime.now().isoformat()}] Daily update complete.")
 print(json.dumps(nowcasts, indent=2))
