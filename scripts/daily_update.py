@@ -687,6 +687,7 @@ if log_path.exists():
 else:
     log = new_row
 log.to_csv(log_path, index=False)
+print(f"[{datetime.now().isoformat()}] Daily log written to {log_path} ({log_path.stat().st_size} bytes, {len(log)} rows)")
 
 # ---------------------------------------------------------------------------
 # 5. Compute rolling leaderboard from daily log
@@ -908,7 +909,9 @@ md += f"- **Components:** YoY growth from DOSM `gdp_qtr_real_demand` (expenditur
 md += f"- **Source:** [OpenDOSM API](https://open.dosm.gov.my) — live data, fetched fresh each run\n"
 md += f"- **Latest vintage:** {today_str}\n\n"
 md += f"---\n*Auto-generated daily at 8am MYT via GitHub Actions. [View source](https://github.com/pengkodammaya/BM-ECB)*\n"
-(Path("docs") / "leaderboard.md").write_text(md, encoding="utf-8")
+leaderboard_path = Path("docs") / "leaderboard.md"
+leaderboard_path.write_text(md, encoding="utf-8")
+print(f"[{datetime.now().isoformat()}] Leaderboard written to {leaderboard_path} ({leaderboard_path.stat().st_size} bytes)")
 
 print(f"[{datetime.now().isoformat()}] Daily update complete.")
 print(json.dumps(nowcasts, indent=2))

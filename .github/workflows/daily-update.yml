@@ -32,18 +32,26 @@ jobs:
       - name: Run daily update
         run: |
           export PYTHONPATH="$GITHUB_WORKSPACE/src"
-          echo "=== Git HEAD ==="
-          git log --oneline -3
-          echo "=== Check for naive code ==="
-          grep -c "naive" scripts/daily_update.py || echo "NOT FOUND"
-          grep -c "color:" scripts/daily_update.py || echo "NOT FOUND"
-          echo "=== Running ==="
+          echo "Git HEAD: $(git rev-parse --short HEAD)"
           python scripts/daily_update.py
 
-      - name: Commit updated leaderboard
+      - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/leaderboard.csv docs/daily_log.csv docs/leaderboard.md 2>/dev/null || true
-          git commit --allow-empty -m "Daily update: $(date +%Y-%m-%d)" || true
+          # Ensure files are flushed to disk
+          sync
+          sleep 2
+          # Show what changed
+          git status --short
+          git diff --stat
+          # Stage and commit
+          git add docs/leaderboard.csv docs/daily_log.csv docs/leaderboard.md
+          if git diff --staged --quiet; then
+            echo "No file changes detected. Forcing commit with empty marker."
+            git commit --allow-empty -m "Daily update (no data change): $(date +%Y-%m-%d)"
+          else
+            echo "Files changed. Committing."
+            git commit -m "Daily update: $(date +%Y-%m-%d)"
+          fi
           git push
