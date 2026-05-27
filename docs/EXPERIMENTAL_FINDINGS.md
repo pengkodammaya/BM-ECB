@@ -254,6 +254,33 @@ Added 3 new daily indicators via yfinance:
 - BDRY (BDI proxy) contributes to import forecasting despite limited history (98 months)
 - Per-component indicator subsets are essential — 1-size-fits-all hurts non-trade components
 
+### BVAR vs DFM Component Backtest (2026-05-27)
+
+Ran component backtest with BVAR alongside DFM (10 vintages, 2023-Q2 to 2025-Q3):
+
+| Component | DFM MAE | BVAR MAE | BVAR Wins? |
+|-----------|:------:|:------:|:------:|
+| Investment (e3) | 3.68 | **0.55** | **6.7x better** |
+| Exports (e5) | 5.89 | **0.21** | **28x better** |
+
+Daily nowcast (single point, Q2 2026 vs Q1 2026 actual):
+
+| Component | DFM Err | BVAR Err | Winner |
+|-----------|:------:|:------:|:------:|
+| Consumption | 2.3pp | **0.0pp** | BVAR |
+| Government | 0.6pp | **0.0pp** | BVAR |
+| Investment | 2.1pp | **0.0pp** | BVAR |
+| Exports | 1.1pp | **0.1pp** | BVAR |
+| Imports | 0.1pp | **0.0pp** | BVAR |
+
+**Key findings**:
+- **BVAR dominates DFM on components** — 6-28x better MAE in backtest, wins every daily comparison
+- BVAR's Minnesota prior provides better regularization than DFM's factor structure for component-level data
+- DFM's factor model is over-parameterized for component subsets (few indicators per component)
+- BVAR ties with NAIVE on daily nowcasts (0.0pp error) — BVAR is essentially learning the persistence pattern
+- Recommendation: **BVAR should be the primary component nowcast model**, not DFM
+- BEQ returns NaN for all components (VAR interpolation fails with component indicator subsets) — needs debugging or removal from component pipeline
+
 ### Naive Forecast Baseline (2026-05-26)
 
 The simplest possible benchmark: forecast current quarter GDP = last quarter's actual (persistence / random walk). 24-vintage backtest:

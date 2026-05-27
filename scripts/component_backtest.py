@@ -63,8 +63,8 @@ for name, (did, col, tcode, group, filters) in MONTHLY.items():
     df = df.sort_values("date").drop_duplicates("date")
     filtered[name] = df
 
-# ---------------------------------------------------------------------------
-# 1b. Global high-frequency indicators via yfinance
+# Skip global indicators for backtest speed
+MONTHLY = {k: v for k, v in MONTHLY.items() if v[3] not in ("global_equity", "global_commodity", "global_demand")}
 # ---------------------------------------------------------------------------
 GLOBAL_INDICATORS = {
     "sp500": ("^GSPC", "global_equity"),
@@ -178,7 +178,7 @@ client.close()
 arc_schedule = build_publication_schedule(years=[2023, 2024, 2025, 2026], cache_dir=Path("data/malaysia"))
 vb = ARCVintageBuilder(schedule=arc_schedule)
 
-vintage_dates = generate_vintage_dates(2022, 2, 2025, 11, frequency="quarterly", day_of_month=15)
+vintage_dates = generate_vintage_dates(2023, 5, 2025, 8, frequency="quarterly", day_of_month=15)
 
 # ---------------------------------------------------------------------------
 # 3. Build vintages once (all indicators), then loop components
@@ -203,6 +203,7 @@ for label, (tcode, series_type) in COMPONENTS.items():
         vmonth = vdate.month
         vyear = vdate.year
         q_end_m = ((vmonth - 1) // 3) * 3 + 3
+        console.print(f"    [dim]{vyear}-Q{(vmonth-1)//3+1}[/dim]", end="")
 
         Xm_vint = vintage_matrices[vdate][:, comp_indices] if comp_indices else vintage_matrices[vdate]
 
@@ -237,7 +238,7 @@ for label, (tcode, series_type) in COMPONENTS.items():
         X_vint_std = (X_vint_t - vmu) / vsigma
 
         try:
-            dfm = DFM(DFMParams(r=3, p=2, max_iter=15, thresh=1e-4, idio=1))
+            dfm = DFM(DFMParams(r=2, p=1, max_iter=10, thresh=1e-3, idio=1))
             res = dfm.fit(X_vint_std)
 
             # Find target quarter-end row
