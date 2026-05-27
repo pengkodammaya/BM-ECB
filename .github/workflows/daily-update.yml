@@ -45,8 +45,10 @@ jobs:
           # Show what changed
           git status --short
           git diff --stat
-          # Stage and commit
-          git add docs/leaderboard.csv docs/daily_log.csv docs/leaderboard.md
+          # Stage and commit (leaderboard.csv may not exist yet)
+          for f in docs/leaderboard.csv docs/daily_log.csv docs/leaderboard.md; do
+            [ -f "$f" ] && git add "$f" || true
+          done
           if git diff --staged --quiet; then
             echo "No file changes detected. Forcing commit with empty marker."
             git commit --allow-empty -m "Daily update (no data change): $(date +%Y-%m-%d)"

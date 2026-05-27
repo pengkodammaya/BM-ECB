@@ -16,7 +16,8 @@ from nowcasting_toolbox.eval.vintage import ARCVintageBuilder, generate_vintage_
 from nowcasting_toolbox.data.sources.arc_parser import build_publication_schedule
 from nowcasting_toolbox.eval.metrics import compute_mae, compute_fda, compute_rmse
 from nowcasting_toolbox.dfm import DFM
-from nowcasting_toolbox.config import DFMParams
+from nowcasting_toolbox.bvar import BVAR
+from nowcasting_toolbox.config import DFMParams, BVARParams
 import yfinance as yf
 
 console = Console()
@@ -183,7 +184,7 @@ vintage_dates = generate_vintage_dates(2020, 2, 2025, 11, frequency="quarterly",
 # 3. Build vintages once (all indicators), then loop components
 # ---------------------------------------------------------------------------
 console.print("[cyan]Component Backtest[/cyan]")
-all_results = {label: {"preds": [], "acts": []} for label in COMPONENTS}
+all_results = {label: {"dfm_preds": [], "bvar_preds": [], "acts": []} for label in COMPONENTS}
 
 # Pre-build full vintage matrices for each vintage date
 vintage_matrices = {}
@@ -258,8 +259,26 @@ for label, (tcode, series_type) in COMPONENTS.items():
                         break
 
                 if not np.isnan(act_pct):
-                    all_results[label]["preds"].append(nw_pct * 100)
+                    all_results[label]["dfm_preds"].append(nw_pct * 100)
                     all_results[label]["acts"].append(act_pct * 100)
+        except Exception:
+            pass
+
+        # BVAR for component
+        try:
+            Xc_filled = X_vint_std.copy()
+            for j in range(Xc_filled.shape[1]):
+                col = Xc_filled[:, j]
+                nm = np.isnan(col); vl = ~nm
+                if np.any(nm) and np.sum(vl) >= 2:
+                    idx_arr = np.arange(len(col))
+                    Xc_filled[nm, j] = np.interp(idx_arr[nm], idx_arr[vl], col[vl])
+            bvar = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
+            res_b = bvar.fit(Xc_filled, datet_vint)
+            if q_end_idx >= 0 and res_b.X_sm.shape[0] > 0:
+                nw_bvar = float(res_b.X_sm[q_end_idx, -1]) * vsigma[-1] + vmu[-1]
+                if not np.isnan(act_pct):
+                    all_results[label]["bvar_preds"].append(nw_bvar * 100)
         except Exception:
             pass
 
@@ -267,42 +286,58 @@ for label, (tcode, series_type) in COMPONENTS.items():
 # 4. Report
 # ---------------------------------------------------------------------------
 console.print()
-table = Table(title="Component Nowcast Accuracy (DFM, 24 Vintage Backtest)")
+table = Table(title="Component Nowcast Accuracy (DFM + BVAR, 24 Vintage Backtest)")
 table.add_column("Component", style="bold")
-table.add_column("MAE (pp)", justify="right")
-table.add_column("RMSE (pp)", justify="right")
-table.add_column("FDA (%)", justify="right")
+table.add_column("DFM MAE", justify="right")
+table.add_column("BVAR MAE", justify="right")
+table.add_column("DFM FDA", justify="right")
+table.add_column("BVAR FDA", justify="right")
 table.add_column("N", justify="right")
 
 for label in COMPONENTS:
     d = all_results[label]
-    if len(d["preds"]) < 3:
-        continue
-    pa = np.array(d["preds"])
     aa = np.array(d["acts"])
-    mae = compute_mae(aa, pa)
-    rmse = compute_rmse(aa, pa)
-    fda = compute_fda(aa, pa)
+    if len(aa) < 3:
+        continue
+
+    dfm_pa = np.array(d["dfm_preds"])
+    bvar_pa = np.array(d["bvar_preds"])
+
+    dfm_mae = compute_mae(aa[:len(dfm_pa)], dfm_pa) if len(dfm_pa) >= 3 else float("nan")
+    bvar_mae = compute_mae(aa[:len(bvar_pa)], bvar_pa) if len(bvar_pa) >= 3 else float("nan")
+    dfm_fda = compute_fda(aa[:len(dfm_pa)], dfm_pa) if len(dfm_pa) >= 3 else 0
+    bvar_fda = compute_fda(aa[:len(bvar_pa)], bvar_pa) if len(bvar_pa) >= 3 else 0
 
     style = ""
-    if mae < 3.0:
-        style = "green"
-    elif mae < 6.0:
-        style = "yellow"
-    else:
-        style = "red"
+    if not np.isnan(bvar_mae) and bvar_mae < dfm_mae:
+        style = "green"  # BVAR wins
+    elif not np.isnan(dfm_mae) and dfm_mae < 3.0:
+        style = "cyan"
 
-    table.add_row(label, f"{mae:.2f}", f"{rmse:.2f}", f"{fda:.0%}", str(len(pa)), style=style)
+    table.add_row(label, f"{dfm_mae:.2f}", f"{bvar_mae:.2f}",
+                  f"{dfm_fda:.0%}", f"{bvar_fda:.0%}",
+                  str(len(aa)), style=style)
 
 console.print(table)
 
 # Save
-lb = pd.DataFrame([
-    {"component": l, "MAE": compute_mae(np.array(all_results[l]["acts"]), np.array(all_results[l]["preds"])),
-     "RMSE": compute_rmse(np.array(all_results[l]["acts"]), np.array(all_results[l]["preds"])),
-     "FDA": compute_fda(np.array(all_results[l]["acts"]), np.array(all_results[l]["preds"])),
-     "N": len(all_results[l]["preds"])}
-    for l in COMPONENTS if len(all_results[l]["preds"]) >= 3
-])
+rows = []
+for l in COMPONENTS:
+    aa = np.array(all_results[l]["acts"])
+    dfm_pa = np.array(all_results[l]["dfm_preds"])
+    bvar_pa = np.array(all_results[l]["bvar_preds"])
+    if len(dfm_pa) >= 3:
+        rows.append({"component": l, "model": "DFM",
+                      "MAE": compute_mae(aa[:len(dfm_pa)], dfm_pa),
+                      "RMSE": compute_rmse(aa[:len(dfm_pa)], dfm_pa),
+                      "FDA": compute_fda(aa[:len(dfm_pa)], dfm_pa),
+                      "N": len(dfm_pa)})
+    if len(bvar_pa) >= 3:
+        rows.append({"component": l, "model": "BVAR",
+                      "MAE": compute_mae(aa[:len(bvar_pa)], bvar_pa),
+                      "RMSE": compute_rmse(aa[:len(bvar_pa)], bvar_pa),
+                      "FDA": compute_fda(aa[:len(bvar_pa)], bvar_pa),
+                      "N": len(bvar_pa)})
+lb = pd.DataFrame(rows)
 lb.to_csv(Path("output/malaysia/component_leaderboard.csv"), index=False)
 console.print("\n[dim]Saved to output/malaysia/component_leaderboard.csv[/dim]")
