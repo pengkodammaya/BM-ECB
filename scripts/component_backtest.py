@@ -178,7 +178,7 @@ client.close()
 arc_schedule = build_publication_schedule(years=[2023, 2024, 2025, 2026], cache_dir=Path("data/malaysia"))
 vb = ARCVintageBuilder(schedule=arc_schedule)
 
-vintage_dates = generate_vintage_dates(2020, 2, 2025, 11, frequency="quarterly", day_of_month=15)
+vintage_dates = generate_vintage_dates(2022, 2, 2025, 11, frequency="quarterly", day_of_month=15)
 
 # ---------------------------------------------------------------------------
 # 3. Build vintages once (all indicators), then loop components
@@ -237,7 +237,7 @@ for label, (tcode, series_type) in COMPONENTS.items():
         X_vint_std = (X_vint_t - vmu) / vsigma
 
         try:
-            dfm = DFM(DFMParams(r=3, p=2, max_iter=30, thresh=1e-5, idio=1))
+            dfm = DFM(DFMParams(r=3, p=2, max_iter=15, thresh=1e-4, idio=1))
             res = dfm.fit(X_vint_std)
 
             # Find target quarter-end row
@@ -273,7 +273,7 @@ for label, (tcode, series_type) in COMPONENTS.items():
                 if np.any(nm) and np.sum(vl) >= 2:
                     idx_arr = np.arange(len(col))
                     Xc_filled[nm, j] = np.interp(idx_arr[nm], idx_arr[vl], col[vl])
-            bvar = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
+            bvar = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=3))
             res_b = bvar.fit(Xc_filled, datet_vint)
             if q_end_idx >= 0 and res_b.X_sm.shape[0] > 0:
                 nw_bvar = float(res_b.X_sm[q_end_idx, -1]) * vsigma[-1] + vmu[-1]

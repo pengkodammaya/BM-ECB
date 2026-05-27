@@ -840,6 +840,7 @@ for ck, (clabel, ccode) in comp_labels.items():
     dfm_val = nowcasts.get(ck)
     bvar_val = nowcasts.get(ck + "_bvar")
     beq_val = nowcasts.get(ck + "_beq")
+    beq_val = None if beq_val is not None and (isinstance(beq_val, float) and np.isnan(beq_val)) else beq_val
     ar1_val = nowcasts.get(ck + "_ar1")
     naive_val = nowcasts.get(ck + "_naive")
     act_val = nowcasts.get(ck + "_actual")
