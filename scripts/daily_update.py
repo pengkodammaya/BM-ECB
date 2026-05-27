@@ -554,9 +554,9 @@ for comp_key, comp_type, comp_series in COMPONENTS:
         dfm_c = DFM(DFMParams(r=cr, p=cp, max_iter=30, thresh=1e-5, idio=1))
         res_c = dfm_c.fit(Xc_est)
         nwc = float(res_c.X_sm[-1, -1]) * sigmac[-1] + muc[-1]
-        nowcasts[comp_key] = round(nwc * 100, 2)
+        nowcasts[comp_key + "_dfm"] = round(nwc * 100, 2)
 
-        # --- BVAR for component ---
+        # --- BVAR for component (PRIMARY) ---
         try:
             Xc_filled = Xc_est.copy()
             for j in range(Xc_filled.shape[1]):
@@ -568,9 +568,9 @@ for comp_key, comp_type, comp_series in COMPONENTS:
             bvar_c = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
             res_bc = bvar_c.fit(Xc_filled, datet[ffc:])
             nwb = float(res_bc.X_sm[-1, -1]) * sigmac[-1] + muc[-1]
-            nowcasts[comp_key + "_bvar"] = round(nwb * 100, 2)
+            nowcasts[comp_key] = round(nwb * 100, 2)
         except Exception as e:
-            nowcasts[comp_key + "_bvar"] = None
+            nowcasts[comp_key] = nowcasts.get(comp_key + "_dfm")  # fallback to DFM
 
         # --- BEQ for component: skip (BVAR interpolation fails on component subsets) ---
         nowcasts[comp_key + "_beq"] = None
@@ -826,8 +826,9 @@ comp_labels = {
 }
 
 for ck, (clabel, ccode) in comp_labels.items():
-    dfm_val = nowcasts.get(ck)
-    bvar_val = nowcasts.get(ck + "_bvar")
+    # BVAR is primary for components, DFM is comparison
+    bvar_val = nowcasts.get(ck)           # primary (BVAR)
+    dfm_val = nowcasts.get(ck + "_dfm")   # comparison (DFM)
     beq_val = nowcasts.get(ck + "_beq")
     beq_val = None if beq_val is not None and (isinstance(beq_val, float) and np.isnan(beq_val)) else beq_val
     ar1_val = nowcasts.get(ck + "_ar1")
