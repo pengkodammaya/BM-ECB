@@ -58,41 +58,41 @@
 
 | Model | Nowcast | Reference (Actual) |
 |-------|---------|--------------------|
-| DFM |  🔴 +7.5% (+2.8pp) | `+4.7%` |
-| AR(1) *(baseline)* |  🟠 +5.1% (+0.4pp) | `+4.7%` |
-| NAIVE *(last Q)* |  🟢 +4.7% (0.0pp) | `+4.7%` |
+| NAIVE *(last Q)* |  🟢 +4.7% (+0.0pp) | `+4.7%` |
+| AR(1) *(baseline)* |  🟡 +5.1% (+0.4pp) | `+4.7%` |
+| DFM |  🟠 +7.5% (+2.8pp) | `+4.7%` |
 
 ### Government Spending (G)
 
 | Model | Nowcast | Reference (Actual) |
 |-------|---------|--------------------|
-| DFM |  🔴 +4.7% (+0.6pp) | `+4.1%` |
-| AR(1) *(baseline)* |  🟠 +4.3% (+0.2pp) | `+4.1%` |
-| NAIVE *(last Q)* |  🟢 +4.1% (0.0pp) | `+4.1%` |
+| NAIVE *(last Q)* |  🟢 +4.1% (+0.0pp) | `+4.1%` |
+| AR(1) *(baseline)* |  🟡 +4.3% (+0.2pp) | `+4.1%` |
+| DFM |  🟠 +4.7% (+0.6pp) | `+4.1%` |
 
 ### Investment (GFCF) (I)
 
 | Model | Nowcast | Reference (Actual) |
 |-------|---------|--------------------|
-| DFM |  🔴 +5.2% (+2.1pp) | `+7.3%` |
-| AR(1) *(baseline)* |  🟠 +5.4% (+1.9pp) | `+7.3%` |
-| NAIVE *(last Q)* |  🟢 +7.3% (0.0pp) | `+7.3%` |
+| NAIVE *(last Q)* |  🟢 +7.3% (+0.0pp) | `+7.3%` |
+| AR(1) *(baseline)* |  🟡 +5.4% (+1.9pp) | `+7.3%` |
+| DFM |  🟠 +5.2% (+2.1pp) | `+7.3%` |
 
 ### Exports (X)
 
 | Model | Nowcast | Reference (Actual) |
 |-------|---------|--------------------|
-| DFM |  🔴 +4.0% (+1.2pp) | `+5.2%` |
-| AR(1) *(baseline)* |  🟠 +4.9% (+0.3pp) | `+5.2%` |
-| NAIVE *(last Q)* |  🟢 +5.2% (0.0pp) | `+5.2%` |
+| NAIVE *(last Q)* |  🟢 +5.2% (+0.0pp) | `+5.2%` |
+| AR(1) *(baseline)* |  🟡 +4.9% (+0.3pp) | `+5.2%` |
+| DFM |  🟠 +4.0% (+1.2pp) | `+5.2%` |
 
 ### Imports (M)
 
 | Model | Nowcast | Reference (Actual) |
 |-------|---------|--------------------|
-| DFM |  🟠 +4.7% (+0.1pp) | `+4.6%` |
-| AR(1) *(baseline)* |  🔴 +4.8% (+0.2pp) | `+4.6%` |
-| NAIVE *(last Q)* |  🟢 +4.6% (0.0pp) | `+4.6%` |
+| NAIVE *(last Q)* |  🟢 +4.6% (+0.0pp) | `+4.6%` |
+| DFM |  🟡 +4.7% (+0.1pp) | `+4.6%` |
+| AR(1) *(baseline)* |  🟠 +4.8% (+0.2pp) | `+4.6%` |
 
 
 ## Ground Truth Definition

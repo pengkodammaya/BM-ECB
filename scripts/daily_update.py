@@ -555,6 +555,36 @@ for comp_key, comp_type, comp_series in COMPONENTS:
         res_c = dfm_c.fit(Xc_est)
         nwc = float(res_c.X_sm[-1, -1]) * sigmac[-1] + muc[-1]
         nowcasts[comp_key] = round(nwc * 100, 2)
+
+        # --- BVAR for component ---
+        try:
+            Xc_filled = Xc_est.copy()
+            for j in range(Xc_filled.shape[1]):
+                col = Xc_filled[:, j]
+                nm = np.isnan(col); vl = ~nm
+                if np.any(nm) and np.sum(vl) >= 2:
+                    idx_arr = np.arange(len(col))
+                    Xc_filled[nm, j] = np.interp(idx_arr[nm], idx_arr[vl], col[vl])
+            bvar_c = BVAR(BVARParams(bvar_lags=3, bvar_thresh=1e-5, bvar_max_iter=10))
+            res_bc = bvar_c.fit(Xc_filled, datet[ffc:])
+            nwb = float(res_bc.X_sm[-1, -1]) * sigmac[-1] + muc[-1]
+            nowcasts[comp_key + "_bvar"] = round(nwb * 100, 2)
+        except Exception as e:
+            nowcasts[comp_key + "_bvar"] = None
+
+        # --- BEQ for component ---
+        try:
+            Xc_raw = Xc_trans[ffc:]
+            all_names = target_names + ["target"]
+            beq_c = BEQ(BEQParams(lagM=1, lagQ=1, lagY=1, type=901))
+            res_ec = beq_c.fit(Xc_raw, datet[ffc:], all_names)
+            if res_ec.X_sm is not None and res_ec.X_sm.shape[0] > 0:
+                nwe = float(res_ec.X_sm[-1, -1])
+                nowcasts[comp_key + "_beq"] = round(nwe * 100, 2)
+            else:
+                nowcasts[comp_key + "_beq"] = None
+        except Exception:
+            nowcasts[comp_key + "_beq"] = None
     except Exception as e:
         print(f"  Component {comp_key}: {e}")
         nowcasts[comp_key] = None
@@ -807,44 +837,58 @@ comp_labels = {
 
 for ck, (clabel, ccode) in comp_labels.items():
     dfm_val = nowcasts.get(ck)
+    bvar_val = nowcasts.get(ck + "_bvar")
+    beq_val = nowcasts.get(ck + "_beq")
     ar1_val = nowcasts.get(ck + "_ar1")
     naive_val = nowcasts.get(ck + "_naive")
     act_val = nowcasts.get(ck + "_actual")
     
     dfm_f = f"{dfm_val:+.1f}%" if dfm_val is not None else "—"
+    bvar_f = f"{bvar_val:+.1f}%" if bvar_val is not None else "—"
+    beq_f = f"{beq_val:+.1f}%" if beq_val is not None else "—"
     ar1_f = f"{ar1_val:+.1f}%" if ar1_val is not None else "—"
     naive_f = f"{naive_val:+.1f}%" if naive_val is not None else "—"
     act_f = f"`{act_val:+.1f}%`" if act_val is not None else "—"
     
-    # Errors vs reference (last quarter actual)
-    dfm_err = abs(dfm_val - act_val) if (dfm_val is not None and act_val is not None) else None
-    ar1_err = abs(ar1_val - act_val) if (ar1_val is not None and act_val is not None) else None
-    naive_err = 0.0 if naive_val is not None and act_val is not None else None  # naive IS the reference
+    # Errors vs reference
+    def err(v):
+        return abs(v - act_val) if (v is not None and act_val is not None) else None
     
-    # Emoji rank: 🟢🏅=1st, 🟠=2nd, 🔴=3rd
-    if dfm_err is not None and ar1_err is not None:
-        errors = {"DFM": dfm_err, "AR(1)": ar1_err, "NAIVE": naive_err or 0.0}
-        ranked = sorted(errors.items(), key=lambda x: x[1])
-        rank_emoji = {ranked[0][0]: " 🟢", ranked[1][0]: " 🟠", ranked[2][0]: " 🔴"}
-        dfm_rich = f"{rank_emoji['DFM']} {dfm_f}"
-        ar1_rich = f"{rank_emoji['AR(1)']} {ar1_f}"
-        naive_rich = f"{rank_emoji['NAIVE']} {naive_f}"
-    else:
-        dfm_rich = f"`{dfm_f}`" if dfm_val is not None else "—"
-        ar1_rich = f"`{ar1_f}`" if ar1_val is not None else "—"
-        naive_rich = f"`{naive_f}`" if naive_val is not None else "—"
+    dfm_err = err(dfm_val)
+    bvar_err = err(bvar_val)
+    beq_err = err(beq_val)
+    ar1_err = err(ar1_val)
+    naive_err = 0.0 if (naive_val is not None and act_val is not None) else None
+    
+    # 5-tier rank emoji: 🟢=1st 🟡=2nd 🟠=3rd 🟤=4th 🔴=5th
+    rank_emojis = [" 🟢", " 🟡", " 🟠", " 🟤", " 🔴"]
+    model_rows = []
+    
+    if act_val is not None:
+        pairs = [("DFM", dfm_val, dfm_err, dfm_f),
+                 ("BVAR", bvar_val, bvar_err, bvar_f),
+                 ("BEQ", beq_val, beq_err, beq_f),
+                 ("AR(1)", ar1_val, ar1_err, ar1_f),
+                 ("NAIVE", naive_val, naive_err, naive_f)]
+        valid = [(m, v, e, f) for m, v, e, f in pairs if v is not None and e is not None]
+        if len(valid) >= 2:
+            valid.sort(key=lambda x: x[2])
+            for rank, (m, v, e, f) in enumerate(valid):
+                emoji = rank_emojis[rank] if rank < 5 else " " + str(rank + 1)
+                note = ""
+                if m == "AR(1)": note = " *(baseline)*"
+                elif m == "NAIVE": note = " *(last Q)*"
+                model_rows.append(f"| {m}{note} | {emoji} {f} ({e:+.1f}pp) | {act_f} |")
+    if not model_rows:
+        for m, f, note in [("DFM", dfm_f, ""), ("BVAR", bvar_f, ""), ("BEQ", beq_f, ""),
+                           ("AR(1)", ar1_f, " *(baseline)*"), ("NAIVE", naive_f, " *(last Q)*")]:
+            model_rows.append(f"| {m}{note} | `{f}` | {act_f} |")
     
     md += f"### {clabel} ({ccode})\n\n"
     md += "| Model | Nowcast | Reference (Actual) |\n"
     md += "|-------|---------|--------------------|\n"
-    if dfm_err is not None:
-        md += f"| DFM | {dfm_rich} ({dfm_err:+.1f}pp) | {act_f} |\n"
-        md += f"| AR(1) *(baseline)* | {ar1_rich} ({ar1_err:+.1f}pp) | {act_f} |\n"
-        md += f"| NAIVE *(last Q)* | {naive_rich} (0.0pp) | {act_f} |\n"
-    else:
-        md += f"| DFM | {dfm_rich} | {act_f} |\n"
-        md += f"| AR(1) *(baseline)* | {ar1_rich} | {act_f} |\n"
-        md += f"| NAIVE *(last Q)* | {naive_rich} | {act_f} |\n"
+    for row in model_rows:
+        md += row + "\n"
     md += "\n"
 
 # Show GDP-identity derived imports separately

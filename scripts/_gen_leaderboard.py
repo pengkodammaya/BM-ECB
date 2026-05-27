@@ -123,45 +123,59 @@ comp_labels = {
 
 for ck, (clabel, ccode) in comp_labels.items():
     dfm_val = nowcasts.get(ck)
+    bvar_val = nowcasts.get(ck + "_bvar")
+    beq_val = nowcasts.get(ck + "_beq")
     ar1_val = nowcasts.get(ck + "_ar1")
-    naive_val = nowcasts.get(ck + "_naive") or nowcasts.get(ck + "_actual")  # fallback to actual
+    naive_val = nowcasts.get(ck + "_naive") or nowcasts.get(ck + "_actual")
     act_val = nowcasts.get(ck + "_actual")
 
     def ok(v):
         return v is not None and not (isinstance(v, float) and pd.isna(v))
 
     dfm_f = f"{dfm_val:+.1f}%" if ok(dfm_val) else "—"
+    bvar_f = f"{bvar_val:+.1f}%" if ok(bvar_val) else "—"
+    beq_f = f"{beq_val:+.1f}%" if ok(beq_val) else "—"
     ar1_f = f"{ar1_val:+.1f}%" if ok(ar1_val) else "—"
     naive_f = f"{naive_val:+.1f}%" if ok(naive_val) else "—"
     act_f = f"`{act_val:+.1f}%`" if ok(act_val) else "—"
 
-    dfm_err = abs(dfm_val - act_val) if (ok(dfm_val) and ok(act_val)) else None
-    ar1_err = abs(ar1_val - act_val) if (ok(ar1_val) and ok(act_val)) else None
+    def cerr(v):
+        return abs(v - act_val) if (ok(v) and ok(act_val)) else None
+
+    dfm_err = cerr(dfm_val)
+    bvar_err = cerr(bvar_val)
+    beq_err = cerr(beq_val)
+    ar1_err = cerr(ar1_val)
     naive_err = 0.0 if (ok(naive_val) and ok(act_val)) else None
 
-    if dfm_err is not None and ar1_err is not None:
-        errors = {"DFM": dfm_err, "AR(1)": ar1_err, "NAIVE": naive_err or 0.0}
-        ranked = sorted(errors.items(), key=lambda x: x[1])
-        rank_emoji = {ranked[0][0]: " 🟢", ranked[1][0]: " 🟠", ranked[2][0]: " 🔴"}
-        dfm_rich = f"{rank_emoji['DFM']} {dfm_f}"
-        ar1_rich = f"{rank_emoji['AR(1)']} {ar1_f}"
-        naive_rich = f"{rank_emoji['NAIVE']} {naive_f}"
-    else:
-        dfm_rich = f"`{dfm_f}`" if dfm_val is not None else "—"
-        ar1_rich = f"`{ar1_f}`" if ar1_val is not None else "—"
-        naive_rich = f"`{naive_f}`" if naive_val is not None else "—"
+    rank_emojis = [" 🟢", " 🟡", " 🟠", " 🟤", " 🔴"]
+    model_rows = []
+
+    if ok(act_val):
+        pairs = [("DFM", dfm_val, dfm_err, dfm_f),
+                 ("BVAR", bvar_val, bvar_err, bvar_f),
+                 ("BEQ", beq_val, beq_err, beq_f),
+                 ("AR(1)", ar1_val, ar1_err, ar1_f),
+                 ("NAIVE", naive_val, naive_err, naive_f)]
+        valid = [(m, v, e, f) for m, v, e, f in pairs if v is not None and e is not None]
+        if len(valid) >= 2:
+            valid.sort(key=lambda x: x[2])
+            for rank, (m, v, e, f) in enumerate(valid):
+                emoji = rank_emojis[rank] if rank < 5 else f" {rank+1}"
+                note = ""
+                if m == "AR(1)": note = " *(baseline)*"
+                elif m == "NAIVE": note = " *(last Q)*"
+                model_rows.append(f"| {m}{note} | {emoji} {f} ({e:+.1f}pp) | {act_f} |")
+    if not model_rows:
+        for m, f, note in [("DFM", dfm_f, ""), ("BVAR", bvar_f, ""), ("BEQ", beq_f, ""),
+                           ("AR(1)", ar1_f, " *(baseline)*"), ("NAIVE", naive_f, " *(last Q)*")]:
+            model_rows.append(f"| {m}{note} | `{f}` | {act_f} |")
 
     md += f"### {clabel} ({ccode})\n\n"
     md += "| Model | Nowcast | Reference (Actual) |\n"
     md += "|-------|---------|--------------------|\n"
-    if dfm_err is not None:
-        md += f"| DFM | {dfm_rich} ({dfm_err:+.1f}pp) | {act_f} |\n"
-        md += f"| AR(1) *(baseline)* | {ar1_rich} ({ar1_err:+.1f}pp) | {act_f} |\n"
-        md += f"| NAIVE *(last Q)* | {naive_rich} (0.0pp) | {act_f} |\n"
-    else:
-        md += f"| DFM | {dfm_rich} | {act_f} |\n"
-        md += f"| AR(1) *(baseline)* | {ar1_rich} | {act_f} |\n"
-        md += f"| NAIVE *(last Q)* | {naive_rich} | {act_f} |\n"
+    for row in model_rows:
+        md += row + "\n"
     md += "\n"
 
 md += "\n## Ground Truth Definition\n\n"
