@@ -191,7 +191,7 @@ datet_est = datet[first:]
 
 # Fit DFM on old data
 console.print("\n[bold]Fitting DFM on old vintage...[/bold]")
-dfm = DFM(DFMParams(r=3, p=2, max_iter=50, thresh=1e-5, idio=1))
+dfm = DFM(DFMParams(r=2, p=4, max_iter=50, thresh=1e-5, idio=1))
 res_old = dfm.fit(X_old_std)
 
 # Compute news decomposition

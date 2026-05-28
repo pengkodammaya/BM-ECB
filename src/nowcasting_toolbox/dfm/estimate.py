@@ -62,7 +62,7 @@ class DFM:
     Examples
     --------
     >>> from nowcasting_toolbox.config import DFMParams
-    >>> params = DFMParams(r=3, p=2, max_iter=50)
+    >>> params = DFMParams(r=2, p=4, max_iter=50)
     >>> dfm = DFM(params)
     >>> result = dfm.fit(X)  # X is (T, N) with possible NaNs
     """

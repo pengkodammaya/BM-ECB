@@ -155,7 +155,7 @@ console.print(f"[dim]Data: {X_est.shape[0]} months, {X_est.shape[1]} variables, 
 # 2. Run DFM
 # ---------------------------------------------------------------------------
 console.print("[cyan]Running DFM...[/cyan]")
-dfm = DFM(DFMParams(r=3, p=2, max_iter=50, thresh=1e-5, idio=1))
+dfm = DFM(DFMParams(r=2, p=4, max_iter=50, thresh=1e-5, idio=1))
 res = dfm.fit(X_est)
 
 # ---------------------------------------------------------------------------

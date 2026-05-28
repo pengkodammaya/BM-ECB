@@ -120,7 +120,7 @@ results = {}
 
 # DFM
 print("\n--- DFM ---")
-dfm = DFM(DFMParams(r=3, p=2, max_iter=50, thresh=1e-5, idio=1))
+dfm = DFM(DFMParams(r=2, p=4, max_iter=50, thresh=1e-5, idio=1))
 res_dfm = dfm.fit(X_est)
 dfm_nowcast = float(res_dfm.X_sm[-1, -1]) * sigma[-1] + mu[-1]
 results["DFM"] = dfm_nowcast * 100

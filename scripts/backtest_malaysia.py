@@ -225,7 +225,7 @@ for i, vdate in enumerate(vintage_dates):
 
     # Run DFM
     try:
-        dfm = DFM(DFMParams(r=3, p=2, max_iter=30, thresh=1e-5, idio=1))
+        dfm = DFM(DFMParams(r=2, p=4, max_iter=30, thresh=1e-5, idio=1))
         res = dfm.fit(X_vint_std)
 
         # Find the quarter-end row in the estimation sample

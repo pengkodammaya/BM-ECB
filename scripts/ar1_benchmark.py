@@ -174,7 +174,7 @@ for label, df in component_data.items():
     X_est = X_std[ff:]
 
     try:
-        dfm = DFM(DFMParams(r=3, p=2, max_iter=50, thresh=1e-5, idio=1))
+        dfm = DFM(DFMParams(r=2, p=4, max_iter=50, thresh=1e-5, idio=1))
         res = dfm.fit(X_est)
         gdp_smoothed = res.X_sm[:, -1] * sigma[-1] + mu[-1]
 

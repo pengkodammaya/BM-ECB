@@ -238,7 +238,7 @@ print("\n" + "=" * 60)
 print("RUNNING DFM NOWCAST")
 print("=" * 60)
 
-params = DFMParams(r=3, p=2, max_iter=50, thresh=1e-5, idio=1)
+params = DFMParams(r=2, p=4, max_iter=50, thresh=1e-5, idio=1)
 dfm = DFM(params, verbose=True)
 result = dfm.fit(X_nowcast)
 

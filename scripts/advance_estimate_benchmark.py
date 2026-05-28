@@ -177,7 +177,7 @@ for qlabel, rel_date_str, adv_yoy, adv_qoq in ADVANCE_ESTIMATES:
     X_vint_std = X_vint_std[first:]
 
     try:
-        dfm = DFM(DFMParams(r=3, p=2, max_iter=30, thresh=1e-5, idio=1))
+        dfm = DFM(DFMParams(r=2, p=4, max_iter=30, thresh=1e-5, idio=1))
         res = dfm.fit(X_vint_std)
 
         # Extract GDP nowcast for the target quarter

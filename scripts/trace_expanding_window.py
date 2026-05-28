@@ -170,7 +170,7 @@ for label, vdate in test_vintages:
     nowcast_str = "—"
     actual_str = "—"
     try:
-        dfm = DFM(DFMParams(r=3, p=2, max_iter=30, thresh=1e-5, idio=1))
+        dfm = DFM(DFMParams(r=2, p=4, max_iter=30, thresh=1e-5, idio=1))
         res = dfm.fit(X_vint_std)
         if q1_idx is not None and q1_idx < res.X_sm.shape[0]:
             nw_std = float(res.X_sm[q1_idx, -1])

@@ -173,7 +173,7 @@ for label, (dataset_id, type_code, series_type) in DEMAND_TARGETS.items():
         continue
 
     try:
-        dfm = DFM(DFMParams(r=3, p=2, max_iter=50, thresh=1e-5, idio=1))
+        dfm = DFM(DFMParams(r=2, p=4, max_iter=50, thresh=1e-5, idio=1))
         res = dfm.fit(X_est)
         nw_std = float(res.X_sm[-1, -1])
         nw_pct = nw_std * sigma[-1] + mu[-1]

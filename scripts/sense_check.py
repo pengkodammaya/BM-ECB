@@ -156,7 +156,7 @@ X_est = X_std[first_full:]
 datet_est = datet_full[first_full:]
 
 # Run DFM
-dfm = DFM(DFMParams(r=3, p=2, max_iter=50, thresh=1e-5, idio=1))
+dfm = DFM(DFMParams(r=2, p=4, max_iter=50, thresh=1e-5, idio=1))
 res = dfm.fit(X_est)
 gdp_smoothed_pct = (res.X_sm[:, -1] * sigma[-1] + mu[-1]) * 100
 
