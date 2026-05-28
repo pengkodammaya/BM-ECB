@@ -436,7 +436,7 @@ def news(ctx: click.Context, old_date: str | None, new_date: str | None) -> None
     X_new_std = X_new_std[first:]
 
     click.echo("\nFitting DFM on old vintage...")
-    dfm = DFM(DFMParams(r=3, p=2, max_iter=50, thresh=1e-5, idio=1))
+    dfm = DFM(DFMParams(r=2, p=4, max_iter=50, thresh=1e-5, idio=1))
     res_old = dfm.fit(X_old_std)
 
     # Compute news

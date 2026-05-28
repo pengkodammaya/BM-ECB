@@ -359,7 +359,7 @@ forecast_label = f"Q{next_q_end_m // 3} {next_q_year}" if next_q_idx >= 0 else "
 
 # DFM
 try:
-    dfm = DFM(DFMParams(r=3, p=2, max_iter=50, thresh=1e-5, idio=1))
+    dfm = DFM(DFMParams(r=2, p=4, max_iter=50, thresh=1e-5, idio=1))
     res = dfm.fit(X_est)
     
     def _extract(res, idx, sigma_arr, mu_arr, gdp_col=-1):
