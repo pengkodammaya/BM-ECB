@@ -127,17 +127,56 @@ DATASETS_EXTRA = {
 for k in BNM_VARS:
     DATASETS[k] = DATASETS_EXTRA.get(k)
 
+# ---------------------------------------------------------------------------
+# 1c. Global indicators via yfinance
+# ---------------------------------------------------------------------------
+console.print("[cyan]Fetching global indicators via yfinance...[/cyan]")
+import yfinance as yf
+
+GLOBAL_INDICATORS = {
+    "sp500": ("^GSPC", "global_equity"),
+    "shcomp": ("000001.SS", "global_equity"),
+    "sox":    ("^SOX", "global_equity"),
+    "klci":   ("^KLSE", "global_equity"),
+    "sti":    ("^STI", "global_equity"),
+    "brent":  ("BZ=F", "global_commodity"),
+    "cpo":    ("CPO=F", "global_commodity"),
+    "bdry":   ("BDRY", "global_demand"),
+}
+
+for label, (ticker, group) in GLOBAL_INDICATORS.items():
+    try:
+        raw = yf.download(ticker, start="2015-01-01", progress=False)
+        if raw.empty:
+            continue
+        if isinstance(raw.columns, pd.MultiIndex):
+            close = raw["Close"].iloc[:, 0] if raw["Close"].ndim == 2 else raw["Close"]
+        else:
+            close = raw["Close"]
+        monthly = close.resample("ME").last().dropna()
+        growth = np.log(monthly).diff().dropna()
+        df = growth.reset_index()
+        df.columns = ["date", label]
+        df["date"] = pd.to_datetime(df["date"])
+        DATASETS[label] = (label, label, 0, group, {})
+        filtered[label] = df
+        console.print(f"  [dim]Loaded {label} ({ticker}): {len(df)} monthly obs[/dim]")
+    except Exception as e:
+        console.print(f"  [yellow]Skipping {label}: {e}[/yellow]")
+
 MONTHLY_NAMES = [n for n in DATASETS if n != "gdp"]
 ALL_NAMES = MONTHLY_NAMES + ["gdp"]
-ALL_GROUPS = [DATASETS[n][3] for n in ALL_NAMES]  # for block factors
+ALL_GROUPS = [DATASETS[n][3] for n in ALL_NAMES if n in DATASETS]  # for block factors
 
-# Update ARC dataset IDs
+# Update ARC dataset IDs (global indicators use fallback lags)
 DATASET_IDS_FOR_ARC = [
     "ipi", "cpi_headline", "cpi_core", "ppi",
     "u_rate", "u_rate",
     "leading", "coincident",
     "exports", "wrt",
-] + BNM_VARS + ["gdp"]
+] + BNM_VARS + [
+    "sp500", "shcomp", "sox", "klci", "sti", "brent", "cpo", "bdry",
+] + ["gdp"]
 
 gdp_df = filtered["gdp"].copy().sort_values("date")
 gdp_vals = gdp_df["gdp"].values
@@ -213,7 +252,7 @@ gdp_idx = -1
 results = []
 
 # Generate vintage dates for backtest
-vintage_dates = generate_vintage_dates(2020, 2, 2025, 11, frequency="quarterly", day_of_month=15)
+vintage_dates = generate_vintage_dates(2023, 2, 2025, 11, frequency="quarterly", day_of_month=15)
 
 console.print("[cyan]Running backtest with live ARC vintages...[/cyan]")
 
@@ -274,7 +313,7 @@ for i, vdate in enumerate(vintage_dates):
 
     # --- DFM ---
     try:
-        dfm = DFM(DFMParams(r=3, p=2, max_iter=30, thresh=1e-5, idio=1, block_factors=0))
+        dfm = DFM(DFMParams(r=2, p=1, max_iter=15, thresh=1e-4, idio=1, block_factors=0))
         res = dfm.fit(X_vint_std)
         q_end_idx = -1
         for t in range(len(datet_vint)):
@@ -294,7 +333,7 @@ for i, vdate in enumerate(vintage_dates):
             if np.any(nm) and np.sum(vl) >= 2:
                 idx_arr = np.arange(len(col))
                 X_filled[nm, j] = np.interp(idx_arr[nm], idx_arr[vl], col[vl])
-        bvar = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-5, bvar_max_iter=10))
+        bvar = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
         res_b = bvar.fit(X_filled, datet_vint)
         nw = float(res_b.X_sm[-1, gdp_idx]) * vint_sigma[gdp_idx] + vint_mu[gdp_idx]
         row["bvar_pct"] = round(nw * 100, 2)

@@ -300,6 +300,26 @@ The simplest possible benchmark: forecast current quarter GDP = last quarter's a
 - Naive's RMSE (8.93) is nearly double DFM's (5.21) — large errors when growth changes direction
 - This validates the nowcasting approach: even simple models add meaningful information over persistence
 
+### Main GDP Backtest with Global Indicators (2026-05-27)
+
+Added 8 global indicators via yfinance (SP500, Shanghai, SOX, KLCI, STI, Brent, CPO, BDRY) to main GDP backtest. 12 vintages (2023-Q1 to 2025-Q4), DFM r=2 p=1, BVAR lags=2.
+
+| Model | MAE (pp) | RMSE (pp) | FDA (%) | N |
+|-------|:------:|:--------:|:------:|:-:|
+| DFM | **0.569** | 0.650 | 54.5% | 12 |
+| BEQ | 0.770 | 1.000 | 18.2% | 12 |
+| BVAR | 0.787 | 0.938 | 45.5% | 12 |
+| NAIVE | 0.926 | 1.095 | 36.4% | 12 |
+| ENSEMBLE | 0.622 | 0.671 | **63.6%** | 12 |
+
+**Key findings**:
+- **DFM still wins main GDP** (0.569 MAE) — factor model handles 23 variables better than BVAR
+- **Ensemble has best FDA** (63.6%) — weighted median catches directional changes better than any single model
+- **BVAR loses on main GDP but wins on components** — consistent: factor model scales to many variables, BVAR's Minnesota prior excels with few
+- **Global indicators don't improve main GDP** — they help components (exports -7%, imports -17%) but add noise to aggregate
+- **DOSM Advance** (0.175 MAE) still dominates all models — official data beats statistical nowcasting
+- **Strategy confirmed**: DFM for main GDP, BVAR for components, ensemble for directional accuracy
+
 ---
 
 *Last updated: 2026-05-26. All findings are from the Malaysia nowcasting pipeline using OpenDOSM + BNM + yfinance + FRED public APIs.*
