@@ -199,7 +199,7 @@ console.print(table)
 
 console.print()
 console.print("[bold]Key points:[/bold]")
-console.print("  1. Early COVID (2020): Only ~6 quarters of GDP data, no COVID precedent → model relies on pre-COVID patterns")
+console.print("  1. Early COVID (2020): Only ~6 quarters of GDP data, no COVID precedent -> model relies on pre-COVID patterns")
 console.print("  2. Mid Recovery (2022): COVID period (2020-2021) now in training set → model 'learned' pandemic dynamics")
 console.print("  3. Late Period (2025): Full 2018-2024 history → model has seen a complete business cycle")
 console.print()

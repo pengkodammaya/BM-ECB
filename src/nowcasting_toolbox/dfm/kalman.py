@@ -40,6 +40,7 @@ def kalman_filter_smoother(
     R: FloatArray,
     Z_0: FloatArray,
     V_0: FloatArray,
+    max_cov: float = 1e10,
 ) -> tuple[FloatArray, FloatArray]:
     """Run the Kalman filter and RTS smoother on data with missing values.
 
@@ -60,6 +61,8 @@ def kalman_filter_smoother(
         Initial state mean.
     V_0 : (K, K) array
         Initial state covariance.
+    max_cov : float
+        Maximum covariance diagonal value to prevent overflow.
 
     Returns
     -------
@@ -78,6 +81,12 @@ def kalman_filter_smoother(
     Z_0 = np.atleast_1d(Z_0).astype(float)
     V_0 = np.atleast_2d(V_0).astype(float)
 
+    # Clip initial conditions to prevent overflow
+    Z_0 = np.clip(Z_0, -1e6, 1e6)
+    V_diag = np.diag(V_0).copy()
+    V_diag = np.clip(V_diag, 0, max_cov)
+    V_0 = np.diag(V_diag) + (V_0 - np.diag(np.diag(V_0)))
+
     # ---------- Forward pass (filter) ----------
     Z_pred = np.zeros((T, K))
     V_pred = np.zeros((T, K, K))
@@ -91,6 +100,13 @@ def kalman_filter_smoother(
         # Prediction
         Z_t_pred = A @ Z_prev
         V_t_pred = A @ V_prev @ A.T + Q
+
+        # Clip to prevent overflow
+        Z_t_pred = np.clip(Z_t_pred, -1e6, 1e6)
+        V_diag = np.diag(V_t_pred).copy()
+        V_diag = np.clip(V_diag, 0, max_cov)
+        V_t_pred = np.diag(V_diag) + (V_t_pred - np.diag(np.diag(V_t_pred)))
+
         Z_pred[t] = Z_t_pred
         V_pred[t] = V_t_pred
 
@@ -150,6 +166,12 @@ def kalman_filter_smoother(
         Z_smooth[t] = Z_filt[t] + J @ (Z_smooth[t + 1] - Z_pred[t + 1])
         V_smooth[t] = V_filt[t] + J @ (V_smooth[t + 1] - V_pred_next) @ J.T
 
+        # Clip to prevent overflow
+        Z_smooth[t] = np.clip(Z_smooth[t], -1e6, 1e6)
+        V_diag = np.diag(V_smooth[t]).copy()
+        V_diag = np.clip(V_diag, 0, max_cov)
+        V_smooth[t] = np.diag(V_diag) + (V_smooth[t] - np.diag(np.diag(V_smooth[t])))
+
     return Z_smooth, V_smooth
 
 
@@ -166,6 +188,7 @@ def kalman_filter(
     R: FloatArray,
     Z_0: FloatArray,
     V_0: FloatArray,
+    max_cov: float = 1e10,
 ) -> tuple[FloatArray, FloatArray, FloatArray, FloatArray]:
     """Run only the forward Kalman filter (no smoother).
 
@@ -186,6 +209,12 @@ def kalman_filter(
     Z_0 = np.atleast_1d(Z_0).astype(float)
     V_0 = np.atleast_2d(V_0).astype(float)
 
+    # Clip initial conditions to prevent overflow
+    Z_0 = np.clip(Z_0, -1e6, 1e6)
+    V_diag = np.diag(V_0).copy()
+    V_diag = np.clip(V_diag, 0, max_cov)
+    V_0 = np.diag(V_diag) + (V_0 - np.diag(np.diag(V_0)))
+
     Z_pred = np.zeros((T, K))
     V_pred = np.zeros((T, K, K))
     Z_filt = np.zeros((T, K))
@@ -197,6 +226,13 @@ def kalman_filter(
     for t in range(T):
         Z_t_pred = A @ Z_prev
         V_t_pred = A @ V_prev @ A.T + Q
+
+        # Clip to prevent overflow
+        Z_t_pred = np.clip(Z_t_pred, -1e6, 1e6)
+        V_diag = np.diag(V_t_pred).copy()
+        V_diag = np.clip(V_diag, 0, max_cov)
+        V_t_pred = np.diag(V_diag) + (V_t_pred - np.diag(np.diag(V_t_pred)))
+
         Z_pred[t] = Z_t_pred
         V_pred[t] = V_t_pred
 
@@ -242,6 +278,7 @@ def kalman_loglikelihood(
     R: FloatArray,
     Z_0: FloatArray,
     V_0: FloatArray,
+    max_cov: float = 1e10,
 ) -> float:
     """Compute the log-likelihood of the data under the state-space model."""
     N, T = y.shape
@@ -249,12 +286,24 @@ def kalman_loglikelihood(
     Z_prev = np.atleast_1d(Z_0).astype(float)
     V_prev = np.atleast_2d(V_0).astype(float)
 
+    # Clip initial conditions to prevent overflow
+    Z_prev = np.clip(Z_prev, -1e6, 1e6)
+    V_diag = np.diag(V_prev).copy()
+    V_diag = np.clip(V_diag, 0, max_cov)
+    V_prev = np.diag(V_diag) + (V_prev - np.diag(np.diag(V_prev)))
+
     loglik = 0.0
     const = -0.5 * N * np.log(2 * np.pi)
 
     for t in range(T):
         Z_pred = A @ Z_prev
         V_pred = A @ V_prev @ A.T + Q
+
+        # Clip to prevent overflow
+        Z_pred = np.clip(Z_pred, -1e6, 1e6)
+        V_diag = np.diag(V_pred).copy()
+        V_diag = np.clip(V_diag, 0, max_cov)
+        V_pred = np.diag(V_diag) + (V_pred - np.diag(np.diag(V_pred)))
 
         y_t = y[:, t]
         observed = ~np.isnan(y_t)

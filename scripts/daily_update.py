@@ -499,6 +499,44 @@ if advance_path.exists():
         pass
 
 # ---------------------------------------------------------------------------
+# 3a. Fetch YoY GDP and sector data for DOSM-comparable metrics
+# ---------------------------------------------------------------------------
+client_yoy = OpenDOSMClient()
+
+# Overall YoY GDP
+df_gdp_yoy = client_yoy.fetch("gdp_qtr_real", limit=20000)
+actual_yoy_gdp = None
+if df_gdp_yoy is not None and not df_gdp_yoy.empty:
+    yoy_rows = df_gdp_yoy[df_gdp_yoy["series"] == "growth_yoy"].copy()
+    if not yoy_rows.empty:
+        yoy_rows["date"] = pd.to_datetime(yoy_rows["date"])
+        yoy_rows = yoy_rows.sort_values("date")
+        actual_yoy_gdp = yoy_rows.iloc[-1]["value"]
+        nowcasts["actual_yoy_gdp"] = round(actual_yoy_gdp, 2)
+
+# Sector breakdowns (supply-side)
+SECTOR_MAP = {
+    "p1": "agriculture", "p2": "mining", "p3": "manufacturing",
+    "p4": "construction", "p5": "services",
+}
+sector_actuals = {}
+df_supply = client_yoy.fetch("gdp_qtr_real_supply", limit=20000)
+if df_supply is not None and not df_supply.empty:
+    for sector_code, sector_name in SECTOR_MAP.items():
+        try:
+            sector_rows = df_supply[
+                (df_supply["sector"] == sector_code) & (df_supply["series"] == "growth_yoy")
+            ].copy()
+            if not sector_rows.empty:
+                sector_rows["date"] = pd.to_datetime(sector_rows["date"])
+                sector_rows = sector_rows.sort_values("date")
+                sector_actuals[sector_name] = round(sector_rows.iloc[-1]["value"], 2)
+        except Exception:
+            pass
+
+client_yoy.close()
+
+# ---------------------------------------------------------------------------
 # 3b. Component-level nowcasts: C, I, G, X, M with GDP identity reconciliation
 # ---------------------------------------------------------------------------
 client2 = OpenDOSMClient()
@@ -619,7 +657,93 @@ for comp_key, comp_type, comp_series in COMPONENTS:
 client2.close()
 
 # ---------------------------------------------------------------------------
-# 3c. GDP Identity Reconciliation: derive imports from C+I+G+X-GDP
+# 3c. YoY GDP Nowcast (DOSM-comparable metric)
+# ---------------------------------------------------------------------------
+# Use the same indicators but target YoY GDP instead of QoQ SA
+if df_gdp_yoy is not None and not df_gdp_yoy.empty:
+    try:
+        # Build YoY GDP series
+        yoy_rows = df_gdp_yoy[df_gdp_yoy["series"] == "growth_yoy"].copy()
+        yoy_rows["date"] = pd.to_datetime(yoy_rows["date"])
+        yoy_rows = yoy_rows.sort_values("date")
+        yoy_rows["gdp_yoy"] = yoy_rows["value"] / 100.0  # % to decimal
+
+        # Build grid for YoY GDP
+        Xy = np.full((T, nM + 1), np.nan)
+        for j, name in enumerate(MN):
+            if name in filtered:
+                df = filtered[name]
+                for _, row in df.iterrows():
+                    y, m = row["date"].year, row["date"].month
+                    idx = np.where((datet[:, 0] == y) & (datet[:, 1] == m))[0]
+                    if len(idx) > 0:
+                        Xy[idx[0], j] = row[name]
+        # Fill YoY GDP at quarter-end months
+        for _, row in yoy_rows.iterrows():
+            y, m = row["date"].year, row["date"].month
+            qem = ((m - 1) // 3) * 3 + 3
+            idx = np.where((datet[:, 0] == y) & (datet[:, 1] == qem))[0]
+            if len(idx) > 0:
+                Xy[idx[0], -1] = row["gdp_yoy"]
+
+        # Transform and standardize
+        Xy_trans = Xy.copy()
+        for j, name in enumerate(MN):
+            tcode = DATASETS.get(name, (None, None, 0, None, {}))[2]
+            Xy_trans[:, j] = transform_series(Xy[:, j].copy(), tcode, "monthly")
+        Xy_trans[:, -1] = Xy[:, -1].copy()  # YoY already in decimal, no transform
+
+        mu_y = np.nanmean(Xy_trans, axis=0)
+        sigma_y = np.nanstd(Xy_trans, axis=0)
+        sigma_y[sigma_y < 1e-10] = 1.0
+        Xy_std = (Xy_trans - mu_y) / sigma_y
+        ff_y = np.where(~np.all(np.isnan(Xy_std), axis=1))[0][0]
+        Xy_est = Xy_std[ff_y:]
+
+        # Find current quarter index for YoY
+        current_q_idx_y = -1
+        for i in range(len(datet) - ff_y):
+            if datet[ff_y + i, 0] == current_year and datet[ff_y + i, 1] == current_q_end_m:
+                current_q_idx_y = i
+                break
+
+        # DFM YoY nowcast
+        dfm_y = DFM(DFMParams(r=2, p=4, max_iter=50, thresh=1e-5, idio=1))
+        res_y = dfm_y.fit(Xy_est)
+        if current_q_idx_y >= 0 and current_q_idx_y < res_y.X_sm.shape[0]:
+            yoy_nw = float(res_y.X_sm[current_q_idx_y, -1]) * sigma_y[-1] + mu_y[-1]
+            nowcasts["dfm_yoy"] = round(yoy_nw * 100, 2)
+
+        # BVAR YoY nowcast
+        try:
+            Xy_filled = Xy_est.copy()
+            for j in range(Xy_filled.shape[1]):
+                col = Xy_filled[:, j]
+                nm = np.isnan(col); vl = ~nm
+                if np.any(nm) and np.sum(vl) >= 2:
+                    idx_arr = np.arange(len(col))
+                    Xy_filled[nm, j] = np.interp(idx_arr[nm], idx_arr[vl], col[vl])
+            bvar_y = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
+            res_by = bvar_y.fit(Xy_filled, datet[ff_y:])
+            if current_q_idx_y >= 0 and current_q_idx_y < res_by.X_sm.shape[0]:
+                yoy_nw_bvar = float(res_by.X_sm[current_q_idx_y, -1]) * sigma_y[-1] + mu_y[-1]
+                nowcasts["bvar_yoy"] = round(yoy_nw_bvar * 100, 2)
+        except Exception:
+            pass
+
+        # Ensemble YoY
+        yoy_vals = [v for v in [nowcasts.get("dfm_yoy"), nowcasts.get("bvar_yoy")] if v is not None]
+        if yoy_vals:
+            nowcasts["ensemble_yoy"] = round(np.median(yoy_vals), 2)
+
+    except Exception as e:
+        print(f"YoY GDP nowcast failed: {e}")
+
+# Store sector actuals
+nowcasts["sector_actuals"] = sector_actuals
+
+# ---------------------------------------------------------------------------
+# 3d. GDP Identity Reconciliation: derive imports from C+I+G+X-GDP
 # ---------------------------------------------------------------------------
 # GDP = C + I + G + X - M  (expenditure approach)
 # => M_growth = (C*C_growth + I*I_growth + G*G_growth + X*X_growth - GDP*GDP_growth) / M
@@ -741,66 +865,120 @@ if len(log) >= 3:
     lb_df.to_csv(Path("docs/leaderboard.csv"), index=False)
 
 # -------------------------------------------------------------------
-# 6. Generate markdown leaderboard with AR(1) + DOSM advance + timing labels
+# 6. Generate markdown leaderboard (DOSM-comparable format)
 # -------------------------------------------------------------------
-# Determine reference: DOSM advance if available for current quarter, else latest actual
+# Determine reference: DOSM advance YoY if available, else latest actual YoY
 adv_q_label = f"{current_year}-Q{current_quarter}"
-adv_reference = None
+adv_reference_yoy = None
 adv_reference_source = ""
 if dosm_advance is not None:
-    adv_reference = dosm_advance.get("overall_yoy")
+    adv_reference_yoy = dosm_advance.get("overall_yoy")
     adv_reference_source = f"DOSM Advance ({dosm_advance.get('release_date', '?')})"
-elif actual_pct is not None:
-    adv_reference = actual_pct
-    adv_reference_source = f"DOSM Actual (latest: {backcast_label}) — advance for {nowcast_label} pending"
+elif actual_yoy_gdp is not None:
+    adv_reference_yoy = actual_yoy_gdp
+    adv_reference_source = f"DOSM Actual (latest: {backcast_label})"
 
 md = f"# Malaysia GDP Nowcasting — Live Leaderboard\n\n"
 md += f"**Updated:** {today_str} | **Nowcasting:** {nowcast_label} | **Reference:** {adv_reference_source}\n\n"
 
-md += "## Current Quarter Nowcast (QoQ SA %)\n\n"
-md += f"*Nowcasting GDP for **{nowcast_label}**. Advance estimate expected ~mid-{(current_quarter*3+1)%12 or 12}.*\n\n"
+# --- Section 1: YoY Growth (DOSM-comparable) ---
+md += "## GDP Growth (YoY %)\n\n"
+md += f"*Comparable to [OpenDOSM GDP Dashboard](https://open.dosm.gov.my/dashboard/gdp). Data as of {backcast_label}.*\n\n"
 
-all_models = ["DFM", "BVAR", "BEQ", "AR(1)", "NAIVE", "ENSEMBLE"]
-model_errors = {}
-for model in all_models:
+md += "| Model | Nowcast | Reference | Error |\n"
+md += "|-------|---------|-----------|-------|\n"
+
+yoy_models = [
+    ("DFM", "dfm_yoy"), ("BVAR", "bvar_yoy"), ("ENSEMBLE", "ensemble_yoy"),
+]
+for model_name, model_key in yoy_models:
+    val = nowcasts.get(model_key)
+    val_str = f"{val:+.1f}%" if val is not None else "—"
+    ref_str = f"{adv_reference_yoy:+.1f}%" if adv_reference_yoy is not None else "—"
+    err_str = "—"
+    if val is not None and adv_reference_yoy is not None:
+        err_val = abs(val - adv_reference_yoy)
+        err_str = f"{err_val:.1f}pp"
+    md += f"| **{model_name}** | `{val_str}` | `{ref_str}` | {err_str} |\n"
+
+if actual_yoy_gdp is not None:
+    md += f"\n*DOSM official YoY: `{actual_yoy_gdp:+.1f}%` (Q1 2026)*\n"
+
+# --- Section 2: QoQ SA (internal tracking) ---
+md += f"\n## GDP Growth (QoQ SA %)\n\n"
+md += f"*Internal tracking metric. Seasonally adjusted, quarter-on-quarter.*\n\n"
+
+md += "| Model | Nowcast | Backcast | Forecast |\n"
+md += "|-------|---------|----------|----------|\n"
+for model in ["DFM", "BVAR", "BEQ", "ENSEMBLE"]:
     col = model.lower()
-    val = nowcasts.get(col)
-    if val is not None:
-        err = abs(val - adv_reference) if adv_reference is not None else None
-        model_errors[model] = err
-        ci_str = ""
-        if model == "BVAR":
-            ci_10 = nowcasts.get("bvar_ci_10")
-            ci_90 = nowcasts.get("bvar_ci_90")
-            if ci_10 is not None and ci_90 is not None:
-                ci_str = f" (CI: `{ci_10:+.1f}%` to `{ci_90:+.1f}%`)"
-        md += f"- **{model}:** `{val:+.2f}%`{ci_str}\n"
+    nw = nowcasts.get(col)
+    bc = nowcasts.get(f"{col}_backcast")
+    fc = nowcasts.get(f"{col}_forecast")
+    nw_str = f"{nw:+.1f}%" if nw is not None else "—"
+    bc_str = f"{bc:+.1f}%" if bc is not None else "—"
+    fc_str = f"{fc:+.1f}%" if fc is not None else "—"
+    md += f"| {model} | {nw_str} | {bc_str} | {fc_str} |\n"
 
-if adv_reference is not None:
-    md += f"\n*Reference (best available): `{adv_reference:+.1f}%` — {adv_reference_source}*\n"
-    # Highlight closest model(s)
-    if model_errors:
-        min_err = min(model_errors.values())
-        best_models = [m for m, e in model_errors.items() if e == min_err]
-        md += f"\n**Closest to reference:** {', '.join(best_models)} ({min_err:+.2f}pp err)\n"
+if actual_pct is not None:
+    md += f"\n*DOSM official QoQ SA: `{actual_pct:+.1f}%` ({backcast_label})*\n"
 
-md += f"\n## Backcast: {backcast_label} (QoQ SA %)\n\n"
-md += f"*Model estimate for the most recent quarter with released GDP.*\n\n"
-for model in ["DFM", "BVAR", "BEQ"]:
-    bc = nowcasts.get(f"{model.lower()}_backcast")
-    if bc is not None:
-        md += f"- **{model}:** `{bc:+.2f}%`\n"
-if actual_pct:
-    md += f"\n*DOSM official: `{actual_pct:+.1f}%`*\n"
+# --- Section 3: Economic Sectors (DOSM supply-side) ---
+md += "\n## GDP by Economic Sector (YoY %)\n\n"
+md += '*Comparable to DOSM "A deeper look at GDP by economic sector". Actual values from `gdp_qtr_real_supply`.*\n\n'
 
-md += f"\n## 1-Quarter-Ahead Forecast: {forecast_label} (QoQ SA %)\n\n"
-for model in ["DFM", "BVAR", "BEQ"]:
-    fc = nowcasts.get(f"{model.lower()}_forecast")
-    if fc is not None:
-        md += f"- **{model}:** `{fc:+.2f}%`\n"
+sector_labels = {
+    "agriculture": "Agriculture",
+    "mining": "Mining & Quarrying",
+    "manufacturing": "Manufacturing",
+    "construction": "Construction",
+    "services": "Services",
+}
 
-md += "\n## Model Leaderboard\n\n"
-md += "*Daily nowcast accuracy vs best available reference. Metrics appear after 3+ days.*\n\n"
+md += "| Sector | Latest Actual |\n"
+md += "|--------|---------------|\n"
+for sector_key, sector_name in sector_labels.items():
+    act = sector_actuals.get(sector_key)
+    act_str = f"`{act:+.1f}%`" if act is not None else "—"
+    md += f"| {sector_name} | {act_str} |\n"
+
+if actual_yoy_gdp is not None:
+    md += f"| **Overall GDP** | `{actual_yoy_gdp:+.1f}%` |\n"
+
+# --- Section 4: Expenditure Components (DOSM demand-side) ---
+md += "\n## GDP by Expenditure Category (YoY %)\n\n"
+md += '*Comparable to DOSM "A deeper look at GDP by expenditure category". BVAR primary, DFM comparison.*\n\n'
+
+comp_labels = {
+    "consumption": ("Private Consumption", "C"),
+    "investment": ("Gross Fixed Capital Formation", "I"),
+    "government": ("Government Consumption", "G"),
+    "exports_comp": ("Exports", "X"),
+    "imports_comp": ("Imports", "M"),
+}
+
+md += "| Component | BVAR | DFM | Actual | Error (BVAR) |\n"
+md += "|-----------|------|-----|--------|--------------|\n"
+
+for ck, (clabel, ccode) in comp_labels.items():
+    bvar_val = nowcasts.get(ck)
+    dfm_val = nowcasts.get(ck + "_dfm")
+    act_val = nowcasts.get(ck + "_actual")
+
+    bvar_str = f"{bvar_val:+.1f}%" if bvar_val is not None else "—"
+    dfm_str = f"{dfm_val:+.1f}%" if dfm_val is not None else "—"
+    act_str = f"{act_val:+.1f}%" if act_val is not None else "—"
+    err_str = "—"
+    if bvar_val is not None and act_val is not None:
+        err_val = abs(bvar_val - act_val)
+        err_str = f"{err_val:.1f}pp"
+
+    md += f"| **{clabel}** ({ccode}) | {bvar_str} | {dfm_str} | {act_str} | {err_str} |\n"
+
+# --- Section 5: Model Accuracy Leaderboard ---
+md += "\n## Model Accuracy (Rolling)\n\n"
+md += "*Daily nowcast accuracy vs DOSM actuals. Metrics appear after 3+ days.*\n\n"
+
 if len(log) >= 3:
     lb_rows = []
     for model in ["dfm", "bvar", "beq", "ar1", "naive", "ensemble"]:
@@ -837,9 +1015,9 @@ if len(log) >= 3:
             style_note = " *(combined)*"
         md += f"| {r['model']}{style_note} | {r['MAE (pp)']:.3f} | {r['RMSE (pp)']:.3f} | {r['FDA (%)']:.1f}% | {int(r['N'])} | {latest_str} |\n"
 else:
-    md += f"*Leaderboard requires 3+ daily observations. Currently: {len(log)}. First metrics expected soon.*\n\n"
-    md += "| Model | MAE (pp) | RMSE (pp) | FDA (%) | N | Latest |\n"
-    md += "|-------|----------|-----------|---------|---|--------|\n"
+    md += f"*Requires 3+ daily observations. Currently: {len(log)}.*\n\n"
+    md += "| Model | MAE | RMSE | FDA | N | Latest |\n"
+    md += "|-------|-----|------|-----|---|--------|\n"
     for model in ["DFM", "BVAR", "BEQ", "AR(1)", "NAIVE", "ENSEMBLE"]:
         col = model.lower()
         val = nowcasts.get(col)
@@ -847,101 +1025,26 @@ else:
         style_note = " *(baseline)*" if model == "AR(1)" else " *(last Q)*" if model == "NAIVE" else " *(combined)*" if model == "ENSEMBLE" else ""
         md += f"| {model}{style_note} | — | — | — | {len(log)} | {latest_str} |\n"
 
+# --- Section 6: Recent Nowcasts ---
 md += f"\n## Recent Nowcasts ({min(30, len(log))} days)\n\n"
-md += "| Date | DFM | BVAR | BEQ | AR(1) | NAIVE | ENSEMBLE | Reference |\n"
-md += "|------|-----|------|-----|-------|-------|----------|----------|\n"
-ref_str = f"{adv_reference:+.1f}%" if adv_reference is not None else "—"
+md += "| Date | DFM | BVAR | BEQ | AR(1) | NAIVE | ENSEMBLE | Actual |\n"
+md += "|------|-----|------|-----|-------|-------|----------|--------|\n"
 for _, row in log.tail(30).iterrows():
     vals = []
     for m in ["dfm", "bvar", "beq", "ar1", "naive", "ensemble"]:
         v = row.get(m)
         vals.append(f"{v:+.1f}%" if pd.notna(v) else "—")
-    md += f"| {row['date']} | {vals[0]} | {vals[1]} | {vals[2]} | {vals[3]} | {vals[4]} | {ref_str} |\n"
+    actual_v = row.get("actual_gdp_pct")
+    actual_str = f"{actual_v:+.1f}%" if pd.notna(actual_v) else "—"
+    md += f"| {row['date']} | {vals[0]} | {vals[1]} | {vals[2]} | {vals[3]} | {vals[4]} | {vals[5]} | {actual_str} |\n"
 
-    md += f"\n## Component Leaderboard (YoY %)\n\n"
-md += f"*DFM nowcast vs AR(1) baseline for each expenditure component. Actual values are the latest from DOSM API (Q1 2026, released May 15).*\n\n"
-
-comp_labels = {
-    "consumption": ("Consumption (Private)", "C"),
-    "government": ("Government Spending", "G"),
-    "investment": ("Investment (GFCF)", "I"),
-    "exports_comp": ("Exports", "X"),
-    "imports_comp": ("Imports", "M"),
-}
-
-for ck, (clabel, ccode) in comp_labels.items():
-    # BVAR is primary for components, DFM is comparison
-    bvar_val = nowcasts.get(ck)           # primary (BVAR)
-    dfm_val = nowcasts.get(ck + "_dfm")   # comparison (DFM)
-    beq_val = nowcasts.get(ck + "_beq")
-    beq_val = None if beq_val is not None and (isinstance(beq_val, float) and np.isnan(beq_val)) else beq_val
-    ar1_val = nowcasts.get(ck + "_ar1")
-    naive_val = nowcasts.get(ck + "_naive")
-    act_val = nowcasts.get(ck + "_actual")
-    
-    dfm_f = f"{dfm_val:+.1f}%" if dfm_val is not None else "—"
-    bvar_f = f"{bvar_val:+.1f}%" if bvar_val is not None else "—"
-    beq_f = f"{beq_val:+.1f}%" if beq_val is not None else "—"
-    ar1_f = f"{ar1_val:+.1f}%" if ar1_val is not None else "—"
-    naive_f = f"{naive_val:+.1f}%" if naive_val is not None else "—"
-    act_f = f"`{act_val:+.1f}%`" if act_val is not None else "—"
-    
-    # Errors vs reference
-    def err(v):
-        return abs(v - act_val) if (v is not None and act_val is not None) else None
-    
-    dfm_err = err(dfm_val)
-    bvar_err = err(bvar_val)
-    beq_err = err(beq_val)
-    ar1_err = err(ar1_val)
-    naive_err = 0.0 if (naive_val is not None and act_val is not None) else None
-    
-    # 5-tier rank emoji: 🟢=1st 🟡=2nd 🟠=3rd 🟤=4th 🔴=5th
-    rank_emojis = [" 🟢", " 🟡", " 🟠", " 🟤", " 🔴"]
-    model_rows = []
-    
-    if act_val is not None:
-        pairs = [("DFM", dfm_val, dfm_err, dfm_f),
-                 ("BVAR", bvar_val, bvar_err, bvar_f),
-                 ("BEQ", beq_val, beq_err, beq_f),
-                 ("AR(1)", ar1_val, ar1_err, ar1_f),
-                 ("NAIVE", naive_val, naive_err, naive_f)]
-        valid = [(m, v, e, f) for m, v, e, f in pairs if v is not None and e is not None]
-        if len(valid) >= 2:
-            valid.sort(key=lambda x: x[2])
-            for rank, (m, v, e, f) in enumerate(valid):
-                emoji = rank_emojis[rank] if rank < 5 else " " + str(rank + 1)
-                note = ""
-                if m == "AR(1)": note = " *(baseline)*"
-                elif m == "NAIVE": note = " *(last Q)*"
-                model_rows.append(f"| {m}{note} | {emoji} {f} ({e:+.1f}pp) | {act_f} |")
-    if not model_rows:
-        for m, f, note in [("DFM", dfm_f, ""), ("BVAR", bvar_f, ""), ("BEQ", beq_f, ""),
-                           ("AR(1)", ar1_f, " *(baseline)*"), ("NAIVE", naive_f, " *(last Q)*")]:
-            model_rows.append(f"| {m}{note} | `{f}` | {act_f} |")
-    
-    md += f"### {clabel} ({ccode})\n\n"
-    md += "| Model | Nowcast | Reference (Actual) |\n"
-    md += "|-------|---------|--------------------|\n"
-    for row in model_rows:
-        md += row + "\n"
-    md += "\n"
-
-# Show GDP-identity derived imports separately
-imp_id = nowcasts.get("imports_identity")
-imp_dir = nowcasts.get("imports_comp")
-imp_act = nowcasts.get("imports_comp_actual")
-if imp_id is not None:
-    act_str = f"`{imp_act:+.1f}%`" if imp_act is not None else "—"
-    dir_str = f"`{imp_dir:+.1f}%`" if imp_dir is not None else "—"
-    md += f"#### GDP-Identity Derived Imports\n"
-    md += f"- **Imports (identity):** nowcast `{imp_id:+.1f}%` vs actual {act_str}\n"
-    md += f"- *Derived from C+I+G+X-GDP. Direct DFM was {dir_str}.*\n"
-
-md += f"\n## Ground Truth Definition\n\n"
-md += f"- **Main GDP:** QoQ SA growth from DOSM `gdp_qtr_real_sa` (seasonally adjusted, constant 2015 prices)\n"
-md += f"- **Components:** YoY growth from DOSM `gdp_qtr_real_demand` (expenditure approach, non-SA)\n"
-md += f"- **Source:** [OpenDOSM API](https://open.dosm.gov.my) — live data, fetched fresh each run\n"
+# --- Section 7: Ground Truth ---
+md += "\n## Data Sources\n\n"
+md += "- **Main GDP (YoY):** DOSM `gdp_qtr_real` (non-SA, constant 2015 prices)\n"
+md += "- **Main GDP (QoQ SA):** DOSM `gdp_qtr_real_sa` (seasonally adjusted)\n"
+md += "- **Sectors:** DOSM `gdp_qtr_real_supply` (supply-side, YoY)\n"
+md += "- **Expenditure:** DOSM `gdp_qtr_real_demand` (demand-side, YoY)\n"
+md += "- **Source:** [OpenDOSM API](https://open.dosm.gov.my) | [Dashboard](https://open.dosm.gov.my/dashboard/gdp)\n"
 md += f"- **Latest vintage:** {today_str}\n\n"
 md += f"---\n*Auto-generated daily at 8am MYT via GitHub Actions. [View source](https://github.com/pengkodammaya/BM-ECB)*\n"
 leaderboard_path = Path("docs") / "leaderboard.md"

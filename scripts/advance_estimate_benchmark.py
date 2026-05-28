@@ -9,6 +9,7 @@ sys.path.insert(0, "src")
 import numpy as np
 import pandas as pd
 from datetime import date
+from pathlib import Path
 
 from rich.console import Console
 from rich.table import Table
@@ -60,7 +61,8 @@ from nowcasting_toolbox.data.calendar import generate_dates
 from nowcasting_toolbox.data.transforms import transform_series
 from nowcasting_toolbox.dfm import DFM
 from nowcasting_toolbox.config import DFMParams
-from nowcasting_toolbox.eval.vintage import VintageBuilder, MALAYSIA_PUBLICATION_LAGS
+from nowcasting_toolbox.eval.vintage import ARCVintageBuilder
+from nowcasting_toolbox.data.sources.arc_parser import build_publication_schedule
 
 # Rebuild full dataset (same pipeline)
 DATASETS = {
@@ -154,8 +156,16 @@ X_std = X_std[first_full:]
 X_raw = X_raw[first_full:]
 datet = datet_full[first_full:]
 
-vb = VintageBuilder(MALAYSIA_PUBLICATION_LAGS)
+arc_schedule = build_publication_schedule(years=[2023, 2024, 2025, 2026], cache_dir=Path("data/malaysia"))
+vb = ARCVintageBuilder(schedule=arc_schedule)
 gdp_idx = -1
+
+# Dataset IDs for ARC vintage builder
+DATASET_IDS = [
+    "ipi", "cpi_headline", "cpi_core", "ppi",
+    "u_rate", "u_rate", "leading", "coincident",
+    "exports", "wrt", "gdp",
+]
 
 # Run DFM nowcast for each advance estimate vintage date
 dfm_nowcasts = {}
@@ -163,7 +173,7 @@ for qlabel, rel_date_str, adv_yoy, adv_qoq in ADVANCE_ESTIMATES:
     vdate = date.fromisoformat(rel_date_str)
 
     # Build vintage
-    X_vint = vb.build(X_raw.copy(), datet, vdate, var_names=ALL_NAMES)
+    X_vint = vb.build(X_raw.copy(), datet, vdate, var_names=ALL_NAMES, dataset_ids=DATASET_IDS)
     vint_mu = np.nanmean(X_vint, axis=0)
     vint_sigma = np.nanstd(X_vint, axis=0)
     vint_sigma[vint_sigma < 1e-10] = 1.0
