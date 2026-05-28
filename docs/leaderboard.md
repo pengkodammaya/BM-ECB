@@ -1,12 +1,12 @@
 # Malaysia GDP Nowcasting — Live Leaderboard
 
-**Updated:** 2026-05-27 | **Nowcasting:** Q2 2026 | **Reference:** DOSM Actual (latest: Q1 2026) — advance for Q2 2026 pending
+**Updated:** 2026-05-28 | **Nowcasting:** Q2 2026 | **Reference:** DOSM Actual (latest: Q1 2026) — advance for Q2 2026 pending
 
 ## Current Quarter Nowcast (QoQ SA %)
 
 *Nowcasting GDP for **Q2 2026**. Advance estimate expected ~mid-7.*
 
-- **DFM:** `+2.39%`
+- **DFM:** `+2.41%`
 - **BVAR:** `+0.91%` (CI: `-2.0%` to `-2.0%`)
 - **BEQ:** `+1.07%`
 - **NAIVE:** `-0.01%`
@@ -36,18 +36,15 @@
 
 *Daily nowcast accuracy vs best available reference. Metrics appear after 3+ days.*
 
-*Leaderboard requires 3+ daily observations. Currently: 2. First metrics expected soon.*
-
 | Model | MAE (pp) | RMSE (pp) | FDA (%) | N | Latest |
 |-------|----------|-----------|---------|---|--------|
-| DFM | — | — | — | 2 | +2.4% |
-| BVAR | — | — | — | 2 | +0.9% |
-| BEQ | — | — | — | 2 | +1.1% |
-| AR(1) *(baseline)* | — | — | — | 2 | — |
-| NAIVE *(last Q)* | — | — | — | 2 | -0.0% |
-| ENSEMBLE *(combined)* | — | — | — | 2 | +1.1% |
+| DFM | 2.323 | 2.327 | 0.0% | 3 | +2.4% |
+| BVAR | 0.923 | 0.923 | 50.0% | 3 | +0.9% |
+| BEQ | 1.087 | 1.087 | 50.0% | 3 | +1.1% |
+| AR1 | 1.470 | 1.470 | 100.0% | 3 | +1.5% |
+| ENSEMBLE *(combined)* | 1.087 | 1.087 | 50.0% | 3 | +1.1% |
 
-## Recent Nowcasts (2 days)
+## Recent Nowcasts (3 days)
 
 | Date | DFM | BVAR | BEQ | AR(1) | NAIVE | ENSEMBLE | Reference |
 |------|-----|------|-----|-------|-------|----------|----------|
@@ -56,6 +53,10 @@
 ## Component Leaderboard (YoY %)
 
 | 2026-05-27 | +2.4% | +0.9% | +1.1% | +1.5% | -0.0% | -0.0% |
+
+## Component Leaderboard (YoY %)
+
+| 2026-05-28 | +2.4% | +0.9% | +1.1% | +1.5% | -0.0% | -0.0% |
 
 ## Component Leaderboard (YoY %)
 
@@ -107,7 +108,7 @@
 | AR(1) *(baseline)* |  🟤 +4.8% (+0.2pp) | `+4.6%` |
 
 #### GDP-Identity Derived Imports
-- **Imports (identity):** nowcast `+9.8%` vs actual `+4.6%`
+- **Imports (identity):** nowcast `+9.7%` vs actual `+4.6%`
 - *Derived from C+I+G+X-GDP. Direct DFM was `+4.6%`.*
 
 ## Ground Truth Definition
@@ -115,7 +116,7 @@
 - **Main GDP:** QoQ SA growth from DOSM `gdp_qtr_real_sa` (seasonally adjusted, constant 2015 prices)
 - **Components:** YoY growth from DOSM `gdp_qtr_real_demand` (expenditure approach, non-SA)
 - **Source:** [OpenDOSM API](https://open.dosm.gov.my) — live data, fetched fresh each run
-- **Latest vintage:** 2026-05-27
+- **Latest vintage:** 2026-05-28
 
 ---
 *Auto-generated daily at 8am MYT via GitHub Actions. [View source](https://github.com/pengkodammaya/BM-ECB)*
