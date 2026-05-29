@@ -2,7 +2,7 @@
 
 > *Comparable to [OpenDOSM GDP Dashboard](https://open.dosm.gov.my/dashboard/gdp)*
 
-**Last updated:** 2026-05-28 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
+**Last updated:** 2026-05-29 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
 
 ---
 
@@ -18,9 +18,9 @@
 
 | Model | Nowcast | Description |
 |-------|:-------:|-------------|
-| **DFM** | `+9.9%` | Dynamic Factor Model (r=2, p=4) |
-| **BVAR** | `+4.2%` | Bayesian VAR with Minnesota prior |
-| **Ensemble** | `+7.0%` | Median of DFM + BVAR |
+| **DFM** | `+7.5%` | Dynamic Factor Model (r=2, p=4) |
+| **BVAR** | `+4.1%` | Bayesian VAR with Minnesota prior |
+| **Ensemble** | `+5.8%` | Median of DFM + BVAR |
 
 > *Q2 2026 actual releases ~August 2026. Nowcasts cannot be validated yet.*
 
@@ -32,9 +32,9 @@
 
 | Model | Estimate | Error | Accuracy |
 |-------|:--------:|:-----:|----------|
-| **DFM** | +9.9% | 4.5pp | 🔴 Fair |
-| **BVAR** | +4.2% | 1.2pp | 🟡 Good |
-| **Ensemble** | +7.0% | 1.6pp | 🟡 Good |
+| **DFM** | +7.5% | 2.1pp | 🔴 Fair |
+| **BVAR** | +4.1% | 1.3pp | 🟡 Good |
+| **Ensemble** | +5.8% | 0.4pp | 🟢 Excellent |
 
 ---
 
@@ -59,11 +59,11 @@
 
 | Component | BVAR | Actual | Error |
 |-----------|:----:|:------:|:-----:|
-| **Consumption** (C) | +4.8% | +4.7% | 0.1pp |
-| **Investment** (I) | +7.3% | +7.3% | 0.0pp |
-| **Government** (G) | +4.1% | +4.1% | 0.0pp |
-| **Exports** (X) | +5.2% | +5.2% | 0.0pp |
-| **Imports** (M) | +4.6% | +4.6% | 0.0pp |
+| **Consumption** (C) | +6.1% | +4.7% | 1.4pp |
+| **Investment** (I) | +9.3% | +7.3% | 2.0pp |
+| **Government** (G) | +6.6% | +4.1% | 2.5pp |
+| **Exports** (X) | +6.3% | +5.2% | 1.1pp |
+| **Imports** (M) | +9.0% | +4.6% | 4.4pp |
 
 ---
 
@@ -73,11 +73,12 @@
 
 | Model | MAE (pp) | RMSE (pp) | FDA (%) | N | Latest |
 |-------|:--------:|:---------:|:-------:|:-:|:------:|
-| DFM | 3.450 | 3.831 | 0.0% | 3 | +5.8% |
-| BVAR | 0.920 | 0.920 | 0.0% | 3 | +0.9% |
-| BEQ | 1.090 | 1.090 | 0.0% | 3 | +1.1% |
-| AR1 *(baseline)* | 1.470 | 1.470 | 100.0% | 3 | +1.5% |
-| ENSEMBLE *(combined)* | 1.190 | 1.198 | 0.0% | 3 | +1.4% |
+| DFM | 3.857 | 4.178 | 0.0% | 4 | +5.1% |
+| BVAR | 0.927 | 0.928 | 0.0% | 4 | +0.9% |
+| BEQ | 1.090 | 1.090 | 33.3% | 4 | +1.1% |
+| AR1 *(baseline)* | 1.470 | 1.470 | 100.0% | 4 | +1.5% |
+| NAIVE *(last Q)* | 0.000 | 0.000 | 100.0% | 3 | -0.0% |
+| ENSEMBLE *(combined)* | 1.180 | 1.186 | 0.0% | 4 | +1.1% |
 
 ---
 
@@ -88,6 +89,7 @@
 | 2026-05-26 | +2.1% | +0.9% | +1.1% | +1.1% | -0.0% |
 | 2026-05-27 | +2.4% | +0.9% | +1.1% | +1.1% | -0.0% |
 | 2026-05-28 | +5.8% | +0.9% | +1.1% | +1.4% | -0.0% |
+| 2026-05-29 | +5.1% | +0.9% | +1.1% | +1.1% | -0.0% |
 
 ---
 

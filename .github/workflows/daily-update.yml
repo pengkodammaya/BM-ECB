@@ -45,8 +45,8 @@ jobs:
           # Show what changed
           git status --short
           git diff --stat
-          # Stage and commit (leaderboard.csv may not exist yet)
-          for f in docs/leaderboard.csv docs/daily_log.csv docs/leaderboard.md; do
+          # Stage and commit (files may not exist yet)
+          for f in docs/leaderboard.csv docs/daily_log.csv docs/leaderboard.md docs/dashboard.md docs/dashboard.html docs/data.json; do
             [ -f "$f" ] && git add "$f" || true
           done
           if git diff --staged --quiet; then
