@@ -754,7 +754,7 @@ client2.close()
 # ---------------------------------------------------------------------------
 # 3b2. Sector-level nowcasts: agriculture, mining, manufacturing, construction, services
 # ---------------------------------------------------------------------------
-console.print("[cyan]Running sector nowcasts...[/cyan]")
+print("[cyan]Running sector nowcasts...[/cyan]")
 
 # Fetch sector-specific GDP data
 df_sector_gdp = client_yoy.fetch("gdp_qtr_real_supply", limit=20000) if not client_yoy.closed else None
