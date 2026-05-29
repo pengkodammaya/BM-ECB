@@ -1032,5 +1032,113 @@ leaderboard_path = Path("docs") / "leaderboard.md"
 leaderboard_path.write_text(md, encoding="utf-8")
 print(f"[{datetime.now().isoformat()}] Leaderboard written to {leaderboard_path} ({leaderboard_path.stat().st_size} bytes)")
 
+# Generate HTML dashboard
+import subprocess
+result = subprocess.run([sys.executable, "scripts/generate_dashboard.py"], capture_output=True, text=True)
+if result.returncode == 0:
+    print(f"[{datetime.now().isoformat()}] Dashboard generated successfully")
+else:
+    print(f"[{datetime.now().isoformat()}] Dashboard generation failed: {result.stderr}")
+
+# ---------------------------------------------------------------------------
+# 7. Generate HTML dashboard (DOSM-style)
+# ---------------------------------------------------------------------------
+dashboard_data = {
+    "lastUpdated": today_str,
+    "latestActual": {"quarter": backcast_label, "yoy": actual_yoy_gdp},
+    "nowcast": {
+        "quarter": nowcast_label,
+        "dfm": nowcasts.get("dfm_yoy"),
+        "bvar": nowcasts.get("bvar_yoy"),
+        "ensemble": nowcasts.get("ensemble_yoy"),
+    },
+    "backcast": {
+        "dfm": {"estimate": nowcasts.get("dfm_yoy"), "error": None},
+        "bvar": {"estimate": nowcasts.get("bvar_yoy"), "error": None},
+        "ensemble": {"estimate": nowcasts.get("ensemble_yoy"), "error": None},
+    },
+    "components": {
+        "consumption": {
+            "bvar": nowcasts.get("consumption"),
+            "actual": nowcasts.get("consumption_actual"),
+            "error": round(abs(nowcasts.get("consumption", 0) - nowcasts.get("consumption_actual", 0)), 1) if nowcasts.get("consumption") and nowcasts.get("consumption_actual") else None,
+        },
+        "investment": {
+            "bvar": nowcasts.get("investment"),
+            "actual": nowcasts.get("investment_actual"),
+            "error": round(abs(nowcasts.get("investment", 0) - nowcasts.get("investment_actual", 0)), 1) if nowcasts.get("investment") and nowcasts.get("investment_actual") else None,
+        },
+        "government": {
+            "bvar": nowcasts.get("government"),
+            "actual": nowcasts.get("government_actual"),
+            "error": round(abs(nowcasts.get("government", 0) - nowcasts.get("government_actual", 0)), 1) if nowcasts.get("government") and nowcasts.get("government_actual") else None,
+        },
+        "exports": {
+            "bvar": nowcasts.get("exports_comp"),
+            "actual": nowcasts.get("exports_comp_actual"),
+            "error": round(abs(nowcasts.get("exports_comp", 0) - nowcasts.get("exports_comp_actual", 0)), 1) if nowcasts.get("exports_comp") and nowcasts.get("exports_comp_actual") else None,
+        },
+        "imports": {
+            "bvar": nowcasts.get("imports_comp"),
+            "actual": nowcasts.get("imports_comp_actual"),
+            "error": round(abs(nowcasts.get("imports_comp", 0) - nowcasts.get("imports_comp_actual", 0)), 1) if nowcasts.get("imports_comp") and nowcasts.get("imports_comp_actual") else None,
+        },
+    },
+    "sectors": sector_actuals,
+    "leaderboard": [],
+    "recent": [],
+}
+
+# Compute backcast errors
+if actual_yoy_gdp is not None:
+    for model_key in ["dfm", "bvar", "ensemble"]:
+        est = dashboard_data["backcast"][model_key]["estimate"]
+        if est is not None:
+            dashboard_data["backcast"][model_key]["error"] = round(abs(est - actual_yoy_gdp), 1)
+
+# Build leaderboard rows
+if len(log) >= 3:
+    for model in ["dfm", "bvar", "beq", "ensemble"]:
+        if model not in log.columns:
+            continue
+        sub = log[[model, "actual_gdp_pct"]].dropna()
+        if len(sub) < 3:
+            continue
+        pred = sub[model].values
+        act = sub["actual_gdp_pct"].values
+        dashboard_data["leaderboard"].append({
+            "model": model.upper(),
+            "mae": round(compute_mae(act, pred), 3),
+            "rmse": round(compute_rmse(act, pred), 3),
+            "fda": round(compute_fda(act, pred) * 100, 1),
+            "n": len(sub),
+            "latest": round(float(nowcasts.get(model, 0)), 1),
+        })
+
+# Build recent rows
+for _, row in log.tail(30).iterrows():
+    recent_row = {"date": row["date"]}
+    for m in ["dfm", "bvar", "beq", "ensemble"]:
+        v = row.get(m)
+        recent_row[m] = round(float(v), 1) if pd.notna(v) else None
+    actual_v = row.get("actual_gdp_pct")
+    recent_row["actual"] = round(float(actual_v), 1) if pd.notna(actual_v) else None
+    dashboard_data["recent"].append(recent_row)
+
+# Inject data into HTML template
+dashboard_html_path = Path("docs") / "dashboard.html"
+if dashboard_html_path.exists():
+    html_template = dashboard_html_path.read_text(encoding="utf-8")
+    
+    # Replace the data object in the script
+    data_json = json.dumps(dashboard_data, indent=2)
+    html_new = html_template.replace(
+        "const data = {",
+        f"const data = {data_json};\n        // Original template below\n        const data_old = {{"
+    )
+    
+    dashboard_html_path.write_text(html_new, encoding="utf-8")
+    print(f"[{datetime.now().isoformat()}] Dashboard written to {dashboard_html_path}")
+
 print(f"[{datetime.now().isoformat()}] Daily update complete.")
 print(json.dumps(nowcasts, indent=2))

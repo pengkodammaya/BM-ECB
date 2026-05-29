@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GDP Nowcasting — Malaysia</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        /* Header */
+        .header {
+            background: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 16px 0;
+            margin-bottom: 24px;
+        }
+        .header-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo-icon {
+            width: 40px; height: 40px;
+            background: #1a237e;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: bold;
+        }
+        .logo-text { font-size: 14px; color: #666; }
+        .logo-text strong { display: block; font-size: 16px; color: #333; }
+        /* Title */
+        .title-section {
+            background: #fff;
+            padding: 24px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .title-section h1 { font-size: 24px; font-weight: 600; color: #1a237e; margin-bottom: 8px; }
+        .title-section p { color: #666; font-size: 14px; }
+        .meta-info { display: flex; gap: 24px; margin-top: 12px; font-size: 13px; color: #888; }
+        .meta-info span { display: flex; align-items: center; gap: 4px; }
+        /* Cards */
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .card-title { font-size: 16px; font-weight: 600; color: #333; }
+        .card-subtitle { font-size: 12px; color: #888; }
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            text-align: left;
+            padding: 10px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #eee;
+        }
+        td { padding: 12px; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+        tr:last-child td { border-bottom: none; }
+        .text-right { text-align: right; }
+        .positive { color: #2e7d32; }
+        .negative { color: #c62828; }
+        .neutral { color: #666; }
+        .highlight { font-weight: 600; }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .badge-green { background: #e8f5e9; color: #2e7d32; }
+        .badge-red { background: #ffebee; color: #c62828; }
+        .badge-gray { background: #f5f5f5; color: #666; }
+        /* Grid */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+        /* Stat cards */
+        .stat-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        .stat-value { font-size: 28px; font-weight: 700; color: #1a237e; }
+        .stat-label { font-size: 12px; color: #666; margin-top: 4px; }
+        .stat-change { font-size: 13px; margin-top: 4px; }
+        /* Footer */
+        .footer { text-align: center; padding: 24px; color: #888; font-size: 12px; }
+        .footer a { color: #1a237e; text-decoration: none; }
+        /* Responsive */
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .header-inner { flex-direction: column; gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-inner">
+            <div class="logo">
+                <div class="logo-icon">MY</div>
+                <div class="logo-text">
+                    <strong>GDP Nowcasting</strong>
+                    Malaysia Economic Dashboard
+                </div>
+            </div>
+            <div style="font-size: 12px; color: #888;">
+                Powered by OpenDOSM API
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Title Section -->
+        <div class="title-section">
+            <h1>Gross Domestic Product (GDP)</h1>
+            <p>Real-time nowcasting of Malaysia's GDP using Dynamic Factor Models, Bayesian VAR, and Bridge Equations.</p>
+            <div class="meta-info">
+                <span>Last updated: <strong id="last-updated">—</strong></span>
+                <span>Latest actual: <strong id="latest-quarter">—</strong></span>
+                <span>Nowcasting: <strong id="nowcast-quarter">—</strong></span>
+            </div>
+        </div>
+
+        <!-- GDP Trend Summary -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">How is GDP trending?</div>
+                    <div class="card-subtitle">Data as of <span id="data-as-of">—</span> | YoY Growth (real)</div>
+                </div>
+                <div class="badge badge-green" id="actual-badge">—</div>
+            </div>
+            <div class="grid-3">
+                <div class="stat-card">
+                    <div class="stat-value positive" id="actual-value">—</div>
+                    <div class="stat-label" id="actual-label">Actual</div>
+                    <div class="stat-change positive">DOSM Official</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="nowcast-value">—</div>
+                    <div class="stat-label" id="nowcast-label">Nowcast</div>
+                    <div class="stat-change neutral">Ensemble Median</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="next-release">—</div>
+                    <div class="stat-label">Next Release</div>
+                    <div class="stat-change neutral">Q2 2026 Actual</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model Nowcasts -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title" id="nowcast-title">Q2 2026 Nowcast by Model</div>
+                    <div class="card-subtitle">Year-on-year growth estimates | No ground truth yet</div>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th class="text-right">Nowcast (YoY)</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>DFM</strong></td>
+                        <td class="text-right highlight" id="dfm-yoy">—</td>
+                        <td class="neutral">Dynamic Factor Model (r=2, p=4)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>BVAR</strong></td>
+                        <td class="text-right highlight" id="bvar-yoy">—</td>
+                        <td class="neutral">Bayesian VAR with Minnesota prior</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Ensemble</strong></td>
+                        <td class="text-right highlight" id="ensemble-yoy">—</td>
+                        <td class="neutral">Median of DFM + BVAR</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Backcast Accuracy -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title" id="backcast-title">Backcast Accuracy</div>
+                    <div class="card-subtitle" id="backcast-subtitle">How well models estimated the latest known quarter</div>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th class="text-right">Estimate</th>
+                        <th class="text-right">Error</th>
+                        <th>Accuracy</th>
+                    </tr>
+                </thead>
+                <tbody id="backcast-table"></tbody>
+            </table>
+        </div>
+
+        <!-- Two columns: Sectors + Expenditure -->
+        <div class="grid-2">
+            <!-- Economic Sectors -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">GDP by Economic Sector</div>
+                        <div class="card-subtitle" id="sector-subtitle">Q1 2026 | YoY Growth</div>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Sector</th>
+                            <th class="text-right">YoY %</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sector-table"></tbody>
+                </table>
+            </div>
+
+            <!-- Expenditure Components -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">GDP by Expenditure</div>
+                        <div class="card-subtitle" id="expenditure-subtitle">YoY Growth | BVAR primary</div>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th class="text-right">BVAR</th>
+                            <th class="text-right">Actual</th>
+                            <th class="text-right">Error</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenditure-table"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Model Accuracy Leaderboard -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">Model Accuracy (Rolling)</div>
+                    <div class="card-subtitle">Daily nowcast accuracy vs DOSM actuals | Lower MAE is better | Higher FDA is better</div>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th class="text-right">MAE (pp)</th>
+                        <th class="text-right">RMSE (pp)</th>
+                        <th class="text-right">FDA (%)</th>
+                        <th class="text-right">N</th>
+                        <th class="text-right">Latest</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-table"></tbody>
+            </table>
+        </div>
+
+        <!-- Recent Nowcasts -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">Recent Nowcasts</div>
+                    <div class="card-subtitle">Last 30 days of daily nowcasts</div>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th class="text-right">DFM</th>
+                        <th class="text-right">BVAR</th>
+                        <th class="text-right">BEQ</th>
+                        <th class="text-right">Ensemble</th>
+                        <th class="text-right">Actual</th>
+                    </tr>
+                </thead>
+                <tbody id="recent-table"></tbody>
+            </table>
+        </div>
+
+        <!-- Data Sources -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Data Sources</div>
+            </div>
+            <table>
+                <tbody>
+                    <tr>
+                        <td><strong>GDP (YoY)</strong></td>
+                        <td>DOSM <code>gdp_qtr_real</code> — non-SA, constant 2015 prices</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Sectors</strong></td>
+                        <td>DOSM <code>gdp_qtr_real_supply</code> — supply-side breakdown</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Expenditure</strong></td>
+                        <td>DOSM <code>gdp_qtr_real_demand</code> — demand-side breakdown</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Indicators</strong></td>
+                        <td>OpenDOSM, BNM, yfinance (23 monthly indicators)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Auto-generated daily at 8am MYT via GitHub Actions</p>
+        <p>
+            <a href="https://open.dosm.gov.my/dashboard/gdp">OpenDOSM Dashboard</a> · 
+            <a href="https://github.com/pengkodammaya/BM-ECB">Source Code</a> · 
+            <a href="https://developer.data.gov.my/static-api/opendosm">API Docs</a>
+        </p>
+        <p style="margin-top: 8px;">© 2026 Department of Statistics Malaysia</p>
+    </div>
+
+    <script>
+        // Load data from data.json
+        fetch('data.json')
+            .then(r => r.json())
+            .then(data => populateDashboard(data))
+            .catch(e => {
+                console.error('Failed to load data:', e);
+                document.querySelector('.container').innerHTML += 
+                    '<div class="card"><p style="color: #c62828;">Failed to load data. Run generate_dashboard.py first.</p></div>';
+            });
+
+        function populateDashboard(data) {
+            // Header info
+            document.getElementById('last-updated').textContent = data.lastUpdated;
+            document.getElementById('latest-quarter').textContent = data.latestActual.quarter;
+            document.getElementById('nowcast-quarter').textContent = data.nowcast.quarter;
+            document.getElementById('data-as-of').textContent = data.latestActual.quarter;
+            
+            // Summary cards
+            const actualPct = data.latestActual.yoy;
+            document.getElementById('actual-value').textContent = `+${actualPct}%`;
+            document.getElementById('actual-badge').textContent = `+${actualPct}% YoY`;
+            document.getElementById('actual-label').textContent = `${data.latestActual.quarter} Actual`;
+            
+            if (data.nowcast.ensemble) {
+                document.getElementById('nowcast-value').textContent = `+${data.nowcast.ensemble}%`;
+                document.getElementById('nowcast-value').classList.add('positive');
+            }
+            document.getElementById('nowcast-label').textContent = `${data.nowcast.quarter} Nowcast`;
+            document.getElementById('next-release').textContent = 'Aug 2026';
+            
+            // Nowcast table
+            document.getElementById('nowcast-title').textContent = `${data.nowcast.quarter} Nowcast by Model`;
+            setCellValue('dfm-yoy', data.nowcast.dfm);
+            setCellValue('bvar-yoy', data.nowcast.bvar);
+            setCellValue('ensemble-yoy', data.nowcast.ensemble);
+            
+            // Backcast
+            document.getElementById('backcast-title').textContent = `Backcast Accuracy (${data.latestActual.quarter})`;
+            document.getElementById('backcast-subtitle').textContent = 
+                `How well models estimated ${data.latestActual.quarter} | Actual: +${actualPct}% YoY`;
+            
+            const backcastTable = document.getElementById('backcast-table');
+            ['DFM', 'BVAR', 'ENSEMBLE'].forEach(model => {
+                const d = data.backcast[model.toLowerCase()];
+                if (!d || !d.estimate) return;
+                const row = document.createElement('tr');
+                const errClass = d.error < 1 ? 'badge-green' : d.error < 2 ? 'badge-gray' : 'badge-red';
+                const accText = d.error < 1 ? 'Excellent' : d.error < 2 ? 'Good' : 'Fair';
+                row.innerHTML = `
+                    <td><strong>${model}</strong></td>
+                    <td class="text-right">${d.estimate > 0 ? '+' : ''}${d.estimate}%</td>
+                    <td class="text-right">${d.error}pp</td>
+                    <td><span class="badge ${errClass}">${accText}</span></td>
+                `;
+                backcastTable.appendChild(row);
+            });
+            
+            // Sectors
+            const sectorNames = {
+                agriculture: 'Agriculture',
+                mining: 'Mining & Quarrying',
+                manufacturing: 'Manufacturing',
+                construction: 'Construction',
+                services: 'Services'
+            };
+            const sectorTable = document.getElementById('sector-table');
+            let sectorHtml = '';
+            Object.entries(sectorNames).forEach(([key, name]) => {
+                const val = data.sectors[key];
+                if (val === undefined) return;
+                const cls = val >= 0 ? 'positive' : 'negative';
+                sectorHtml += `<tr><td>${name}</td><td class="text-right ${cls}">${val > 0 ? '+' : ''}${val}%</td></tr>`;
+            });
+            sectorHtml += `<tr style="font-weight:600;border-top:2px solid #eee"><td>Overall GDP</td><td class="text-right positive">+${actualPct}%</td></tr>`;
+            sectorTable.innerHTML = sectorHtml;
+            
+            // Expenditure
+            const compNames = {
+                consumption: 'Consumption (C)',
+                investment: 'Investment (I)',
+                government: 'Government (G)',
+                exports: 'Exports (X)',
+                imports: 'Imports (M)'
+            };
+            const expTable = document.getElementById('expenditure-table');
+            let expHtml = '';
+            Object.entries(compNames).forEach(([key, name]) => {
+                const d = data.components[key];
+                if (!d) return;
+                const bvarStr = d.bvar ? `${d.bvar > 0 ? '+' : ''}${d.bvar}%` : '—';
+                const actStr = d.actual ? `${d.actual > 0 ? '+' : ''}${d.actual}%` : '—';
+                const errStr = d.error !== null ? `${d.error}pp` : '—';
+                const bvarCls = d.bvar && d.bvar > 0 ? 'positive' : d.bvar && d.bvar < 0 ? 'negative' : '';
+                expHtml += `<tr><td>${name}</td><td class="text-right ${bvarCls}">${bvarStr}</td><td class="text-right positive">${actStr}</td><td class="text-right">${errStr}</td></tr>`;
+            });
+            expTable.innerHTML = expHtml;
+            
+            // Leaderboard
+            const lbTable = document.getElementById('leaderboard-table');
+            let lbHtml = '';
+            data.leaderboard.forEach(r => {
+                const latestCls = r.latest > 0 ? 'positive' : r.latest < 0 ? 'negative' : '';
+                const modelNote = r.model === 'AR1' ? ' *(baseline)*' : r.model === 'NAIVE' ? ' *(last Q)*' : r.model === 'ENSEMBLE' ? ' *(combined)*' : '';
+                lbHtml += `<tr>
+                    <td><strong>${r.model}</strong>${modelNote}</td>
+                    <td class="text-right">${r.mae.toFixed(3)}</td>
+                    <td class="text-right">${r.rmse.toFixed(3)}</td>
+                    <td class="text-right">${r.fda.toFixed(1)}%</td>
+                    <td class="text-right">${r.n}</td>
+                    <td class="text-right ${latestCls}">${r.latest > 0 ? '+' : ''}${r.latest}%</td>
+                </tr>`;
+            });
+            lbTable.innerHTML = lbHtml;
+            
+            // Recent
+            const recentTable = document.getElementById('recent-table');
+            let recentHtml = '';
+            data.recent.forEach(r => {
+                const actualStr = r.actual !== null ? `${r.actual > 0 ? '+' : ''}${r.actual}%` : '—';
+                const format = v => v !== null ? `${v > 0 ? '+' : ''}${v}%` : '—';
+                recentHtml += `<tr>
+                    <td>${r.date}</td>
+                    <td class="text-right">${format(r.dfm)}</td>
+                    <td class="text-right">${format(r.bvar)}</td>
+                    <td class="text-right">${format(r.beq)}</td>
+                    <td class="text-right">${format(r.ensemble)}</td>
+                    <td class="text-right">${actualStr}</td>
+                </tr>`;
+            });
+            recentTable.innerHTML = recentHtml;
+        }
+        
+        function setCellValue(id, val) {
+            const el = document.getElementById(id);
+            if (val !== null && val !== undefined) {
+                el.textContent = `${val > 0 ? '+' : ''}${val}%`;
+                el.classList.add(val >= 0 ? 'positive' : 'negative');
+            }
+        }
+
+        }
+    </script>
+</body>
+</html>

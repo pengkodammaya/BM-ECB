@@ -1,0 +1,129 @@
+{
+  "lastUpdated": "2026-05-28",
+  "latestActual": {
+    "quarter": "Q1 2026",
+    "yoy": 5.4
+  },
+  "nowcast": {
+    "quarter": "Q2 2026",
+    "dfm": 9.9,
+    "bvar": 4.2,
+    "ensemble": 7.0
+  },
+  "backcast": {
+    "dfm": {
+      "estimate": 9.9,
+      "error": 4.5
+    },
+    "bvar": {
+      "estimate": 4.2,
+      "error": 1.2
+    },
+    "ensemble": {
+      "estimate": 7.0,
+      "error": 1.6
+    }
+  },
+  "components": {
+    "consumption": {
+      "bvar": 4.8,
+      "actual": 4.7,
+      "error": 0.0
+    },
+    "investment": {
+      "bvar": 7.3,
+      "actual": 7.3,
+      "error": 0.0
+    },
+    "government": {
+      "bvar": 4.1,
+      "actual": 4.1,
+      "error": 0.0
+    },
+    "exports": {
+      "bvar": 5.2,
+      "actual": 5.2,
+      "error": 0.0
+    },
+    "imports": {
+      "bvar": 4.6,
+      "actual": 4.6,
+      "error": 0.0
+    }
+  },
+  "sectors": {
+    "agriculture": 2.6,
+    "mining": -2.1,
+    "manufacturing": 5.9,
+    "construction": 7.7,
+    "services": 5.6
+  },
+  "leaderboard": [
+    {
+      "model": "DFM",
+      "mae": 3.45,
+      "rmse": 3.831,
+      "fda": 0.0,
+      "n": 3,
+      "latest": 5.8
+    },
+    {
+      "model": "BVAR",
+      "mae": 0.92,
+      "rmse": 0.92,
+      "fda": 0.0,
+      "n": 3,
+      "latest": 0.9
+    },
+    {
+      "model": "BEQ",
+      "mae": 1.09,
+      "rmse": 1.09,
+      "fda": 0.0,
+      "n": 3,
+      "latest": 1.1
+    },
+    {
+      "model": "AR1",
+      "mae": 1.47,
+      "rmse": 1.47,
+      "fda": 100.0,
+      "n": 3,
+      "latest": 1.5
+    },
+    {
+      "model": "ENSEMBLE",
+      "mae": 1.19,
+      "rmse": 1.198,
+      "fda": 0.0,
+      "n": 3,
+      "latest": 1.4
+    }
+  ],
+  "recent": [
+    {
+      "date": "2026-05-26",
+      "dfm": 2.1,
+      "bvar": 0.9,
+      "beq": 1.1,
+      "ensemble": 1.1,
+      "actual": -0.0
+    },
+    {
+      "date": "2026-05-27",
+      "dfm": 2.4,
+      "bvar": 0.9,
+      "beq": 1.1,
+      "ensemble": 1.1,
+      "actual": -0.0
+    },
+    {
+      "date": "2026-05-28",
+      "dfm": 5.8,
+      "bvar": 0.9,
+      "beq": 1.1,
+      "ensemble": 1.4,
+      "actual": -0.0
+    }
+  ]
+}
