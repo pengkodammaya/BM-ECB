@@ -394,8 +394,12 @@ try:
                 elif len(prev_valid) > 0:
                     col[i] = col[prev_valid[-1]]
         X_filled[:, j] = col
+    # MASK backcast quarter for true out-of-sample forecast
+    X_bvar = X_filled.copy()
+    if last_actual_idx >= 0 and last_actual_idx < X_bvar.shape[0]:
+        X_bvar[last_actual_idx, -1] = np.nan
     bvar = BVAR(BVARParams(bvar_lags=3, bvar_thresh=1e-5, bvar_max_iter=15))
-    res_b = bvar.fit(X_filled, datet[ff:])
+    res_b = bvar.fit(X_bvar, datet[ff:])
     nowcasts["bvar"] = _extract(res_b, current_q_idx, sigma, mu)
     nowcasts["bvar_backcast"] = _extract(res_b, last_actual_idx, sigma, mu)
     nowcasts["bvar_forecast"] = _extract(res_b, next_q_idx, sigma, mu)
@@ -618,6 +622,11 @@ for comp_key, comp_type, comp_series in COMPONENTS:
             qem = ((m - 1) // 3) * 3 + 3
             idx = np.where((datet[:, 0] == y) & (datet[:, 1] == qem))[0]
             if len(idx) > 0:
+                # MASK current AND backcast quarter — true out-of-sample forecast
+                # BVAR should not see the actual value for the quarter it's estimating
+                if (y == current_year and qem == current_q_end_m) or \
+                   (y == int(datet[ff + last_actual_idx, 0]) and qem == int(datet[ff + last_actual_idx, 1])):
+                    continue
                 Xc[idx[0], -1] = row["target"]
 
         Xc_trans = Xc.copy()
