@@ -29,6 +29,9 @@ try:
     from nowcasting_toolbox.beq import BEQ
     from nowcasting_toolbox.config import DFMParams, BVARParams, BEQParams
     from nowcasting_toolbox.eval.metrics import compute_mae, compute_fda, compute_rmse
+except ImportError as e:
+    logger.error("Failed to import nowcasting_toolbox: %s", e)
+    sys.exit(1)
 
 # ---------------------------------------------------------------------------
 # 1. Indicator manifest
@@ -1363,8 +1366,3 @@ if dashboard_html_path.exists():
 
 print(f"[{datetime.now().isoformat()}] Daily update complete.")
 print(json.dumps(nowcasts, indent=2))
-
-except Exception as e:
-    logger.error("Daily update failed: %s", e)
-    logger.error(traceback.format_exc())
-    sys.exit(1)
