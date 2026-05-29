@@ -502,8 +502,12 @@ if log_path_ens.exists():
             if m in log_ens.columns:
                 sub = log_ens[[m, "actual_gdp_pct"]].dropna()
                 if len(sub) >= 3:
-                    mae = compute_mae(sub["actual_gdp_pct"].values, sub[m].values)
-                    weights[m] = 1.0 / (mae ** 2 + 0.01)  # +0.01 prevents divide by zero
+                    act_vals = pd.to_numeric(sub["actual_gdp_pct"], errors="coerce").values
+                    pred_vals = pd.to_numeric(sub[m], errors="coerce").values
+                    valid = ~np.isnan(act_vals) & ~np.isnan(pred_vals)
+                    if np.sum(valid) >= 3:
+                        mae = compute_mae(act_vals[valid], pred_vals[valid])
+                        weights[m] = 1.0 / (mae ** 2 + 0.01)  # +0.01 prevents divide by zero
         if weights:
             total_w = sum(weights.values())
             ensemble_val = sum(nowcasts.get(m, 0) * weights.get(m, 0) / total_w
@@ -1072,14 +1076,20 @@ if len(log) >= 3:
         sub = log[[col, "actual_gdp_pct"]].dropna()
         if len(sub) < 3:
             continue
-        pred = sub[col].values
-        act = sub["actual_gdp_pct"].values
+        pred = pd.to_numeric(sub[col], errors="coerce").values
+        act = pd.to_numeric(sub["actual_gdp_pct"], errors="coerce").values
+        # Remove any remaining NaN after conversion
+        valid = ~np.isnan(pred) & ~np.isnan(act)
+        pred = pred[valid]
+        act = act[valid]
+        if len(pred) < 3:
+            continue
         lb_rows.append({
             "model": model.upper(),
             "MAE (pp)": round(compute_mae(act, pred), 3),
             "RMSE (pp)": round(compute_rmse(act, pred), 3),
             "FDA (%)": round(compute_fda(act, pred) * 100, 1),
-            "N": len(sub),
+            "N": len(pred),
             "last_nowcast": nowcasts[model],
         })
 
@@ -1191,14 +1201,19 @@ if len(log) >= 3:
         sub = log[[col, "actual_gdp_pct"]].dropna()
         if len(sub) < 3:
             continue
-        pred = sub[col].values
-        act = sub["actual_gdp_pct"].values
+        pred = pd.to_numeric(sub[col], errors="coerce").values
+        act = pd.to_numeric(sub["actual_gdp_pct"], errors="coerce").values
+        valid = ~np.isnan(pred) & ~np.isnan(act)
+        pred = pred[valid]
+        act = act[valid]
+        if len(pred) < 3:
+            continue
         lb_rows.append({
             "model": model.upper(),
             "MAE (pp)": round(compute_mae(act, pred), 3),
             "RMSE (pp)": round(compute_rmse(act, pred), 3),
             "FDA (%)": round(compute_fda(act, pred) * 100, 1),
-            "N": len(sub),
+            "N": len(pred),
             "last_nowcast": nowcasts.get(model),
         })
     lb_df = pd.DataFrame(lb_rows)
@@ -1327,14 +1342,19 @@ if len(log) >= 3:
         sub = log[[model, "actual_gdp_pct"]].dropna()
         if len(sub) < 3:
             continue
-        pred = sub[model].values
-        act = sub["actual_gdp_pct"].values
+        pred = pd.to_numeric(sub[model], errors="coerce").values
+        act = pd.to_numeric(sub["actual_gdp_pct"], errors="coerce").values
+        valid = ~np.isnan(pred) & ~np.isnan(act)
+        pred = pred[valid]
+        act = act[valid]
+        if len(pred) < 3:
+            continue
         dashboard_data["leaderboard"].append({
             "model": model.upper(),
             "mae": round(compute_mae(act, pred), 3),
             "rmse": round(compute_rmse(act, pred), 3),
             "fda": round(compute_fda(act, pred) * 100, 1),
-            "n": len(sub),
+            "n": len(pred),
             "latest": round(float(nowcasts.get(model, 0)), 1),
         })
 
