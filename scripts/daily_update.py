@@ -867,61 +867,42 @@ if len(log) >= 3:
 # -------------------------------------------------------------------
 # 6. Generate markdown leaderboard (DOSM-comparable format)
 # -------------------------------------------------------------------
-# Determine reference: DOSM advance YoY if available, else latest actual YoY
-adv_q_label = f"{current_year}-Q{current_quarter}"
-adv_reference_yoy = None
-adv_reference_source = ""
-if dosm_advance is not None:
-    adv_reference_yoy = dosm_advance.get("overall_yoy")
-    adv_reference_source = f"DOSM Advance ({dosm_advance.get('release_date', '?')})"
-elif actual_yoy_gdp is not None:
-    adv_reference_yoy = actual_yoy_gdp
-    adv_reference_source = f"DOSM Actual (latest: {backcast_label})"
+# Determine latest actual quarter
+latest_actual_label = backcast_label  # Q1 2026
+latest_actual_yoy = actual_yoy_gdp  # +5.4%
 
 md = f"# Malaysia GDP Nowcasting — Live Leaderboard\n\n"
-md += f"**Updated:** {today_str} | **Nowcasting:** {nowcast_label} | **Reference:** {adv_reference_source}\n\n"
+md += f"**Updated:** {today_str} | **Latest actual:** {latest_actual_label} | **Nowcasting:** {nowcast_label}\n\n"
 
-# --- Section 1: YoY Growth (DOSM-comparable) ---
-md += "## GDP Growth (YoY %)\n\n"
-md += f"*Comparable to [OpenDOSM GDP Dashboard](https://open.dosm.gov.my/dashboard/gdp). Data as of {backcast_label}.*\n\n"
+# --- Section 1: Current Nowcast (YoY %) ---
+# Show forward-looking nowcast (no ground truth yet)
+md += "## GDP Nowcast (YoY %)\n\n"
+md += f"*Nowcasting {nowcast_label} — no ground truth available yet (releases ~mid-{(current_quarter*3+2)%12 or 12}).*\n\n"
 
-md += "| Model | Nowcast | Reference | Error |\n"
-md += "|-------|---------|-----------|-------|\n"
-
-yoy_models = [
-    ("DFM", "dfm_yoy"), ("BVAR", "bvar_yoy"), ("ENSEMBLE", "ensemble_yoy"),
-]
-for model_name, model_key in yoy_models:
+md += "| Model | Nowcast |\n"
+md += "|-------|--------|\n"
+for model_name, model_key in [("DFM", "dfm_yoy"), ("BVAR", "bvar_yoy"), ("ENSEMBLE", "ensemble_yoy")]:
     val = nowcasts.get(model_key)
-    val_str = f"{val:+.1f}%" if val is not None else "—"
-    ref_str = f"{adv_reference_yoy:+.1f}%" if adv_reference_yoy is not None else "—"
+    val_str = f"`{val:+.1f}%`" if val is not None else "—"
+    md += f"| {model_name} | {val_str} |\n"
+
+# --- Section 2: Backcast Accuracy (vs latest actual) ---
+# Show how well models estimated the latest known quarter
+md += f"\n## Backcast Accuracy ({latest_actual_label}, YoY %)\n\n"
+md += f"*How well models estimated {latest_actual_label}. DOSM actual: `{latest_actual_yoy:+.1f}%`.*\n\n"
+
+md += "| Model | Estimate | Error |\n"
+md += "|-------|----------|-------|\n"
+
+# Use YoY backcast if available, otherwise approximate from QoQ
+for model_name, model_key in [("DFM", "dfm_yoy"), ("BVAR", "bvar_yoy"), ("ENSEMBLE", "ensemble_yoy")]:
+    val = nowcasts.get(model_key)
+    val_str = f"`{val:+.1f}%`" if val is not None else "—"
     err_str = "—"
-    if val is not None and adv_reference_yoy is not None:
-        err_val = abs(val - adv_reference_yoy)
+    if val is not None and latest_actual_yoy is not None:
+        err_val = abs(val - latest_actual_yoy)
         err_str = f"{err_val:.1f}pp"
-    md += f"| **{model_name}** | `{val_str}` | `{ref_str}` | {err_str} |\n"
-
-if actual_yoy_gdp is not None:
-    md += f"\n*DOSM official YoY: `{actual_yoy_gdp:+.1f}%` (Q1 2026)*\n"
-
-# --- Section 2: QoQ SA (internal tracking) ---
-md += f"\n## GDP Growth (QoQ SA %)\n\n"
-md += f"*Internal tracking metric. Seasonally adjusted, quarter-on-quarter.*\n\n"
-
-md += "| Model | Nowcast | Backcast | Forecast |\n"
-md += "|-------|---------|----------|----------|\n"
-for model in ["DFM", "BVAR", "BEQ", "ENSEMBLE"]:
-    col = model.lower()
-    nw = nowcasts.get(col)
-    bc = nowcasts.get(f"{col}_backcast")
-    fc = nowcasts.get(f"{col}_forecast")
-    nw_str = f"{nw:+.1f}%" if nw is not None else "—"
-    bc_str = f"{bc:+.1f}%" if bc is not None else "—"
-    fc_str = f"{fc:+.1f}%" if fc is not None else "—"
-    md += f"| {model} | {nw_str} | {bc_str} | {fc_str} |\n"
-
-if actual_pct is not None:
-    md += f"\n*DOSM official QoQ SA: `{actual_pct:+.1f}%` ({backcast_label})*\n"
+    md += f"| {model_name} | {val_str} | {err_str} |\n"
 
 # --- Section 3: Economic Sectors (DOSM supply-side) ---
 md += "\n## GDP by Economic Sector (YoY %)\n\n"
@@ -1038,14 +1019,14 @@ for _, row in log.tail(30).iterrows():
     actual_str = f"{actual_v:+.1f}%" if pd.notna(actual_v) else "—"
     md += f"| {row['date']} | {vals[0]} | {vals[1]} | {vals[2]} | {vals[3]} | {vals[4]} | {vals[5]} | {actual_str} |\n"
 
-# --- Section 7: Ground Truth ---
+# --- Section 7: Data Sources ---
 md += "\n## Data Sources\n\n"
-md += "- **Main GDP (YoY):** DOSM `gdp_qtr_real` (non-SA, constant 2015 prices)\n"
-md += "- **Main GDP (QoQ SA):** DOSM `gdp_qtr_real_sa` (seasonally adjusted)\n"
-md += "- **Sectors:** DOSM `gdp_qtr_real_supply` (supply-side, YoY)\n"
-md += "- **Expenditure:** DOSM `gdp_qtr_real_demand` (demand-side, YoY)\n"
-md += "- **Source:** [OpenDOSM API](https://open.dosm.gov.my) | [Dashboard](https://open.dosm.gov.my/dashboard/gdp)\n"
-md += f"- **Latest vintage:** {today_str}\n\n"
+md += "- **GDP (YoY):** DOSM `gdp_qtr_real` — non-SA, constant 2015 prices\n"
+md += "- **Sectors:** DOSM `gdp_qtr_real_supply` — supply-side breakdown\n"
+md += "- **Expenditure:** DOSM `gdp_qtr_real_demand` — demand-side breakdown\n"
+md += "- **Dashboard:** [OpenDOSM GDP](https://open.dosm.gov.my/dashboard/gdp)\n"
+md += "- **API:** [OpenDOSM Developer](https://developer.data.gov.my/static-api/opendosm)\n"
+md += f"- **Last updated:** {today_str}\n\n"
 md += f"---\n*Auto-generated daily at 8am MYT via GitHub Actions. [View source](https://github.com/pengkodammaya/BM-ECB)*\n"
 leaderboard_path = Path("docs") / "leaderboard.md"
 leaderboard_path.write_text(md, encoding="utf-8")
