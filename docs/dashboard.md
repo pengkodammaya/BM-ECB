@@ -29,28 +29,32 @@
 
 ## Backcast Accuracy — Q1 2026
 
-*How well models estimated Q1 2026. Actual: `+5.4%` YoY.*
+*How well models estimated Q1 2026. DOSM advance estimate: `+5.3%` YoY, `-0.01%` QoQ SA.*
 
-| Model | Estimate | Error | Accuracy |
-|-------|:--------:|:-----:|----------|
-| **DFM** | +8.2% | 2.8pp | 🔴 Fair |
-| **BVAR** | +4.2% | 1.2pp | 🟡 Good |
-| **Ensemble** | +6.2% | 0.8pp | 🟢 Excellent |
+| Model | YoY Estimate | YoY Error | QoQ SA Estimate | QoQ SA Error |
+|-------|:------------:|:---------:|:---------------:|:------------:|
+| **DFM** | +8.2% | 2.9pp | +2.2% | 2.2pp |
+| **BVAR** | +4.2% | 1.1pp | +0.9% | 0.9pp |
+| **Ensemble** | +6.2% | 0.9pp | +1.0% | 1.0pp |
+
+*YoY = Year-over-Year (DOSM standard). QoQ SA = Quarter-over-Quarter Seasonally Adjusted.*
 
 ---
 
 ## A deeper look at GDP by economic sector
 
-*Q1 2026 | YoY Growth | Source: DOSM `gdp_qtr_real_supply`*
+*Q1 2026 | YoY Growth | Source: DOSM Advance Estimate (2026-04-17)*
 
-| Sector | YoY % |
-|--------|:-----:|
-| Agriculture | `+2.6%` |
-| Mining & Quarrying | `-2.1%` |
-| Manufacturing | `+5.9%` |
-| Construction | `+7.7%` |
-| Services | `+5.6%` |
-| **Overall GDP** | **`+5.4%`** |
+| Sector | Actual (Q1 2026) | Nowcast (Q2 2026) |
+|--------|:----------------:|:-----------------:|
+| Agriculture | `+2.8%` | — |
+| Mining & Quarrying | `-1.1%` | — |
+| Manufacturing | `+5.8%` | — |
+| Construction | `+7.8%` | — |
+| Services | `+5.4%` | — |
+| **Overall GDP** | **`+5.3%`** | **`+4.2%`** |
+
+*Sector actuals from DOSM advance estimate. Sector nowcasts available after daily update.*
 
 ---
 

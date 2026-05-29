@@ -157,14 +157,14 @@ md = f"""# Malaysia GDP Nowcasting — Dashboard
 
 *{actual_quarter} | YoY Growth | Source: DOSM `gdp_qtr_real_supply`*
 
-| Sector | YoY % |
-|--------|:-----:|
-| Agriculture | `{sign(sectors['Agriculture'])}` |
-| Mining & Quarrying | `{sign(sectors['Mining & Quarrying'])}` |
-| Manufacturing | `{sign(sectors['Manufacturing'])}` |
-| Construction | `{sign(sectors['Construction'])}` |
-| Services | `{sign(sectors['Services'])}` |
-| **Overall GDP** | **`{sign(actual_yoy)}`** |
+| Sector | Actual | Nowcast | Error |
+|--------|:------:|:-------:|:-----:|
+| Agriculture | `{sign(sectors['Agriculture'])}` | `{sign(round(float(latest.get('sector_agriculture', 0)), 1) if pd.notna(latest.get('sector_agriculture')) else None)}` | `{fmt_err(abs(sectors['Agriculture'] - round(float(latest.get('sector_agriculture', 0)), 1)) if pd.notna(latest.get('sector_agriculture')) else None)}` |
+| Mining & Quarrying | `{sign(sectors['Mining & Quarrying'])}` | `{sign(round(float(latest.get('sector_mining', 0)), 1) if pd.notna(latest.get('sector_mining')) else None)}` | `{fmt_err(abs(sectors['Mining & Quarrying'] - round(float(latest.get('sector_mining', 0)), 1)) if pd.notna(latest.get('sector_mining')) else None)}` |
+| Manufacturing | `{sign(sectors['Manufacturing'])}` | `{sign(round(float(latest.get('sector_manufacturing', 0)), 1) if pd.notna(latest.get('sector_manufacturing')) else None)}` | `{fmt_err(abs(sectors['Manufacturing'] - round(float(latest.get('sector_manufacturing', 0)), 1)) if pd.notna(latest.get('sector_manufacturing')) else None)}` |
+| Construction | `{sign(sectors['Construction'])}` | `{sign(round(float(latest.get('sector_construction', 0)), 1) if pd.notna(latest.get('sector_construction')) else None)}` | `{fmt_err(abs(sectors['Construction'] - round(float(latest.get('sector_construction', 0)), 1)) if pd.notna(latest.get('sector_construction')) else None)}` |
+| Services | `{sign(sectors['Services'])}` | `{sign(round(float(latest.get('sector_services', 0)), 1) if pd.notna(latest.get('sector_services')) else None)}` | `{fmt_err(abs(sectors['Services'] - round(float(latest.get('sector_services', 0)), 1)) if pd.notna(latest.get('sector_services')) else None)}` |
+| **Overall GDP** | **`{sign(actual_yoy)}`** | **`{sign(bvar_yoy)}`** | {fmt_err(abs(actual_yoy - bvar_yoy) if bvar_yoy else None)} |
 
 ---
 

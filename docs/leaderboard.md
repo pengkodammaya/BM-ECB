@@ -6,34 +6,40 @@
 
 *Nowcasting Q2 2026 — no ground truth available yet (releases ~mid-8).*
 
-| Model | Nowcast |
-|-------|--------|
-| DFM | `+8.2%` |
-| BVAR | `+4.2%` |
-| ENSEMBLE | `+6.2%` |
+| Model | Nowcast (YoY) | Nowcast (QoQ SA) |
+|-------|:-------------:|:----------------:|
+| DFM | `+8.2%` | `+2.2%` |
+| BVAR | `+4.2%` | `+0.9%` |
+| ENSEMBLE | `+6.2%` | `+1.0%` |
 
-## Backcast Accuracy (Q1 2026, YoY %)
+*YoY = Year-over-Year (comparable to DOSM reporting). QoQ SA = Quarter-over-Quarter Seasonally Adjusted.*
 
-*How well models estimated Q1 2026. DOSM actual: `+5.4%`.*
+## Backcast Accuracy — Q1 2026
 
-| Model | Estimate | Error |
-|-------|----------|-------|
-| DFM | `+8.2%` | 2.8pp |
-| BVAR | `+4.2%` | 1.2pp |
-| ENSEMBLE | `+6.2%` | 0.8pp |
+*How well models estimated Q1 2026. DOSM advance estimate: `+5.3%` YoY.*
+
+| Model | Estimate (YoY) | Error (YoY) | Estimate (QoQ SA) | Error (QoQ SA) |
+|-------|:--------------:|:-----------:|:-----------------:|:--------------:|
+| DFM | `+8.2%` | 2.9pp | `+2.2%` | 2.2pp |
+| BVAR | `+4.2%` | 1.1pp | `+0.9%` | 0.9pp |
+| ENSEMBLE | `+6.2%` | 0.9pp | `+1.0%` | 1.0pp |
+
+*DOSM advance estimate for Q1 2026 released 2026-04-17. Official QoQ SA: -0.01%.*
 
 ## GDP by Economic Sector (YoY %)
 
-*Comparable to DOSM "A deeper look at GDP by economic sector". Actual values from `gdp_qtr_real_supply`.*
+*Comparable to DOSM "A deeper look at GDP by economic sector".*
 
-| Sector | Latest Actual |
-|--------|---------------|
-| Agriculture | `+2.6%` |
-| Mining & Quarrying | `-2.1%` |
-| Manufacturing | `+5.9%` |
-| Construction | `+7.7%` |
-| Services | `+5.6%` |
-| **Overall GDP** | `+5.4%` |
+| Sector | Actual (Q1 2026) | Nowcast (Q2 2026) | Source |
+|--------|:----------------:|:-----------------:|--------|
+| Agriculture | `+2.8%` | — | DOSM advance |
+| Mining & Quarrying | `-1.1%` | — | DOSM advance |
+| Manufacturing | `+5.8%` | — | DOSM advance |
+| Construction | `+7.8%` | — | DOSM advance |
+| Services | `+5.4%` | — | DOSM advance |
+| **Overall GDP** | **`+5.3%`** | **`+4.2%`** | DOSM advance / BVAR |
+
+*Sector actuals from DOSM advance estimate (2026-04-17). Sector nowcasts available after daily_update.py runs.*
 
 ## GDP by Expenditure Category (YoY %)
 

@@ -54,7 +54,7 @@ MN = [n for n in DATASETS if n != "gdp"]
 AN = MN + ["gdp"]
 
 # ---------------------------------------------------------------------------
-# 2. Fetch data
+# 2. Fetch data (parallel)
 # ---------------------------------------------------------------------------
 print(f"[{datetime.now().isoformat()}] Daily update starting...")
 
@@ -62,31 +62,49 @@ cache = DataCache(ttl_hours=6)
 client = OpenDOSMClient()
 filtered = {}
 
-for name, (did, col, tcode, group, filters) in DATASETS.items():
-    df = cache.get(did)
-    if df is None:
-        df = client.fetch(did, limit=20000)
-        if df is not None and not df.empty:
-            cache.put(did, df)
-    if df is None or df.empty:
-        continue
-    df = df.copy()
-    for fc, fv in filters.items():
-        if fc in df.columns:
-            df = df[df[fc] == fv]
-    if col not in df.columns:
-        continue
-    df = df[["date", col]].dropna().rename(columns={col: name})
-    df["date"] = pd.to_datetime(df["date"])
-    df = df.sort_values("date").drop_duplicates("date")
-    filtered[name] = df
+def fetch_single_dataset(args):
+    """Fetch a single dataset (for parallel execution)."""
+    name, (did, col, tcode, group, filters) = args
+    try:
+        df = cache.get(did)
+        if df is None:
+            df = client.fetch(did, limit=20000)
+            if df is not None and not df.empty:
+                cache.put(did, df)
+        if df is None or df.empty:
+            return name, None
+        df = df.copy()
+        for fc, fv in filters.items():
+            if fc in df.columns:
+                df = df[df[fc] == fv]
+        if col not in df.columns:
+            return name, None
+        df = df[["date", col]].dropna().rename(columns={col: name})
+        df["date"] = pd.to_datetime(df["date"])
+        df = df.sort_values("date").drop_duplicates("date")
+        return name, df
+    except Exception as e:
+        print(f"  Failed to fetch {name}: {e}")
+        return name, None
+
+# Fetch OpenDOSM data in parallel
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+print(f"[{datetime.now().isoformat()}] Fetching {len(DATASETS)} datasets in parallel...")
+with ThreadPoolExecutor(max_workers=5) as executor:
+    futures = {executor.submit(fetch_single_dataset, item): item[0] 
+               for item in DATASETS.items()}
+    for future in as_completed(futures):
+        name, df = future.result()
+        if df is not None:
+            filtered[name] = df
 
 # % to decimal
 for var in ["ipi", "imports_capital", "imports_consumer"]:
     if var in filtered:
         filtered[var][var] = filtered[var][var] / 100.0
 
-# BNM data
+# BNM data (sequential - rate limited)
 try:
     ir_df = fetch_interest_rate_history(start_year=2020, verbose=False)
     if not ir_df.empty:
@@ -254,6 +272,20 @@ COMPONENT_INDICATORS = {
     "exports_comp":[n for n in DATASETS if DATASETS[n][3] in ("external", "financial", "industry", "global_equity", "global_commodity", "global_demand") and n != "gdp"],
     # Imports: external + services + prices + global commodity
     "imports_comp":[n for n in DATASETS if DATASETS[n][3] in ("external", "services", "prices", "global_commodity") and n != "gdp"],
+}
+
+# Sector-specific indicator subsets (supply-side)
+SECTOR_INDICATORS = {
+    # Agriculture: IPI agriculture, PPI, trade, leading
+    "agriculture": [n for n in DATASETS if DATASETS[n][3] in ("industry", "prices", "leading", "external") and n != "gdp"],
+    # Mining: IPI mining, PPI, trade (mineral fuels)
+    "mining": [n for n in DATASETS if DATASETS[n][3] in ("industry", "prices", "external") and n != "gdp"],
+    # Manufacturing: IPI manufacturing, PPI, trade, leading, E&E exports
+    "manufacturing": [n for n in DATASETS if DATASETS[n][3] in ("industry", "prices", "leading", "external", "global_equity") and n != "gdp"],
+    # Construction: IPI construction, leading, investment-related
+    "construction": [n for n in DATASETS if DATASETS[n][3] in ("industry", "leading", "financial") and n != "gdp"],
+    # Services: IPI services, WRT, coincident, labour
+    "services": [n for n in DATASETS if DATASETS[n][3] in ("industry", "services", "coincident", "labour") and n != "gdp"],
 }
 # Fallback: if a subset is too small (<3 indicators), use all
 for ck, indicators in COMPONENT_INDICATORS.items():
@@ -715,6 +747,123 @@ for comp_key, comp_type, comp_series in COMPONENTS:
         nowcasts[comp_key] = None
 
 client2.close()
+
+# ---------------------------------------------------------------------------
+# 3b2. Sector-level nowcasts: agriculture, mining, manufacturing, construction, services
+# ---------------------------------------------------------------------------
+console.print("[cyan]Running sector nowcasts...[/cyan]")
+
+# Fetch sector-specific GDP data
+df_sector_gdp = client_yoy.fetch("gdp_qtr_real_supply", limit=20000) if not client_yoy.closed else None
+if df_sector_gdp is None or df_sector_gdp.empty:
+    # Re-fetch if needed
+    try:
+        client_sector = OpenDOSMClient()
+        df_sector_gdp = client_sector.fetch("gdp_qtr_real_supply", limit=20000)
+        client_sector.close()
+    except Exception:
+        df_sector_gdp = None
+
+for sector_code, sector_name in SECTOR_MAP.items():
+    try:
+        # Get sector GDP YoY
+        if df_sector_gdp is None or df_sector_gdp.empty:
+            nowcasts[f"sector_{sector_name}"] = None
+            continue
+            
+        sector_rows = df_sector_gdp[
+            (df_sector_gdp["sector"] == sector_code) & (df_sector_gdp["series"] == "growth_yoy")
+        ].copy()
+        
+        if sector_rows.empty:
+            nowcasts[f"sector_{sector_name}"] = None
+            continue
+        
+        sector_rows["date"] = pd.to_datetime(sector_rows["date"])
+        sector_rows = sector_rows.sort_values("date")
+        sector_gdp_vals = sector_rows["value"].values / 100.0  # % to decimal
+        sector_gdp_dates = sector_rows["date"].values
+        
+        # Build sector target on date grid
+        X_sector_target = np.full(T, np.nan)
+        for i, d in enumerate(sector_gdp_dates):
+            dt = pd.Timestamp(d)
+            y, m = dt.year, dt.month
+            qem = ((m - 1) // 3) * 3 + 3
+            idx = np.where((datet[:, 0] == y) & (datet[:, 1] == qem))[0]
+            if len(idx) > 0 and i < len(sector_gdp_vals):
+                X_sector_target[idx[0]] = sector_gdp_vals[i]
+        
+        # Get sector-specific indicators
+        sector_indicators = SECTOR_INDICATORS.get(sector_name, [])
+        if len(sector_indicators) < 3:
+            sector_indicators = [n for n in DATASETS if n != "gdp"]  # fallback to all
+        
+        # Build sector data matrix: monthly indicators + quarterly sector GDP
+        valid_sector_indicators = [n for n in sector_indicators if n in filtered]
+        n_sector_m = len(valid_sector_indicators)
+        
+        if n_sector_m < 2:
+            nowcasts[f"sector_{sector_name}"] = None
+            continue
+        
+        X_sector = np.full((T, n_sector_m + 1), np.nan)
+        for j, name in enumerate(valid_sector_indicators):
+            df = filtered[name]
+            for _, row in df.iterrows():
+                y, m = row["date"].year, row["date"].month
+                idx = np.where((datet[:, 0] == y) & (datet[:, 1] == m))[0]
+                if len(idx) > 0:
+                    X_sector[idx[0], j] = row[name]
+        
+        # Add sector GDP as last column
+        X_sector[:, -1] = X_sector_target
+        
+        # Transform
+        X_sector_trans = X_sector.copy()
+        for j, name in enumerate(valid_sector_indicators):
+            tcode = DATASETS.get(name, (None, None, 0, None, {}))[2]
+            X_sector_trans[:, j] = transform_series(X_sector[:, j].copy(), tcode, "monthly")
+        X_sector_trans[:, -1] = X_sector[:, -1].copy()  # keep GDP as-is (already YoY)
+        
+        # Standardize
+        mu_s = np.nanmean(X_sector_trans, axis=0)
+        sigma_s = np.nanstd(X_sector_trans, axis=0)
+        sigma_s[sigma_s < 1e-10] = 1.0
+        X_sector_std = (X_sector_trans - mu_s) / sigma_s
+        
+        # Find estimation start
+        ffs = np.where(~np.all(np.isnan(X_sector_std), axis=1))[0][0]
+        X_sector_est = X_sector_std[ffs:]
+        
+        if np.sum(~np.isnan(X_sector_est[:, -1])) < 3:
+            nowcasts[f"sector_{sector_name}"] = None
+            continue
+        
+        # DFM for sector
+        try:
+            dfm_s = DFM(DFMParams(r=2, p=1, max_iter=15, thresh=1e-4, idio=1))
+            res_s = dfm_s.fit(X_sector_est)
+            
+            # Find current quarter end index in the estimation window
+            sector_q_idx = -1
+            for i in range(len(datet) - ffs):
+                if datet[ffs + i, 0] == current_year and datet[ffs + i, 1] == current_q_end_m:
+                    sector_q_idx = i
+                    break
+            
+            if sector_q_idx >= 0 and sector_q_idx < res_s.X_sm.shape[0]:
+                nws = float(res_s.X_sm[sector_q_idx, -1]) * sigma_s[-1] + mu_s[-1]
+            else:
+                # Fallback: use last row
+                nws = float(res_s.X_sm[-1, -1]) * sigma_s[-1] + mu_s[-1]
+            nowcasts[f"sector_{sector_name}"] = round(nws * 100, 2)
+        except Exception:
+            nowcasts[f"sector_{sector_name}"] = None
+        
+    except Exception as e:
+        print(f"  Sector {sector_name}: {e}")
+        nowcasts[f"sector_{sector_name}"] = None
 
 # ---------------------------------------------------------------------------
 # 3c. YoY GDP Nowcast (DOSM-comparable metric)
