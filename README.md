@@ -4,9 +4,15 @@ Python port of the [ECB Nowcasting Toolbox](https://github.com/baptiste-meunier/
 
 **Original**: MATLAB + R | **This port**: Python 3.12+ with `uv`
 
-## 📊 [Live Leaderboard →](docs/leaderboard.md)
+## 📊 Live Dashboard
 
-*Auto-updated daily at 8am MYT via GitHub Actions. Shows latest nowcast, model comparison, and 30-day history.*
+| Resource | Description |
+|----------|-------------|
+| [Leaderboard (Markdown)](docs/leaderboard.md) | Model accuracy, nowcasts, sector/expenditure breakdowns |
+| [Dashboard (HTML)](docs/dashboard.html) | DOSM-style visual dashboard — download and open locally |
+| [Data (JSON)](docs/data.json) | Machine-readable nowcast data for integrations |
+
+*Auto-updated daily at 8am MYT via GitHub Actions.*
 
 ## Model Engines
 
