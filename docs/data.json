@@ -1,54 +1,54 @@
 {
-  "lastUpdated": "2026-05-28",
+  "lastUpdated": "2026-05-29",
   "latestActual": {
     "quarter": "Q1 2026",
     "yoy": 5.4
   },
   "nowcast": {
     "quarter": "Q2 2026",
-    "dfm": 9.9,
+    "dfm": 8.2,
     "bvar": 4.2,
-    "ensemble": 7.0
+    "ensemble": 6.2
   },
   "backcast": {
     "dfm": {
-      "estimate": 9.9,
-      "error": 4.5
+      "estimate": 8.2,
+      "error": 2.8
     },
     "bvar": {
       "estimate": 4.2,
       "error": 1.2
     },
     "ensemble": {
-      "estimate": 7.0,
-      "error": 1.6
+      "estimate": 6.2,
+      "error": 0.8
     }
   },
   "components": {
     "consumption": {
-      "bvar": 4.8,
+      "bvar": 6.0,
       "actual": 4.7,
-      "error": 0.0
+      "error": 1.3
     },
     "investment": {
-      "bvar": 7.3,
+      "bvar": 9.3,
       "actual": 7.3,
-      "error": 0.0
+      "error": 2.0
     },
     "government": {
-      "bvar": 4.1,
+      "bvar": 6.6,
       "actual": 4.1,
-      "error": 0.0
+      "error": 2.5
     },
     "exports": {
-      "bvar": 5.2,
+      "bvar": 6.3,
       "actual": 5.2,
-      "error": 0.0
+      "error": 1.1
     },
     "imports": {
-      "bvar": 4.6,
+      "bvar": 9.0,
       "actual": 4.6,
-      "error": 0.0
+      "error": 4.4
     }
   },
   "sectors": {
@@ -61,26 +61,26 @@
   "leaderboard": [
     {
       "model": "DFM",
-      "mae": 3.45,
-      "rmse": 3.831,
+      "mae": 3.147,
+      "rmse": 3.501,
       "fda": 0.0,
-      "n": 3,
-      "latest": 5.8
+      "n": 4,
+      "latest": 2.2
     },
     {
       "model": "BVAR",
-      "mae": 0.92,
-      "rmse": 0.92,
+      "mae": 0.93,
+      "rmse": 0.93,
       "fda": 0.0,
-      "n": 3,
+      "n": 4,
       "latest": 0.9
     },
     {
       "model": "BEQ",
-      "mae": 1.09,
-      "rmse": 1.09,
+      "mae": 1.088,
+      "rmse": 1.088,
       "fda": 0.0,
-      "n": 3,
+      "n": 4,
       "latest": 1.1
     },
     {
@@ -88,16 +88,24 @@
       "mae": 1.47,
       "rmse": 1.47,
       "fda": 100.0,
-      "n": 3,
+      "n": 4,
       "latest": 1.5
     },
     {
-      "model": "ENSEMBLE",
-      "mae": 1.19,
-      "rmse": 1.198,
-      "fda": 0.0,
+      "model": "NAIVE",
+      "mae": 0.0,
+      "rmse": 0.0,
+      "fda": 100.0,
       "n": 3,
-      "latest": 1.4
+      "latest": -0.0
+    },
+    {
+      "model": "ENSEMBLE",
+      "mae": 1.155,
+      "rmse": 1.163,
+      "fda": 0.0,
+      "n": 4,
+      "latest": 1.0
     }
   ],
   "recent": [
@@ -123,6 +131,14 @@
       "bvar": 0.9,
       "beq": 1.1,
       "ensemble": 1.4,
+      "actual": -0.0
+    },
+    {
+      "date": "2026-05-29",
+      "dfm": 2.2,
+      "bvar": 0.9,
+      "beq": 1.1,
+      "ensemble": 1.0,
       "actual": -0.0
     }
   ]

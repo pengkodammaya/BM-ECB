@@ -18,9 +18,9 @@
 
 | Model | Nowcast | Description |
 |-------|:-------:|-------------|
-| **DFM** | `+7.5%` | Dynamic Factor Model (r=2, p=4) |
-| **BVAR** | `+4.1%` | Bayesian VAR with Minnesota prior |
-| **Ensemble** | `+5.8%` | Median of DFM + BVAR |
+| **DFM** | `+8.2%` | Dynamic Factor Model (r=2, p=4) |
+| **BVAR** | `+4.2%` | Bayesian VAR with Minnesota prior |
+| **Ensemble** | `+6.2%` | Median of DFM + BVAR |
 
 > *Q2 2026 actual releases ~August 2026. Nowcasts cannot be validated yet.*
 
@@ -32,9 +32,9 @@
 
 | Model | Estimate | Error | Accuracy |
 |-------|:--------:|:-----:|----------|
-| **DFM** | +7.5% | 2.1pp | 🔴 Fair |
-| **BVAR** | +4.1% | 1.3pp | 🟡 Good |
-| **Ensemble** | +5.8% | 0.4pp | 🟢 Excellent |
+| **DFM** | +8.2% | 2.8pp | 🔴 Fair |
+| **BVAR** | +4.2% | 1.2pp | 🟡 Good |
+| **Ensemble** | +6.2% | 0.8pp | 🟢 Excellent |
 
 ---
 
@@ -59,7 +59,7 @@
 
 | Component | BVAR | Actual | Error |
 |-----------|:----:|:------:|:-----:|
-| **Consumption** (C) | +6.1% | +4.7% | 1.4pp |
+| **Consumption** (C) | +6.0% | +4.7% | 1.3pp |
 | **Investment** (I) | +9.3% | +7.3% | 2.0pp |
 | **Government** (G) | +6.6% | +4.1% | 2.5pp |
 | **Exports** (X) | +6.3% | +5.2% | 1.1pp |
@@ -73,12 +73,12 @@
 
 | Model | MAE (pp) | RMSE (pp) | FDA (%) | N | Latest |
 |-------|:--------:|:---------:|:-------:|:-:|:------:|
-| DFM | 3.857 | 4.178 | 0.0% | 4 | +5.1% |
-| BVAR | 0.927 | 0.928 | 0.0% | 4 | +0.9% |
-| BEQ | 1.090 | 1.090 | 33.3% | 4 | +1.1% |
+| DFM | 3.147 | 3.501 | 0.0% | 4 | +2.2% |
+| BVAR | 0.930 | 0.930 | 0.0% | 4 | +0.9% |
+| BEQ | 1.088 | 1.088 | 0.0% | 4 | +1.1% |
 | AR1 *(baseline)* | 1.470 | 1.470 | 100.0% | 4 | +1.5% |
 | NAIVE *(last Q)* | 0.000 | 0.000 | 100.0% | 3 | -0.0% |
-| ENSEMBLE *(combined)* | 1.180 | 1.186 | 0.0% | 4 | +1.1% |
+| ENSEMBLE *(combined)* | 1.155 | 1.163 | 0.0% | 4 | +1.0% |
 
 ---
 
@@ -89,7 +89,7 @@
 | 2026-05-26 | +2.1% | +0.9% | +1.1% | +1.1% | -0.0% |
 | 2026-05-27 | +2.4% | +0.9% | +1.1% | +1.1% | -0.0% |
 | 2026-05-28 | +5.8% | +0.9% | +1.1% | +1.4% | -0.0% |
-| 2026-05-29 | +5.1% | +0.9% | +1.1% | +1.1% | -0.0% |
+| 2026-05-29 | +2.2% | +0.9% | +1.1% | +1.0% | -0.0% |
 
 ---
 
