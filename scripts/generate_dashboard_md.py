@@ -130,13 +130,14 @@ md = f"""# Malaysia GDP Nowcasting — Dashboard
 
 ### Q2 2026 Nowcast (YoY) — No ground truth yet
 
-| Model | Nowcast | Description |
-|-------|:-------:|-------------|
-| **DFM** | `{sign(dfm_yoy)}` | Dynamic Factor Model (r=2, p=4) |
-| **BVAR** | `{sign(bvar_yoy)}` | Bayesian VAR with Minnesota prior |
-| **Ensemble** | `{sign(ensemble_yoy)}` | Median of DFM + BVAR |
+| Model | Nowcast | 90% Confidence Band | Description |
+|-------|:-------:|:-------------------:|-------------|
+| **DFM** | `{sign(dfm_yoy)}` | — | Dynamic Factor Model (r=2, p=4) |
+| **BVAR** | `{sign(bvar_yoy)}` | `[{sign(round(float(latest.get('bvar_ci_10', 0)) * 100, 1) if pd.notna(latest.get('bvar_ci_10')) else None)}, {sign(round(float(latest.get('bvar_ci_90', 0)) * 100, 1) if pd.notna(latest.get('bvar_ci_90')) else None)}]` | Bayesian VAR with Minnesota prior |
+| **Ensemble** | `{sign(ensemble_yoy)}` | — | Median of DFM + BVAR |
 
 > *Q2 2026 actual releases ~August 2026. Nowcasts cannot be validated yet.*
+> *BVAR confidence band computed from posterior draws (10th/90th percentiles).*
 
 ---
 
@@ -205,8 +206,8 @@ md += f"""
 
 ## Recent Nowcasts
 
-| Date | DFM | BVAR | BEQ | Ensemble | Actual |
-|------|:---:|:----:|:---:|:--------:|:------:|
+| Date | DFM | BVAR | 90% Band | BEQ | Ensemble | Actual |
+|------|:---:|:----:|:--------:|:---:|:--------:|:------:|
 """
 
 for _, row in log.tail(30).iterrows():
@@ -215,7 +216,10 @@ for _, row in log.tail(30).iterrows():
     beq = round(float(row["beq"]), 1) if pd.notna(row.get("beq")) else None
     ens = round(float(row["ensemble"]), 1) if pd.notna(row.get("ensemble")) else None
     act = round(float(row["actual_gdp_pct"]), 1) if pd.notna(row.get("actual_gdp_pct")) else None
-    md += f"| {row['date']} | {sign(dfm)} | {sign(bvar)} | {sign(beq)} | {sign(ens)} | {sign(act)} |\n"
+    ci_10 = round(float(row["bvar_ci_10"]) * 100, 1) if pd.notna(row.get("bvar_ci_10")) else None
+    ci_90 = round(float(row["bvar_ci_90"]) * 100, 1) if pd.notna(row.get("bvar_ci_90")) else None
+    band = f"[{sign(ci_10)}, {sign(ci_90)}]" if ci_10 is not None and ci_90 is not None else "—"
+    md += f"| {row['date']} | {sign(dfm)} | {sign(bvar)} | {band} | {sign(beq)} | {sign(ens)} | {sign(act)} |\n"
 
 md += f"""
 ---

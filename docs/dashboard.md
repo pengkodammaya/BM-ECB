@@ -16,13 +16,14 @@
 
 ### Q2 2026 Nowcast (YoY) — No ground truth yet
 
-| Model | Nowcast | Description |
-|-------|:-------:|-------------|
-| **DFM** | `+8.2%` | Dynamic Factor Model (r=2, p=4) |
-| **BVAR** | `+4.2%` | Bayesian VAR with Minnesota prior |
-| **Ensemble** | `+6.2%` | Median of DFM + BVAR |
+| Model | Nowcast | 90% Confidence Band | Description |
+|-------|:-------:|:-------------------:|-------------|
+| **DFM** | `+8.2%` | — | Dynamic Factor Model (r=2, p=4) |
+| **BVAR** | `+4.2%` | `[+2.1%, +6.3%]` | Bayesian VAR with Minnesota prior |
+| **Ensemble** | `+6.2%` | — | Median of DFM + BVAR |
 
 > *Q2 2026 actual releases ~August 2026. Nowcasts cannot be validated yet.*
+> *BVAR confidence band computed from posterior draws (10th/90th percentiles).*
 
 ---
 
@@ -84,12 +85,12 @@
 
 ## Recent Nowcasts
 
-| Date | DFM | BVAR | BEQ | Ensemble | Actual |
-|------|:---:|:----:|:---:|:--------:|:------:|
-| 2026-05-26 | +2.1% | +0.9% | +1.1% | +1.1% | -0.0% |
-| 2026-05-27 | +2.4% | +0.9% | +1.1% | +1.1% | -0.0% |
-| 2026-05-28 | +5.8% | +0.9% | +1.1% | +1.4% | -0.0% |
-| 2026-05-29 | +2.2% | +0.9% | +1.1% | +1.0% | -0.0% |
+| Date | DFM | BVAR | 90% Band | BEQ | Ensemble | Actual |
+|------|:---:|:----:|:--------:|:---:|:--------:|:------:|
+| 2026-05-26 | +2.1% | +0.9% | — | +1.1% | +1.1% | -0.0% |
+| 2026-05-27 | +2.4% | +0.9% | — | +1.1% | +1.1% | -0.0% |
+| 2026-05-28 | +5.8% | +0.9% | — | +1.1% | +1.4% | -0.0% |
+| 2026-05-29 | +2.2% | +0.9% | — | +1.1% | +1.0% | -0.0% |
 
 ---
 

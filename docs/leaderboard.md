@@ -47,7 +47,19 @@
 | **Exports** (X) | +6.3% | +4.0% | +5.2% | 1.1pp |
 | **Imports** (M) | +9.0% | +4.7% | +4.6% | 4.4pp |
 
-## Model Accuracy (Rolling)
+## Model Accuracy (Backtest)
+
+*12-vintage pseudo-real-time backtest (2023-Q1 to 2025-Q4) with ARC publication lags. Forward-fill only (no data leakage).*
+
+| Model | MAE (pp) | RMSE (pp) | FDA (%) | N |
+|-------|----------|-----------|---------|---|
+| DFM | 1.256 | 1.531 | 45.5% | 12 |
+| BVAR | 0.870 | 1.047 | 45.5% | 12 |
+| NAIVE *(last Q)* | 0.894 | 1.076 | 40.0% | 11 |
+
+*Note: Previous leaderboard (pre-2026-05-29) had data leakage from `np.interp` — BVAR MAE was 0.005 pp (unrealistic). Corrected to 0.870 pp.*
+
+## Model Accuracy (Rolling — Live Nowcasts)
 
 *Daily nowcast accuracy vs DOSM actuals. Metrics appear after 3+ days.*
 
