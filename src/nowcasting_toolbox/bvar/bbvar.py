@@ -37,6 +37,8 @@ def block_bvar(
     alpha0: float = 2.0,
     thresh: float = 1e-6,
     max_iter: int = 200,
+    n_draws: int = 100,
+    burn_in: int = 30,
 ) -> dict:
     """Estimate the block-BVAR with hyperparameter optimization.
 
@@ -56,6 +58,11 @@ def block_bvar(
     thresh : float
         Convergence threshold.
     max_iter : int
+        Maximum optimization iterations.
+    n_draws : int
+        Number of Gibbs sampler draws.
+    burn_in : int
+        Gibbs sampler burn-in period.
         Maximum optimization iterations.
 
     Returns
@@ -92,7 +99,7 @@ def block_bvar(
     # ---------- Gibbs sampler ----------
     B, Sigma, B_draws, Sigma_draws = _gibbs_sampler(
         X_filled, lags, lambda_opt, theta_opt, miu_opt, alpha_opt,
-        m_series, stationary, n_draws=100, burn_in=30,
+        m_series, stationary, n_draws=n_draws, burn_in=burn_in,
     )
 
     # ---------- Generate smoothed data ----------

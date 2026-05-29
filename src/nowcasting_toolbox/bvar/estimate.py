@@ -108,6 +108,8 @@ class BVAR:
                 stationary,
                 thresh=thresh,
                 max_iter=max_iter,
+                n_draws=self.params.bvar_n_draws,
+                burn_in=self.params.bvar_burn_in,
             )
         except Exception as exc:
             logger.error("BVAR estimation failed: %s", exc)

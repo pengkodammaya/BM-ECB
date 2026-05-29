@@ -62,7 +62,6 @@ AN = MN + ["gdp"]
 print(f"[{datetime.now().isoformat()}] Daily update starting...")
 
 cache = DataCache(ttl_hours=6)
-client = OpenDOSMClient()
 filtered = {}
 
 def fetch_single_dataset(args):
@@ -71,7 +70,10 @@ def fetch_single_dataset(args):
     try:
         df = cache.get(did)
         if df is None:
-            df = client.fetch(did, limit=20000)
+            # Create a new client for each call to avoid thread-safety issues
+            local_client = OpenDOSMClient()
+            df = local_client.fetch(did, limit=20000)
+            local_client.close()
             if df is not None and not df.empty:
                 cache.put(did, df)
         if df is None or df.empty:
@@ -109,14 +111,14 @@ for var in ["ipi", "imports_capital", "imports_consumer"]:
 
 # BNM data (sequential - rate limited)
 try:
-    ir_df = fetch_interest_rate_history(start_year=2020, verbose=False)
+    ir_df = fetch_interest_rate_history(start_year=2024, verbose=False)
     if not ir_df.empty:
         ir_df = ir_df.rename(columns={"value": "interbank"})
         filtered["interbank"] = ir_df[["date", "interbank"]]
 except Exception as e:
     print(f"BNM interest rate failed (non-fatal): {e}")
 try:
-    fx_df = fetch_exchange_rate_history(start_year=2020, currency_code="USD", verbose=False)
+    fx_df = fetch_exchange_rate_history(start_year=2024, currency_code="USD", verbose=False)
     if not fx_df.empty:
         fx_vals = fx_df["value"].values
         fx_growth = np.full(len(fx_vals), np.nan)
@@ -249,7 +251,9 @@ if fred_key_path.exists():
 
 # ---------------------------------------------------------------------------
 try:
-    sitc_df = client.fetch("trade_sitc_1d", limit=20000)
+    sitc_client = OpenDOSMClient()
+    sitc_df = sitc_client.fetch("trade_sitc_1d", limit=20000)
+    sitc_client.close()
     if sitc_df is not None and len(sitc_df) > 0:
         # Section 7 = machinery/transport (E&E), Section 3 = mineral fuels, overall = total
         for section, label in [("overall", "sitc_total"), ("7", "sitc_machinery")]:
@@ -361,8 +365,6 @@ X_std = (X_trans - mu) / sigma
 ff = np.where(~np.all(np.isnan(X_std), axis=1))[0][0]
 X_est = X_std[ff:]
 
-client.close()
-
 # ---------------------------------------------------------------------------
 # 3. Run all 3 models — produce nowcasts at 3 horizons
 # ---------------------------------------------------------------------------
@@ -441,7 +443,7 @@ try:
     X_bvar = X_filled.copy()
     if last_actual_idx >= 0 and last_actual_idx < X_bvar.shape[0]:
         X_bvar[last_actual_idx, -1] = np.nan
-    bvar = BVAR(BVARParams(bvar_lags=3, bvar_thresh=1e-5, bvar_max_iter=15))
+    bvar = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-5, bvar_max_iter=10, bvar_n_draws=50, bvar_burn_in=15))
     res_b = bvar.fit(X_bvar, datet[ff:])
     nowcasts["bvar"] = _extract(res_b, current_q_idx, sigma, mu)
     nowcasts["bvar_backcast"] = _extract(res_b, last_actual_idx, sigma, mu)
@@ -757,15 +759,12 @@ client2.close()
 print("[cyan]Running sector nowcasts...[/cyan]")
 
 # Fetch sector-specific GDP data
-df_sector_gdp = client_yoy.fetch("gdp_qtr_real_supply", limit=20000) if not client_yoy.closed else None
-if df_sector_gdp is None or df_sector_gdp.empty:
-    # Re-fetch if needed
-    try:
-        client_sector = OpenDOSMClient()
-        df_sector_gdp = client_sector.fetch("gdp_qtr_real_supply", limit=20000)
-        client_sector.close()
-    except Exception:
-        df_sector_gdp = None
+try:
+    client_sector = OpenDOSMClient()
+    df_sector_gdp = client_sector.fetch("gdp_qtr_real_supply", limit=20000)
+    client_sector.close()
+except Exception:
+    df_sector_gdp = None
 
 for sector_code, sector_name in SECTOR_MAP.items():
     try:

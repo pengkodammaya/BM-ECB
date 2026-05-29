@@ -54,6 +54,8 @@ class BVARParams(BaseModel):
     bvar_lags: int = Field(default=5, ge=1, le=12, description="Number of lags")
     bvar_thresh: float = Field(default=1e-6, gt=0, description="Optimization convergence threshold")
     bvar_max_iter: int = Field(default=200, ge=1, description="Max optimization iterations")
+    bvar_n_draws: int = Field(default=100, ge=10, description="Gibbs sampler draws")
+    bvar_burn_in: int = Field(default=30, ge=5, description="Gibbs sampler burn-in")
 
 
 class BEQParams(BaseModel):
