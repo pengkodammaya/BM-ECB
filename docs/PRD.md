@@ -1,9 +1,9 @@
 # Product Requirements Document (PRD)
 ## Nowcasting Toolbox — Python Edition (Malaysia)
 
-**Version**: 0.1.0  
-**Date**: 24 May 2026  
-**Status**: MVP Delivered
+**Version**: 1.0.0  
+**Date**: 29 May 2026  
+**Status**: All milestones complete
 
 ---
 
@@ -182,10 +182,10 @@ The original ECB Nowcasting Toolbox (Linzenich & Meunier, 2024) provides this ca
 | Phase | Scope | Status |
 |-------|-------|--------|
 | **MVP** | DFM on Malaysian data, CLI, backtest, leaderboard | ✅ Complete |
-| **v0.2** | BVAR + BEQ on live data, 3-model leaderboard, ensemble | 🔲 |
-| **v0.3** | BNM financial data, more monthly indicators, COVID handling | 🔲 |
-| **v0.4** | Hyperparameter tuning, block factors, ARC live scraping | 🔲 |
-| **v1.0** | Production hardening: tests, docs, config files, Docker | 🔲 |
+| **v0.2** | BVAR + BEQ on live data, 3-model leaderboard, ensemble | ✅ Complete |
+| **v0.3** | BNM financial data, more monthly indicators, COVID handling | ✅ Complete |
+| **v0.4** | Hyperparameter tuning, block factors, ARC live scraping | ✅ Complete |
+| **v1.0** | Production hardening: tests, docs, config files, Docker | ✅ Complete |
 
 ---
 

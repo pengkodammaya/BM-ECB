@@ -270,10 +270,13 @@ for label, (tcode, series_type) in COMPONENTS.items():
             Xc_filled = X_vint_std.copy()
             for j in range(Xc_filled.shape[1]):
                 col = Xc_filled[:, j]
-                nm = np.isnan(col); vl = ~nm
-                if np.any(nm) and np.sum(vl) >= 2:
-                    idx_arr = np.arange(len(col))
-                    Xc_filled[nm, j] = np.interp(idx_arr[nm], idx_arr[vl], col[vl])
+                # Forward-fill only (no interpolation with future values)
+                last_valid = np.nan
+                for t in range(len(col)):
+                    if not np.isnan(col[t]):
+                        last_valid = col[t]
+                    elif not np.isnan(last_valid):
+                        Xc_filled[t, j] = last_valid
             bvar = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=3))
             res_b = bvar.fit(Xc_filled, datet_vint)
             if q_end_idx >= 0 and res_b.X_sm.shape[0] > 0:

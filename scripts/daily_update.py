@@ -6,21 +6,29 @@ import sys; sys.path.insert(0, "src")
 
 import json
 import traceback
+import logging
 import numpy as np
 import pandas as pd
 from datetime import datetime, date
 from pathlib import Path
 
-from nowcasting_toolbox.data.sources.opendosm import OpenDOSMClient
-from nowcasting_toolbox.data.sources.bnm import fetch_interest_rate_history, fetch_exchange_rate_history
-from nowcasting_toolbox.data.sources.cache import DataCache
-from nowcasting_toolbox.data.calendar import generate_dates
-from nowcasting_toolbox.data.transforms import transform_series
-from nowcasting_toolbox.dfm import DFM
-from nowcasting_toolbox.bvar import BVAR
-from nowcasting_toolbox.beq import BEQ
-from nowcasting_toolbox.config import DFMParams, BVARParams, BEQParams
-from nowcasting_toolbox.eval.metrics import compute_mae, compute_fda, compute_rmse
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger("daily_update")
+
+try:
+    from nowcasting_toolbox.data.sources.opendosm import OpenDOSMClient
+    from nowcasting_toolbox.data.sources.bnm import fetch_interest_rate_history, fetch_exchange_rate_history
+    from nowcasting_toolbox.data.sources.cache import DataCache
+    from nowcasting_toolbox.data.calendar import generate_dates
+    from nowcasting_toolbox.data.transforms import transform_series
+    from nowcasting_toolbox.dfm import DFM
+    from nowcasting_toolbox.bvar import BVAR
+    from nowcasting_toolbox.beq import BEQ
+    from nowcasting_toolbox.config import DFMParams, BVARParams, BEQParams
+    from nowcasting_toolbox.eval.metrics import compute_mae, compute_fda, compute_rmse
 
 # ---------------------------------------------------------------------------
 # 1. Indicator manifest
@@ -1187,3 +1195,8 @@ if dashboard_html_path.exists():
 
 print(f"[{datetime.now().isoformat()}] Daily update complete.")
 print(json.dumps(nowcasts, indent=2))
+
+except Exception as e:
+    logger.error("Daily update failed: %s", e)
+    logger.error(traceback.format_exc())
+    sys.exit(1)

@@ -4,6 +4,49 @@ This document captures key experimental results, both positive and negative, fro
 
 ---
 
+## 0. Data Leakage via Interpolation (Critical Bug)
+
+**Date**: 2026-05-29
+
+**Bug**: Using `np.interp()` to fill missing values in pseudo-real-time backtesting causes data leakage by interpolating between past AND future observations.
+
+**Example**: GDP is observed at quarter-end months (3, 6, 9, 12). When `np.interp` fills months 4-5, it uses BOTH month 3 (past) AND month 6 (future). At vintage date 2024-05-15, month 6 GDP is not yet released — but the model "sees" it via interpolation.
+
+**Impact on BVAR MAE** (4-vintage backtest, 2024-Q1 to Q2):
+
+| Fill Method | BVAR MAE | Notes |
+|-------------|----------|-------|
+| `np.interp` (broken) | **0.005 pp** | Unrealistically perfect — model sees future |
+| Forward-fill (correct) | **0.215 pp** | Realistic — only uses released data |
+
+**Root cause**: `np.interp(indices[nan], indices[valid], col[valid])` interpolates between ALL valid points, including future ones.
+
+**Fix**: Use forward-fill only:
+```python
+# WRONG — interpolates with future values
+X_filled[nan_mask, j] = np.interp(indices[nan_mask], indices[valid], col[valid])
+
+# CORRECT — forward-fill only
+last_valid = np.nan
+for t in range(T):
+    if not np.isnan(col[t]):
+        last_valid = col[t]
+    elif not np.isnan(last_valid):
+        X_filled[t, j] = last_valid
+```
+
+**Files affected** (all fixed as of 2026-05-29):
+- `bvar/bbvar.py:_fill_data`
+- `scripts/backtest_all_models.py`
+- `scripts/test_all_models.py`
+- `scripts/component_backtest.py`
+
+**DFM unaffected** — uses Kalman filter with explicit missing data handling, not interpolation.
+
+**Rule**: Never use `np.interp` for time series imputation in backtesting contexts. Use `utils.missing.forward_fill()` instead.
+
+---
+
 ## 1. GDP Identity Reconciliation (Negative Finding)
 
 **Date**: 2026-05-26

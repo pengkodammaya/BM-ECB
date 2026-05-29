@@ -86,18 +86,37 @@ def bootstrap_range(
     n_boot: int = 200,
     seed: int = 42,
 ) -> FloatArray:
-    """Bootstrap-based range estimation (mirrors common_range.m).
+    """Parametric bootstrap range estimation (mirrors common_range.m).
 
-    Returns (T, 2) array with [lower, upper] range for the GDP column.
+    Resamples residuals from the smoothed state series to generate
+    confidence bands, preserving temporal structure.
+
+    Parameters
+    ----------
+    X_sm : (T, N) smoothed data matrix
+    n_boot : number of bootstrap draws
+    seed : random seed
+
+    Returns
+    -------
+    (T, 2) array with [lower, upper] bounds for GDP column (16th/84th percentiles)
     """
     rng = np.random.default_rng(seed)
     T, N = X_sm.shape
     gdp = X_sm[:, -1]
-    boot_samples = np.zeros((n_boot, T))
 
+    # Estimate residuals (first differences of smoothed series)
+    resid = np.diff(gdp, prepend=gdp[0])
+    resid_centered = resid - np.mean(resid)
+
+    # Parametric bootstrap: resample residuals and reconstruct paths
+    boot_samples = np.zeros((n_boot, T))
     for b in range(n_boot):
-        idx = rng.choice(T, size=T, replace=True)
-        boot_samples[b] = gdp[idx]
+        # Resample residuals with replacement
+        idx = rng.choice(len(resid_centered), size=T, replace=True)
+        boot_resid = resid_centered[idx]
+        # Reconstruct path from initial value
+        boot_samples[b] = gdp[0] + np.cumsum(boot_resid)
 
     lower = np.percentile(boot_samples, 16, axis=0)
     upper = np.percentile(boot_samples, 84, axis=0)

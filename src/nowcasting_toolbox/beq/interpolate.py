@@ -7,6 +7,10 @@ Three modes (matching Par.type 901-903):
 - 901: BVAR on all variables
 - 902: BVAR only on selected variables
 - 903: Univariate BVAR (one series at a time)
+
+WARNING: Line 126 uses np.interp which interpolates between past AND future
+values. This causes data leakage in pseudo-real-time backtesting. For
+backtesting, consider using forward-fill before calling this function.
 """
 
 from __future__ import annotations

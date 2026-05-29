@@ -327,12 +327,16 @@ for i, vdate in enumerate(vintage_dates):
 
     # --- BVAR (reduced iterations for speed) ---
     try:
+        # Forward-fill only (no interpolation with future values to prevent data leakage)
         X_filled = X_vint_std.copy()
         for j in range(X_filled.shape[1]):
-            col = X_filled[:, j]; nm = np.isnan(col); vl = ~nm
-            if np.any(nm) and np.sum(vl) >= 2:
-                idx_arr = np.arange(len(col))
-                X_filled[nm, j] = np.interp(idx_arr[nm], idx_arr[vl], col[vl])
+            col = X_filled[:, j]
+            last_valid = np.nan
+            for t in range(len(col)):
+                if not np.isnan(col[t]):
+                    last_valid = col[t]
+                elif not np.isnan(last_valid):
+                    X_filled[t, j] = last_valid
         bvar = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
         res_b = bvar.fit(X_filled, datet_vint)
         nw = float(res_b.X_sm[-1, gdp_idx]) * vint_sigma[gdp_idx] + vint_mu[gdp_idx]

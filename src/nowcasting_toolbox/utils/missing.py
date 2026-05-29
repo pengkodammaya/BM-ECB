@@ -1,4 +1,9 @@
-"""Missing data handling utilities (NaN imputation, leading/trailing trimming)."""
+"""Missing data handling utilities (NaN imputation, leading/trailing trimming).
+
+WARNING: Interpolation methods (_interpolate_nans, _spline_nans) use both
+past AND future values. This causes data leakage in pseudo-real-time backtesting.
+Use forward_fill() for backtesting to prevent leakage.
+"""
 
 from __future__ import annotations
 
@@ -6,6 +11,32 @@ import numpy as np
 from numpy.typing import NDArray
 
 FloatArray = NDArray[np.float64]
+
+
+def forward_fill(X: FloatArray) -> FloatArray:
+    """Forward-fill NaN values (no future interpolation).
+
+    Only uses past/present data to fill NaN. Safe for real-time backtesting.
+
+    Parameters
+    ----------
+    X : (T, N) array
+
+    Returns
+    -------
+    X_filled : (T, N) array with NaN replaced by last valid value
+    """
+    X_filled = X.copy()
+    T, N = X.shape
+    for j in range(N):
+        col = X[:, j]
+        last_valid = np.nan
+        for t in range(T):
+            if not np.isnan(col[t]):
+                last_valid = col[t]
+            elif not np.isnan(last_valid):
+                X_filled[t, j] = last_valid
+    return X_filled
 
 
 def handle_nans(

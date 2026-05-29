@@ -133,12 +133,13 @@ try:
     X_filled = X_est.copy()
     for j in range(X_filled.shape[1]):
         col = X_filled[:, j]
-        nan_mask = np.isnan(col)
-        if np.any(nan_mask):
-            valid = ~nan_mask
-            if np.sum(valid) >= 2:
-                idx_arr = np.arange(len(col))
-                X_filled[nan_mask, j] = np.interp(idx_arr[nan_mask], idx_arr[valid], col[valid])
+        # Forward-fill only (no interpolation with future values)
+        last_valid = np.nan
+        for t in range(len(col)):
+            if not np.isnan(col[t]):
+                last_valid = col[t]
+            elif not np.isnan(last_valid):
+                X_filled[t, j] = last_valid
 
     bvar = BVAR(BVARParams(bvar_lags=3, bvar_thresh=1e-6, bvar_max_iter=50))
     res_bvar = bvar.fit(X_filled, datet[first_full:])

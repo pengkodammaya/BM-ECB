@@ -153,7 +153,7 @@ def _load_from_api(config: ToolboxConfig) -> LoadedData:
         groups_m.append(meta.group)
 
     # ---------- fetch target (GDP) ----------
-    gdp_df = _cached_fetch(cache, dosm, bnm, target_meta)
+    gdp_df = _cached_fetch(cache, dosm, target_meta)
     if gdp_df is None or gdp_df.empty:
         raise RuntimeError("Target variable (GDP) not available from API")
 

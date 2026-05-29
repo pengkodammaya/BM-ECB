@@ -96,41 +96,42 @@ def _tstat_ranking(X: FloatArray, y: FloatArray) -> FloatArray:
 
 
 def _lars_ranking(X: FloatArray, y: FloatArray) -> FloatArray:
-    """LARS-based ranking: order of entry into active set."""
+    """LARS-based ranking: order of entry into active set.
+
+    Uses sklearn's Lars to compute the solution path. Variables that enter
+    the active set earlier (at higher alpha) are ranked higher.
+    """
     from sklearn.linear_model import Lars
 
     N = X.shape[1]
     try:
-        model = Lars(n_nonzero_coefs=min(N, len(y) - 1), fit_intercept=True)
+        model = Lars(n_nonzero_coefs=min(N, len(y) - 1), fit_intercept=True, normalize=True)
         model.fit(X, y)
-        # Order of coefficient activation
-        alphas = model.alphas_ if hasattr(model, "alphas_") else None
+
+        # Use the coefficient path to determine entry order
+        # coef_path_ has shape (n_alphas, n_features) or list of arrays
+        if hasattr(model, 'coef_path_') and len(model.coef_path_) > 0:
+            # coef_path_ is a list of (n_features,) arrays at each alpha step
+            # Find the first alpha where each coefficient becomes non-zero
+            entry_alpha = np.full(N, np.inf)
+            for step_idx, coef in enumerate(model.coef_path_):
+                for j in range(N):
+                    if abs(coef[j]) > 1e-10 and entry_alpha[j] == np.inf:
+                        entry_alpha[j] = step_idx
+
+            # Score: earlier entry = higher score
+            scores = np.zeros(N)
+            for j in range(N):
+                if entry_alpha[j] < np.inf:
+                    scores[j] = N - entry_alpha[j]  # higher = entered earlier
+        else:
+            # Fallback: use absolute coefficient values
+            scores = np.abs(model.coef_)
     except Exception:
-        return np.zeros(N)
-
-    # Simpler: stepwise entry order
-    scores = np.zeros(N)
-    active_order = []
-    X_work = X.copy()
-
-    for _ in range(min(N, 50)):
-        corrs = np.array([
-            abs(np.corrcoef(X_work[:, j], y)[0, 1]) if np.std(X_work[:, j]) > 1e-12 else 0
-            for j in range(X_work.shape[1])
+        # Fallback to correlation-based ranking
+        scores = np.array([
+            abs(np.corrcoef(X[:, j], y)[0, 1]) if np.std(X[:, j]) > 1e-12 else 0
+            for j in range(N)
         ])
-        best = int(np.argmax(corrs))
-        if best in active_order or corrs[best] < 0.01:
-            break
-        active_order.append(best)
-        # Regress out
-        from statsmodels.api import OLS, add_constant
-        try:
-            m = OLS(y, add_constant(X_work[:, best]), missing="drop").fit()
-            y = m.resid
-        except Exception:
-            pass
-
-    for rank, idx in enumerate(active_order):
-        scores[idx] = N - rank  # higher = entered earlier
 
     return scores

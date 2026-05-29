@@ -263,22 +263,22 @@ def _inv_wishart_rvs(rng: np.random.Generator, df: int, scale: FloatArray) -> Fl
 
 
 def _fill_data(X: FloatArray) -> FloatArray:
-    """Simple spline/linear fill for missing values (used in BVAR preprocessing)."""
+    """Forward-fill for missing values (no future interpolation).
+
+    Only uses past/present data to fill NaN, preventing data leakage
+    in pseudo-real-time backtesting.
+    """
     X_filled = X.copy()
     T, N = X.shape
     for j in range(N):
         col = X[:, j]
-        nan_mask = np.isnan(col)
-        if not np.any(nan_mask):
-            continue
-        valid = ~nan_mask
-        if not np.any(valid):
-            X_filled[:, j] = 0.0
-            continue
-        indices = np.arange(T)
-        X_filled[nan_mask, j] = np.interp(
-            indices[nan_mask], indices[valid], col[valid]
-        )
+        # Forward-fill only (no interpolation with future values)
+        last_valid = np.nan
+        for t in range(T):
+            if not np.isnan(col[t]):
+                last_valid = col[t]
+            elif not np.isnan(last_valid):
+                X_filled[t, j] = last_valid
     return X_filled
 
 

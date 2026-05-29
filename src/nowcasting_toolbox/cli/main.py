@@ -159,26 +159,28 @@ def select_vars_cmd(ctx: click.Context, method: str, n: int) -> None:
     click.echo(f"Loading data for variable selection (method={method})...")
 
     DATASETS = {
-        "ipi": ("ipi", "index", 0, {"series": "growth_mom"}),
-        "cpi_headline": ("cpi_headline", "index", 1, {"division": "overall"}),
-        "cpi_core": ("cpi_core", "index", 1, {"division": "overall"}),
-        "ppi": ("ppi", "index", 1, {"series": "abs"}),
-        "u_rate": ("lfs_month", "u_rate", 0, {}),
-        "p_rate": ("lfs_month", "p_rate", 0, {}),
-        "u_rate_youth": ("lfs_month_youth", "u_rate_15_30", 0, {}),
-        "leading": ("economic_indicators", "leading", 1, {}),
-        "coincident": ("economic_indicators", "coincident", 1, {}),
-        "exports": ("trade_headline", "exports", 1, {"series": "abs"}),
-        "imports_capital": ("trade_enduse_bec", "imports", 0, {"bec": "000", "end_use": "capital", "series": "growth_mom"}),
-        "imports_consumer": ("trade_enduse_bec", "imports", 0, {"bec": "000", "end_use": "consumption", "series": "growth_mom"}),
-        "wrt": ("iowrt", "sales", 1, {"series": "abs"}),
-        "gdp": ("gdp_qtr_real_sa", "value", 0, {"series": "abs"}),
+        "ipi": ("ipi", "index", 0, "industry", {"series": "growth_mom"}, 8, "monthly"),
+        "cpi_headline": ("cpi_headline", "index", 1, "prices", {"division": "overall"}, 19, "monthly"),
+        "cpi_core": ("cpi_core", "index", 1, "prices", {"division": "overall"}, 19, "monthly"),
+        "ppi": ("ppi", "index", 1, "prices", {"series": "abs"}, 25, "monthly"),
+        "u_rate": ("lfs_month", "u_rate", 0, "labour", {}, 12, "monthly"),
+        "p_rate": ("lfs_month", "p_rate", 0, "labour", {}, 12, "monthly"),
+        "u_rate_youth": ("lfs_month_youth", "u_rate_15_30", 0, "labour", {}, 12, "monthly"),
+        "leading": ("economic_indicators", "leading", 1, "leading", {}, 55, "monthly"),
+        "coincident": ("economic_indicators", "coincident", 1, "coincident", {}, 55, "monthly"),
+        "exports": ("trade_headline", "exports", 1, "external", {"series": "abs"}, 30, "monthly"),
+        "imports_capital": ("trade_enduse_bec", "imports", 0, "external", {"bec": "000", "end_use": "capital", "series": "growth_mom"}, 30, "monthly"),
+        "imports_consumer": ("trade_enduse_bec", "imports", 0, "external", {"bec": "000", "end_use": "consumption", "series": "growth_mom"}, 30, "monthly"),
+        "wrt": ("iowrt", "sales", 1, "services", {"series": "abs"}, 30, "monthly"),
+        "gdp": ("gdp_qtr_real_sa", "value", 0, "target", {"series": "abs"}, 45, "quarterly"),
     }
 
     cache = DataCache(ttl_hours=24)
     client = OpenDOSMClient()
     filtered = {}
-    for name, (did, col, tcode, filters) in DATASETS.items():
+    # Store metadata for output
+    var_meta = {}
+    for name, (did, col, tcode, group, filters, lag_days, freq) in DATASETS.items():
         df = cache.get(did)
         if df is None:
             df = client.fetch(did, limit=20000)
@@ -196,6 +198,7 @@ def select_vars_cmd(ctx: click.Context, method: str, n: int) -> None:
         df["date"] = pd.to_datetime(df["date"])
         df = df.sort_values("date").drop_duplicates("date")
         filtered[name] = df
+        var_meta[name] = {"group": group, "lag_days": lag_days, "freq": freq}
 
     # Convert % growth to decimal
     for var in ["ipi", "imports_capital", "imports_consumer"]:
@@ -271,9 +274,14 @@ def select_vars_cmd(ctx: click.Context, method: str, n: int) -> None:
         n_select=n,
     )
 
+    # Add metadata columns
+    result["group"] = result["variable"].map(lambda v: var_meta.get(v, {}).get("group", "unknown"))
+    result["lag_days"] = result["variable"].map(lambda v: var_meta.get(v, {}).get("lag_days", 0))
+    result["frequency"] = result["variable"].map(lambda v: var_meta.get(v, {}).get("freq", "unknown"))
+
     click.echo(f"\nTop {n} indicators by {method}:")
     for _, row in result.iterrows():
-        click.echo(f"  {int(row['rank']):2d}. {row['variable']:<25s} score={row['score']:.4f}")
+        click.echo(f"  {int(row['rank']):2d}. {row['variable']:<25s} score={row['score']:.4f}  group={row['group']:<12s} lag={row['lag_days']}d")
 
     # Save
     out = Path(f"output/malaysia/variable_ranking_{method}.csv")
@@ -292,6 +300,7 @@ def news(ctx: click.Context, old_date: str | None, new_date: str | None) -> None
     from datetime import date, timedelta
     from pathlib import Path
     from rich.table import Table
+    from rich.console import Console
     
     from nowcasting_toolbox.data.sources.opendosm import OpenDOSMClient
     from nowcasting_toolbox.data.sources.cache import DataCache
