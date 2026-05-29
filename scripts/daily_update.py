@@ -689,8 +689,27 @@ for comp_key, comp_type, comp_series in COMPONENTS:
         except Exception as e:
             nowcasts[comp_key] = nowcasts.get(comp_key + "_dfm")  # fallback to DFM
 
-        # --- BEQ for component: skip (BVAR interpolation fails on component subsets) ---
-        nowcasts[comp_key + "_beq"] = None
+        # --- BEQ for component ---
+        try:
+            beq_c = BEQ(BEQParams(lagM=1, lagQ=1, lagY=1, type=901))
+            # Use non-standardized data for BEQ (matches MATLAB toolbox)
+            res_e = beq_c.fit(Xc_trans, datet[ffc:], target_names)
+            if res_e.X_sm is not None and res_e.X_sm.shape[0] > 0:
+                # Find the target quarter end index
+                q_end_idx = -1
+                for t in range(len(datet[ffc:])):
+                    if datet[ffc + t, 0] == current_year and datet[ffc + t, 1] == current_q_end_m:
+                        q_end_idx = t
+                        break
+                if q_end_idx >= 0 and q_end_idx < res_e.X_sm.shape[0]:
+                    nw_e = float(res_e.X_sm[q_end_idx, -1])
+                    nowcasts[comp_key + "_beq"] = round(nw_e * 100, 2) if not np.isnan(nw_e) else None
+                else:
+                    nowcasts[comp_key + "_beq"] = None
+            else:
+                nowcasts[comp_key + "_beq"] = None
+        except Exception as e:
+            nowcasts[comp_key + "_beq"] = None
     except Exception as e:
         print(f"  Component {comp_key}: {e}")
         nowcasts[comp_key] = None

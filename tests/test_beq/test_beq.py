@@ -177,3 +177,34 @@ def test_beq_interpolation():
     result = extrapolate_bvar(X, lags=1)
 
     assert result.shape == X.shape
+
+
+def test_beq_interpolation_fallback():
+    """BEQ interpolation should fall back to forward-fill when BVAR fails."""
+    from nowcasting_toolbox.beq.interpolate import extrapolate_bvar
+
+    # Very few observations — BVAR will fail, should fall back to forward-fill
+    T = 36
+    X = np.full((T, 2), np.nan)
+    X[:5, 0] = np.random.randn(5)
+    X[:5, 1] = np.random.randn(5)
+
+    result = extrapolate_bvar(X, method=901)
+
+    # Forward-fill should have filled some values
+    assert np.sum(np.isnan(result)) < np.sum(np.isnan(X))
+
+
+def test_beq_interpolation_single_var():
+    """BEQ interpolation should work with single variable."""
+    from nowcasting_toolbox.beq.interpolate import extrapolate_bvar
+
+    rng = np.random.default_rng(42)
+    T = 36
+    X = rng.standard_normal((T, 1))
+    X[30:, 0] = np.nan
+
+    result = extrapolate_bvar(X, method=903)
+
+    assert result.shape == X.shape
+    assert np.sum(np.isnan(result)) == 0

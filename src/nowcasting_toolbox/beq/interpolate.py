@@ -101,7 +101,10 @@ def _multivariate_bvar_extrapolate(
     lags: int,
     lambda_: float,
 ) -> FloatArray:
-    """Extrapolate using a multivariate BVAR with Minnesota prior."""
+    """Extrapolate using a multivariate BVAR with Minnesota prior.
+
+    Falls back to forward-fill if BVAR fails (e.g., too few observations).
+    """
     from nowcasting_toolbox.bvar.prior import minnesota_posterior
 
     T, N = X.shape
@@ -110,7 +113,8 @@ def _multivariate_bvar_extrapolate(
     # Find last row with all observations
     fully_observed = ~np.any(np.isnan(X), axis=1)
     if not np.any(fully_observed):
-        return X_out
+        # No complete rows — fall back to forward-fill
+        return _forward_fill(X)
 
     last_full = np.where(fully_observed)[0][-1]
     if last_full >= T - 1:
@@ -119,20 +123,21 @@ def _multivariate_bvar_extrapolate(
     # Fit VAR on complete data up to last_full
     Y = X[:last_full + 1].copy()
     Y_filled = Y.copy()
-    # Fill any remaining interior NaN with linear interpolation
+    # Fill any remaining interior NaN with FORWARD-FILL (not np.interp to avoid data leakage)
     for j in range(N):
         col = Y_filled[:, j]
-        nan_mask = np.isnan(col)
-        if np.any(nan_mask):
-            valid = ~nan_mask
-            if np.sum(valid) >= 2:
-                indices = np.arange(len(col))
-                Y_filled[nan_mask, j] = np.interp(indices[nan_mask], indices[valid], col[valid])
+        last_valid = np.nan
+        for t in range(len(col)):
+            if not np.isnan(col[t]):
+                last_valid = col[t]
+            elif not np.isnan(last_valid):
+                Y_filled[t, j] = last_valid
 
     try:
         B, Sigma = minnesota_posterior(Y_filled, lags, lambda_)
     except Exception:
-        return X_out
+        # BVAR failed — fall back to forward-fill
+        return _forward_fill(X)
 
     # Forecast iteratively
     for t in range(last_full + 1, T):
@@ -149,3 +154,18 @@ def _multivariate_bvar_extrapolate(
                 X_out[t, j] = pred[j]
 
     return X_out
+
+
+def _forward_fill(X: FloatArray) -> FloatArray:
+    """Forward-fill NaN values (no future interpolation)."""
+    X_filled = X.copy()
+    T, N = X.shape
+    for j in range(N):
+        col = X[:, j]
+        last_valid = np.nan
+        for t in range(T):
+            if not np.isnan(col[t]):
+                last_valid = col[t]
+            elif not np.isnan(last_valid):
+                X_filled[t, j] = last_valid
+    return X_filled
