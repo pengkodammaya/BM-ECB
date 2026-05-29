@@ -379,10 +379,21 @@ try:
     X_filled = X_est.copy()
     for j in range(X_filled.shape[1]):
         col = X_filled[:, j]
-        nm = np.isnan(col); vl = ~nm
-        if np.any(nm) and np.sum(vl) >= 2:
-            idx_arr = np.arange(len(col))
-            X_filled[nm, j] = np.interp(idx_arr[nm], idx_arr[vl], col[vl])
+        valid = np.where(~np.isnan(col))[0]
+        if len(valid) < 2:
+            continue
+        last_valid = valid[-1]
+        # Only interpolate BEFORE the last valid observation (no future leakage)
+        for i in range(last_valid):
+            if np.isnan(col[i]):
+                prev_valid = valid[valid < i]
+                next_valid = valid[valid > i]
+                if len(prev_valid) > 0 and len(next_valid) > 0:
+                    pv, nv = prev_valid[-1], next_valid[0]
+                    col[i] = col[pv] + (col[nv] - col[pv]) * (i - pv) / (nv - pv)
+                elif len(prev_valid) > 0:
+                    col[i] = col[prev_valid[-1]]
+        X_filled[:, j] = col
     bvar = BVAR(BVARParams(bvar_lags=3, bvar_thresh=1e-5, bvar_max_iter=15))
     res_b = bvar.fit(X_filled, datet[ff:])
     nowcasts["bvar"] = _extract(res_b, current_q_idx, sigma, mu)
@@ -637,10 +648,23 @@ for comp_key, comp_type, comp_series in COMPONENTS:
             Xc_filled = Xc_est.copy()
             for j in range(Xc_filled.shape[1]):
                 col = Xc_filled[:, j]
-                nm = np.isnan(col); vl = ~nm
-                if np.any(nm) and np.sum(vl) >= 2:
-                    idx_arr = np.arange(len(col))
-                    Xc_filled[nm, j] = np.interp(idx_arr[nm], idx_arr[vl], col[vl])
+                valid = np.where(~np.isnan(col))[0]
+                if len(valid) < 2:
+                    continue
+                last_valid = valid[-1]
+                # Only interpolate BEFORE the last valid observation (no future leakage)
+                for i in range(last_valid):
+                    if np.isnan(col[i]):
+                        # Find surrounding valid values
+                        prev_valid = valid[valid < i]
+                        next_valid = valid[valid > i]
+                        if len(prev_valid) > 0 and len(next_valid) > 0:
+                            pv, nv = prev_valid[-1], next_valid[0]
+                            col[i] = col[pv] + (col[nv] - col[pv]) * (i - pv) / (nv - pv)
+                        elif len(prev_valid) > 0:
+                            col[i] = col[prev_valid[-1]]
+                Xc_filled[:, j] = col
+            # Leave future NaN as NaN — BVAR should handle missing data properly
             bvar_c = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
             res_bc = bvar_c.fit(Xc_filled, datet[ffc:])
             nwb = float(res_bc.X_sm[-1, -1]) * sigmac[-1] + muc[-1]
@@ -719,10 +743,21 @@ if df_gdp_yoy is not None and not df_gdp_yoy.empty:
             Xy_filled = Xy_est.copy()
             for j in range(Xy_filled.shape[1]):
                 col = Xy_filled[:, j]
-                nm = np.isnan(col); vl = ~nm
-                if np.any(nm) and np.sum(vl) >= 2:
-                    idx_arr = np.arange(len(col))
-                    Xy_filled[nm, j] = np.interp(idx_arr[nm], idx_arr[vl], col[vl])
+                valid = np.where(~np.isnan(col))[0]
+                if len(valid) < 2:
+                    continue
+                last_valid = valid[-1]
+                # Only interpolate BEFORE the last valid observation (no future leakage)
+                for i in range(last_valid):
+                    if np.isnan(col[i]):
+                        prev_valid = valid[valid < i]
+                        next_valid = valid[valid > i]
+                        if len(prev_valid) > 0 and len(next_valid) > 0:
+                            pv, nv = prev_valid[-1], next_valid[0]
+                            col[i] = col[pv] + (col[nv] - col[pv]) * (i - pv) / (nv - pv)
+                        elif len(prev_valid) > 0:
+                            col[i] = col[prev_valid[-1]]
+                Xy_filled[:, j] = col
             bvar_y = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
             res_by = bvar_y.fit(Xy_filled, datet[ff_y:])
             if current_q_idx_y >= 0 and current_q_idx_y < res_by.X_sm.shape[0]:
