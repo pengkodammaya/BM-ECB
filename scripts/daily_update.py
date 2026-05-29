@@ -1032,13 +1032,14 @@ leaderboard_path = Path("docs") / "leaderboard.md"
 leaderboard_path.write_text(md, encoding="utf-8")
 print(f"[{datetime.now().isoformat()}] Leaderboard written to {leaderboard_path} ({leaderboard_path.stat().st_size} bytes)")
 
-# Generate HTML dashboard
+# Generate dashboards
 import subprocess
-result = subprocess.run([sys.executable, "scripts/generate_dashboard.py"], capture_output=True, text=True)
-if result.returncode == 0:
-    print(f"[{datetime.now().isoformat()}] Dashboard generated successfully")
-else:
-    print(f"[{datetime.now().isoformat()}] Dashboard generation failed: {result.stderr}")
+for script in ["generate_dashboard.py", "generate_dashboard_md.py"]:
+    result = subprocess.run([sys.executable, f"scripts/{script}"], capture_output=True, text=True)
+    if result.returncode == 0:
+        print(f"[{datetime.now().isoformat()}] {script} completed")
+    else:
+        print(f"[{datetime.now().isoformat()}] {script} failed: {result.stderr}")
 
 # ---------------------------------------------------------------------------
 # 7. Generate HTML dashboard (DOSM-style)

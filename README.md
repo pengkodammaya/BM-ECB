@@ -8,8 +8,9 @@ Python port of the [ECB Nowcasting Toolbox](https://github.com/baptiste-meunier/
 
 | Resource | Description |
 |----------|-------------|
-| [Leaderboard (Markdown)](docs/leaderboard.md) | Model accuracy, nowcasts, sector/expenditure breakdowns |
-| [Dashboard (HTML)](docs/dashboard.html) | DOSM-style visual dashboard — download and open locally |
+| [**Dashboard**](docs/dashboard.md) | DOSM-style markdown dashboard (renders on GitHub) |
+| [Leaderboard](docs/leaderboard.md) | Detailed model accuracy and nowcast history |
+| [Dashboard (HTML)](docs/dashboard.html) | Visual dashboard — download and open locally |
 | [Data (JSON)](docs/data.json) | Machine-readable nowcast data for integrations |
 
 *Auto-updated daily at 8am MYT via GitHub Actions.*
