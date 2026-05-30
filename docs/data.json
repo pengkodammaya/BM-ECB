@@ -15,16 +15,16 @@
   },
   "backcast": {
     "dfm": {
-      "estimate": null,
-      "error": null
+      "estimate": 0.1,
+      "error": 0.1
     },
     "bvar": {
-      "estimate": null,
-      "error": null
+      "estimate": 0.8,
+      "error": 0.8
     },
     "ensemble": {
-      "estimate": null,
-      "error": null
+      "estimate": 0.5,
+      "error": 0.5
     }
   },
   "components": {

@@ -28,13 +28,13 @@
 
 ## Backcast Accuracy — Q1 2026
 
-*Nowcasts made for Q1 2026, scored against its FROZEN first-release actual (`+5.4%` YoY).*
+*Nowcasts made for Q1 2026, scored against its QoQ SA actual.*
 
-| Model | Estimate | Error | Accuracy |
-|-------|:--------:|:-----:|----------|
-| **DFM** | — | — | — |
-| **BVAR** | — | — | — |
-| **Ensemble** | — | — | — |
+| Model | Estimate (QoQ SA) | Error | Accuracy |
+|-------|:-----------------:|:-----:|----------|
+| **DFM** | +0.1% | 0.1pp | 🟢 Excellent |
+| **BVAR** | +0.8% | 0.8pp | 🟢 Excellent |
+| **Ensemble** | +0.5% | 0.5pp | 🟢 Excellent |
 
 ---
 
@@ -49,7 +49,7 @@
 | Manufacturing | `+5.9%` | `—` | `—` |
 | Construction | `+7.7%` | `—` | `—` |
 | Services | `+5.6%` | `—` | `—` |
-| **Overall GDP** | **`+5.4%`** | **`—`** | — |
+| **Overall GDP** | **`+5.4%`** | **`+0.8%`** | 0.8pp |
 
 ---
 
