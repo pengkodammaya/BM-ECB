@@ -1260,11 +1260,17 @@ for m_disp, m_qoq in [("dfm", "dfm_backcast"), ("bvar", "bvar_backcast"), ("ense
     backcast[m_disp] = {"estimate": est, "error": err}
 
 # Components: backtest for the latest published quarter (nowcast-for-Q vs frozen actual).
+# Fall back to latest component nowcast from today's run when no historical data exists.
 components_out = {}
 comp_col = {"consumption": "consumption", "investment": "investment", "government": "government",
             "exports": "exports_comp", "imports": "imports_comp"}
 for out_key, logcol in comp_col.items():
     nc = nowcast_for_quarter(log, logcol, pub_q) if pub_q else None
+    # Fallback: use latest value from today's nowcast
+    if nc is None:
+        nc = nowcasts.get(logcol)
+    if nc is not None:
+        nc = round(float(nc), 1)
     actual = vintage_first_map(vintage, f"{logcol}_yoy").get(pub_q) if pub_q else None
     if actual is not None and isinstance(actual, float) and np.isnan(actual):
         actual = None
@@ -1280,7 +1286,10 @@ for sc, sn in SECTOR_MAP.items():
     if actual is not None:
         sectors_out[sn] = round(float(actual), 1)
     nc = nowcast_for_quarter(log, f"sector_{sn}", pub_q) if pub_q else None
-    sector_nowcast_out[sn] = nc
+    # Fallback: use latest sector nowcast from today's run
+    if nc is None:
+        nc = nowcasts.get(f"sector_{sn}")
+    sector_nowcast_out[sn] = round(float(nc), 1) if nc is not None else None
 
 # Recent: each row's actual = frozen QoQ for its target quarter, if published.
 qoq_first_map = vintage_first_map(vintage, "gdp_qoq")
