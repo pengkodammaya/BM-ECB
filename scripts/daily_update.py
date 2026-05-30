@@ -1,11 +1,16 @@
 """Daily update: fetch live data, run all 3 models, append to history, update leaderboard.
 
 Runs in GitHub Actions on schedule. No local cache needed — fetches fresh each time.
+
+Corrected version: hardened network fetches, atomic CSV writes, guarded reads,
+fixed dashboard injection, fixed GDP-identity basis mismatch and ensemble
+normalisation, leak-free O(n) interpolation, and NaN-safe standardisation.
 """
 import sys; sys.path.insert(0, "src")
 
+import re
 import json
-import traceback
+import warnings
 import logging
 import numpy as np
 import pandas as pd
@@ -33,6 +38,89 @@ except ImportError as e:
     logger.error("Failed to import nowcasting_toolbox: %s", e)
     sys.exit(1)
 
+
+# ---------------------------------------------------------------------------
+# 0. Helpers (hardened I/O)
+# ---------------------------------------------------------------------------
+def safe_fetch(dataset_id, limit=20000):
+    """Fetch an OpenDOSM dataset, returning an empty DataFrame on ANY failure.
+
+    Wraps both the client construction and the network call so an exception
+    (timeout, connection reset, 5xx, JSON decode error) never kills the run.
+    Always closes the client, even on error.
+    """
+    client = None
+    try:
+        client = OpenDOSMClient()
+        df = client.fetch(dataset_id, limit=limit)
+        return df if df is not None else pd.DataFrame()
+    except Exception as e:
+        logger.warning("Fetch failed for %s: %s", dataset_id, e)
+        return pd.DataFrame()
+    finally:
+        if client is not None:
+            try:
+                client.close()
+            except Exception:
+                pass
+
+
+def safe_read_csv(path):
+    """Read a CSV, returning None if missing or corrupt (never raises)."""
+    path = Path(path)
+    if not path.exists():
+        return None
+    try:
+        return pd.read_csv(path)
+    except Exception as e:
+        logger.warning("Could not read %s (corrupt?): %s", path, e)
+        return None
+
+
+def atomic_write_csv(df, path):
+    """Write a CSV atomically: write to a temp file then rename.
+
+    Prevents a crash mid-write from leaving a truncated file that breaks
+    every subsequent run.
+    """
+    path = Path(path)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    df.to_csv(tmp, index=False)
+    tmp.replace(path)
+
+
+def interpolate_no_leak(col):
+    """Linear-interpolate interior NaNs only — never fill past the last valid obs.
+
+    O(n) replacement for the original nested-loop interpolation. Leading NaNs
+    (before the first observation) and trailing NaNs (after the last observation)
+    are left as NaN, so no future information leaks into the estimation window.
+    """
+    s = pd.Series(np.asarray(col, dtype="float64"))
+    valid_idx = np.where(s.notna().values)[0]
+    if len(valid_idx) < 2:
+        return s.values
+    last_valid = int(valid_idx[-1])
+    s.iloc[: last_valid + 1] = (
+        s.iloc[: last_valid + 1].interpolate(method="linear", limit_direction="forward")
+    )
+    return s.values
+
+
+def standardize(arr):
+    """NaN-safe standardisation. All-NaN columns collapse to mu=0, sigma=1
+    instead of producing NaN-filled columns that destabilise the models.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        mu = np.nanmean(arr, axis=0)
+        sigma = np.nanstd(arr, axis=0)
+    mu = np.nan_to_num(mu, nan=0.0)
+    sigma = np.nan_to_num(sigma, nan=1.0)
+    sigma[sigma < 1e-10] = 1.0
+    return (arr - mu) / sigma, mu, sigma
+
+
 # ---------------------------------------------------------------------------
 # 1. Indicator manifest
 # ---------------------------------------------------------------------------
@@ -59,7 +147,7 @@ AN = MN + ["gdp"]
 # ---------------------------------------------------------------------------
 # 2. Fetch data (parallel)
 # ---------------------------------------------------------------------------
-print(f"[{datetime.now().isoformat()}] Daily update starting...")
+logger.info("Daily update starting...")
 
 cache = DataCache(ttl_hours=6)
 filtered = {}
@@ -72,8 +160,10 @@ def fetch_single_dataset(args):
         if df is None:
             # Create a new client for each call to avoid thread-safety issues
             local_client = OpenDOSMClient()
-            df = local_client.fetch(did, limit=20000)
-            local_client.close()
+            try:
+                df = local_client.fetch(did, limit=20000)
+            finally:
+                local_client.close()
             if df is not None and not df.empty:
                 cache.put(did, df)
         if df is None or df.empty:
@@ -89,15 +179,15 @@ def fetch_single_dataset(args):
         df = df.sort_values("date").drop_duplicates("date")
         return name, df
     except Exception as e:
-        print(f"  Failed to fetch {name}: {e}")
+        logger.warning("Failed to fetch %s: %s", name, e)
         return name, None
 
 # Fetch OpenDOSM data in parallel
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-print(f"[{datetime.now().isoformat()}] Fetching {len(DATASETS)} datasets in parallel...")
+logger.info("Fetching %d datasets in parallel...", len(DATASETS))
 with ThreadPoolExecutor(max_workers=5) as executor:
-    futures = {executor.submit(fetch_single_dataset, item): item[0] 
+    futures = {executor.submit(fetch_single_dataset, item): item[0]
                for item in DATASETS.items()}
     for future in as_completed(futures):
         name, df = future.result()
@@ -116,7 +206,7 @@ try:
         ir_df = ir_df.rename(columns={"value": "interbank"})
         filtered["interbank"] = ir_df[["date", "interbank"]]
 except Exception as e:
-    print(f"BNM interest rate failed (non-fatal): {e}")
+    logger.warning("BNM interest rate failed (non-fatal): %s", e)
 try:
     fx_df = fetch_exchange_rate_history(start_year=2024, currency_code="USD", verbose=False)
     if not fx_df.empty:
@@ -128,8 +218,8 @@ try:
         fx_df["fx_usd"] = fx_growth
         fx_df = fx_df.dropna(subset=["fx_usd"])
         filtered["fx_usd"] = fx_df[["date", "fx_usd"]]
-except Exception:
-    pass
+except Exception as e:
+    logger.warning("BNM exchange rate failed (non-fatal): %s", e)
 
 # Extend manifest
 for k in ["interbank", "fx_usd"]:
@@ -169,37 +259,41 @@ GLOBAL_INDICATORS = {
     "bdry":   ("BDRY", "global_demand"),       # Dry bulk shipping — trade volume proxy
 }
 
-for label, (ticker, group) in GLOBAL_INDICATORS.items():
-    try:
-        import yfinance as yf
-        data = yf.download(ticker, start="2015-01-01", progress=False)
-        if data is None or len(data) == 0:
-            print(f"  yfinance {label}: no data")
-            continue
-        # Handle multi-level columns (yfinance v0.2+)
-        if isinstance(data.columns, pd.MultiIndex):
-            close_col = ("Close", ticker) if ("Close", ticker) in data.columns else data.columns[0]
-        else:
-            close_col = "Close" if "Close" in data.columns else "Adj Close"
-        # Use close price, resample to month-end
-        monthly = data[close_col].resample("ME").last().dropna()
-        if len(monthly) < 24:
-            continue
-        # Compute MoM growth (dlog)
-        vals = monthly.values
-        growth = np.full(len(vals), np.nan)
-        for i in range(1, len(vals)):
-            if vals[i-1] > 0:
-                growth[i] = np.log(vals[i]) - np.log(vals[i-1])
-        df_out = pd.DataFrame({
-            "date": monthly.index,
-            label: growth,
-        }).dropna()
-        filtered[label] = df_out
-        DATASETS[label] = (label, label, 0, group, {})  # transform 0 = already growth
-        print(f"  yfinance {label}: {len(df_out)} monthly obs")
-    except Exception as e:
-        print(f"  yfinance {label} failed: {e}")
+# Import yfinance once, outside the loop
+try:
+    import yfinance as yf
+except Exception as e:
+    yf = None
+    logger.warning("yfinance unavailable: %s", e)
+
+if yf is not None:
+    for label, (ticker, group) in GLOBAL_INDICATORS.items():
+        try:
+            data = yf.download(ticker, start="2015-01-01", progress=False)
+            if data is None or len(data) == 0:
+                logger.info("yfinance %s: no data", label)
+                continue
+            # Handle multi-level columns (yfinance v0.2+)
+            if isinstance(data.columns, pd.MultiIndex):
+                close_col = ("Close", ticker) if ("Close", ticker) in data.columns else data.columns[0]
+            else:
+                close_col = "Close" if "Close" in data.columns else "Adj Close"
+            # Use close price, resample to month-end
+            monthly = data[close_col].resample("ME").last().dropna()
+            if len(monthly) < 24:
+                continue
+            # Compute MoM growth (dlog)
+            vals = monthly.values
+            growth = np.full(len(vals), np.nan)
+            for i in range(1, len(vals)):
+                if vals[i-1] > 0:
+                    growth[i] = np.log(vals[i]) - np.log(vals[i-1])
+            df_out = pd.DataFrame({"date": monthly.index, label: growth}).dropna()
+            filtered[label] = df_out
+            DATASETS[label] = (label, label, 0, group, {})  # transform 0 = already growth
+            logger.info("yfinance %s: %d monthly obs", label, len(df_out))
+        except Exception as e:
+            logger.warning("yfinance %s failed: %s", label, e)
 
 # ---------------------------------------------------------------------------
 # 1.7 FRED economic data (US industrial production, capacity, sentiment)
@@ -229,9 +323,7 @@ if fred_key_path.exists():
                 continue
             df_fred = pd.DataFrame(records, columns=["date", label])
             df_fred["date"] = pd.to_datetime(df_fred["date"])
-            # Resample to month-end (some daily, some monthly)
             df_fred = df_fred.set_index("date").resample("ME").last().dropna().reset_index()
-            # For indices (INDPRO, TCU): compute MoM growth; for sentiment: use level
             if sid in ("INDPRO", "TCU"):
                 vals = df_fred[label].values
                 growth = np.full(len(vals), np.nan)
@@ -245,18 +337,17 @@ if fred_key_path.exists():
                 tcode = 0  # level
             filtered[label] = df_fred
             DATASETS[label] = (label, label, tcode, group, {})
-            print(f"  FRED {label}: {len(df_fred)} monthly obs")
+            logger.info("FRED %s: %d monthly obs", label, len(df_fred))
         except Exception as e:
-            print(f"  FRED {label} failed: {e}")
+            logger.warning("FRED %s failed: %s", label, e)
 
 # ---------------------------------------------------------------------------
-try:
-    sitc_client = OpenDOSMClient()
-    sitc_df = sitc_client.fetch("trade_sitc_1d", limit=20000)
-    sitc_client.close()
-    if sitc_df is not None and len(sitc_df) > 0:
-        # Section 7 = machinery/transport (E&E), Section 3 = mineral fuels, overall = total
-        for section, label in [("overall", "sitc_total"), ("7", "sitc_machinery")]:
+# 1.8 SITC trade sections
+# ---------------------------------------------------------------------------
+sitc_df = safe_fetch("trade_sitc_1d")
+if not sitc_df.empty:
+    for section, label in [("overall", "sitc_total"), ("7", "sitc_machinery")]:
+        try:
             sub = sitc_df[(sitc_df["section"] == section)].copy()
             if len(sub) > 0:
                 sub = sub[["date", "exports"]].dropna().rename(columns={"exports": label})
@@ -264,34 +355,31 @@ try:
                 sub = sub.sort_values("date").drop_duplicates("date")
                 filtered[label] = sub
                 DATASETS[label] = (label, label, 1, "external", {})  # dlog transform
-except Exception as e:
-    print(f"SITC data failed (non-fatal): {e}")
+        except Exception as e:
+            logger.warning("SITC %s failed: %s", label, e)
+
+# ---------------------------------------------------------------------------
+# FATAL GUARD: GDP target is required to proceed
+# ---------------------------------------------------------------------------
+if "gdp" not in filtered or filtered["gdp"].empty:
+    logger.error("GDP target fetch failed — cannot run nowcasts. Aborting.")
+    sys.exit(1)
 
 # Define component-specific indicator subsets
 COMPONENT_INDICATORS = {
-    # Consumption touches every sector — use ALL indicators with more lags
     "consumption": [n for n in DATASETS if n != "gdp"],
-    # Investment: industry + financial + leading + external
     "investment":  [n for n in DATASETS if DATASETS[n][3] in ("industry", "financial", "leading", "external") and n != "gdp"],
-    # Government: labour + financial (fiscal policy correlates with employment)
     "government":  [n for n in DATASETS if DATASETS[n][3] in ("labour", "financial") and n != "gdp"],
-    # Exports: external + financial + industry + global
     "exports_comp":[n for n in DATASETS if DATASETS[n][3] in ("external", "financial", "industry", "global_equity", "global_commodity", "global_demand") and n != "gdp"],
-    # Imports: external + services + prices + global commodity
     "imports_comp":[n for n in DATASETS if DATASETS[n][3] in ("external", "services", "prices", "global_commodity") and n != "gdp"],
 }
 
 # Sector-specific indicator subsets (supply-side)
 SECTOR_INDICATORS = {
-    # Agriculture: IPI agriculture, PPI, trade, leading
     "agriculture": [n for n in DATASETS if DATASETS[n][3] in ("industry", "prices", "leading", "external") and n != "gdp"],
-    # Mining: IPI mining, PPI, trade (mineral fuels)
     "mining": [n for n in DATASETS if DATASETS[n][3] in ("industry", "prices", "external") and n != "gdp"],
-    # Manufacturing: IPI manufacturing, PPI, trade, leading, E&E exports
     "manufacturing": [n for n in DATASETS if DATASETS[n][3] in ("industry", "prices", "leading", "external", "global_equity") and n != "gdp"],
-    # Construction: IPI construction, leading, investment-related
     "construction": [n for n in DATASETS if DATASETS[n][3] in ("industry", "leading", "financial") and n != "gdp"],
-    # Services: IPI services, WRT, coincident, labour
     "services": [n for n in DATASETS if DATASETS[n][3] in ("industry", "services", "coincident", "labour") and n != "gdp"],
 }
 # Fallback: if a subset is too small (<3 indicators), use all
@@ -301,11 +389,11 @@ for ck, indicators in COMPONENT_INDICATORS.items():
 
 # Use optimized hyperparameters for each component
 COMPONENT_PARAMS = {
-    "consumption": (2, 4),  # more lags (consumption smoothing), fewer factors
-    "investment":  (3, 2),  # balanced
-    "government":  (2, 2),  # simple model
-    "exports_comp":(3, 2),  # balanced
-    "imports_comp":(3, 2),  # balanced
+    "consumption": (2, 4),
+    "investment":  (3, 2),
+    "government":  (2, 2),
+    "exports_comp":(3, 2),
+    "imports_comp":(3, 2),
 }
 
 # GDP QoQ
@@ -322,7 +410,6 @@ filtered["gdp"] = gdp_df
 # Build grid
 MN = [n for n in DATASETS if n != "gdp" and n in filtered]
 AN = MN + ["gdp"]
-md = [df["date"].min() for df in filtered.values()]
 Mx = [df["date"].max() for df in filtered.values()]
 gd = max(filtered["gdp"]["date"].min(), pd.Timestamp("2018-01-01"))
 ed = max(Mx)
@@ -334,7 +421,6 @@ nM = len(MN)
 X = np.full((T, nM + 1), np.nan)
 
 # Fill known data (automatically leaves future months as NaN)
-
 for j, name in enumerate(MN):
     df = filtered[name]
     for _, row in df.iterrows():
@@ -358,11 +444,14 @@ for j, name in enumerate(AN):
     freq = "quarterly" if name == "gdp" else "monthly"
     X_trans[:, j] = transform_series(X[:, j].copy(), tcode, freq)
 
-mu = np.nanmean(X_trans, axis=0)
-sigma = np.nanstd(X_trans, axis=0)
-sigma[sigma < 1e-10] = 1.0
-X_std = (X_trans - mu) / sigma
-ff = np.where(~np.all(np.isnan(X_std), axis=1))[0][0]
+X_std, mu, sigma = standardize(X_trans)
+
+# Guard: at least one non-empty row must exist
+non_empty_rows = np.where(~np.all(np.isnan(X_std), axis=1))[0]
+if len(non_empty_rows) == 0:
+    logger.error("No usable observations after transform/standardise. Aborting.")
+    sys.exit(1)
+ff = non_empty_rows[0]
 X_est = X_std[ff:]
 
 # ---------------------------------------------------------------------------
@@ -371,15 +460,17 @@ X_est = X_std[ff:]
 nowcasts = {}
 today_str = date.today().isoformat()
 
-# Determine the current quarter and year
 today_dt = date.today()
 current_quarter = (today_dt.month - 1) // 3 + 1
 current_year = today_dt.year
 
-# Find the last row with actual GDP (backcast quarter)
-last_actual_idx = np.where(~np.isnan(X_est[:, -1]))[0][-1] if np.any(~np.isnan(X_est[:, -1])) else len(X_est) - 1
+# Find the last row with actual GDP (index into X_est)
+if np.any(~np.isnan(X_est[:, -1])):
+    last_actual_idx = int(np.where(~np.isnan(X_est[:, -1]))[0][-1])
+else:
+    last_actual_idx = len(X_est) - 1
 
-# Find the CURRENT quarter end month in the grid (the quarter we're NOWCASTING)
+# Current quarter end month in the grid (the quarter we're NOWCASTING)
 current_q_end_m = current_quarter * 3
 current_q_idx = -1
 for i in range(len(datet) - ff):
@@ -387,7 +478,7 @@ for i in range(len(datet) - ff):
         current_q_idx = i
         break
 
-# Find the NEXT quarter end month (1-quarter-ahead forecast)
+# Next quarter end month (1-quarter-ahead forecast)
 next_q_end_m = current_q_end_m + 3
 next_q_year = current_year + (1 if next_q_end_m > 12 else 0)
 next_q_end_m = ((next_q_end_m - 1) % 12) + 1
@@ -397,51 +488,42 @@ for i in range(len(datet) - ff):
         next_q_idx = i
         break
 
+# Warn if the quarter we want to nowcast isn't in the grid (stale data)
+if current_q_idx < 0:
+    logger.warning("Current quarter (Q%d %d) not in grid — data may be stale.",
+                   current_quarter, current_year)
+
 # Label quarters
 backcast_label = f"Q{((datet[ff + last_actual_idx, 1]) // 3)} {int(datet[ff + last_actual_idx, 0])}"
 nowcast_label = f"Q{current_quarter} {current_year}" if current_q_idx >= 0 else "N/A"
 forecast_label = f"Q{next_q_end_m // 3} {next_q_year}" if next_q_idx >= 0 else "N/A"
 
+
+def _extract(res, idx, sigma_arr, mu_arr, gdp_col=-1):
+    if idx is not None and idx >= 0 and idx < res.X_sm.shape[0]:
+        return round((float(res.X_sm[idx, gdp_col]) * sigma_arr[gdp_col] + mu_arr[gdp_col]) * 100, 2)
+    return None
+
+
 # DFM
 try:
     dfm = DFM(DFMParams(r=2, p=4, max_iter=50, thresh=1e-5, idio=1))
     res = dfm.fit(X_est)
-    
-    def _extract(res, idx, sigma_arr, mu_arr, gdp_col=-1):
-        if idx is not None and idx >= 0 and idx < res.X_sm.shape[0]:
-            return round((float(res.X_sm[idx, gdp_col]) * sigma_arr[gdp_col] + mu_arr[gdp_col]) * 100, 2)
-        return None
-
-    nowcasts["dfm"] = _extract(res, current_q_idx, sigma, mu)  # nowcast
+    nowcasts["dfm"] = _extract(res, current_q_idx, sigma, mu)
     nowcasts["dfm_backcast"] = _extract(res, last_actual_idx, sigma, mu)
     nowcasts["dfm_forecast"] = _extract(res, next_q_idx, sigma, mu)
 except Exception as e:
-    print(f"DFM failed: {e}")
+    logger.warning("DFM failed: %s", e)
     nowcasts["dfm"] = None
 
 # BVAR
 try:
     X_filled = X_est.copy()
     for j in range(X_filled.shape[1]):
-        col = X_filled[:, j]
-        valid = np.where(~np.isnan(col))[0]
-        if len(valid) < 2:
-            continue
-        last_valid = valid[-1]
-        # Only interpolate BEFORE the last valid observation (no future leakage)
-        for i in range(last_valid):
-            if np.isnan(col[i]):
-                prev_valid = valid[valid < i]
-                next_valid = valid[valid > i]
-                if len(prev_valid) > 0 and len(next_valid) > 0:
-                    pv, nv = prev_valid[-1], next_valid[0]
-                    col[i] = col[pv] + (col[nv] - col[pv]) * (i - pv) / (nv - pv)
-                elif len(prev_valid) > 0:
-                    col[i] = col[prev_valid[-1]]
-        X_filled[:, j] = col
+        X_filled[:, j] = interpolate_no_leak(X_filled[:, j])
     # MASK backcast quarter for true out-of-sample forecast
     X_bvar = X_filled.copy()
-    if last_actual_idx >= 0 and last_actual_idx < X_bvar.shape[0]:
+    if 0 <= last_actual_idx < X_bvar.shape[0]:
         X_bvar[last_actual_idx, -1] = np.nan
     bvar = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-5, bvar_max_iter=10, bvar_n_draws=50, bvar_burn_in=15))
     res_b = bvar.fit(X_bvar, datet[ff:])
@@ -450,11 +532,10 @@ try:
     nowcasts["bvar_forecast"] = _extract(res_b, next_q_idx, sigma, mu)
 
     # Fan chart from BVAR posterior draws
-    if res_b.B_draws is not None and res_b.Sigma_draws is not None:
+    if res_b.B_draws is not None and res_b.Sigma_draws is not None and current_q_idx >= 0:
         from nowcasting_toolbox.fan_chart import bvar_fan_chart
         lags = 3
         N = X_filled.shape[1]
-        # Last observation vector for forecasting
         x_last = X_filled[current_q_idx - lags + 1:current_q_idx + 1].flatten()
         if len(x_last) == N * lags:
             fc = bvar_fan_chart(
@@ -465,7 +546,7 @@ try:
             nowcasts["bvar_ci_10"] = round(float(fc["percentiles"][10][0]) * 100, 2)
             nowcasts["bvar_ci_90"] = round(float(fc["percentiles"][90][0]) * 100, 2)
 except Exception as e:
-    print(f"BVAR failed: {e}")
+    logger.warning("BVAR failed: %s", e)
     nowcasts["bvar"] = None
 
 # BEQ
@@ -474,7 +555,6 @@ try:
     beq = BEQ(BEQParams(lagM=1, lagQ=1, lagY=1, type=901))
     res_e = beq.fit(X_raw_beq, datet[ff:], AN)
     gdp_col = -1
-    # Find last quarter-end with valid GDP
     last_q = None
     for i in range(len(datet)-ff-1, -1, -1):
         if (datet[ff+i, 1] % 3 == 0) and not np.isnan(res_e.X_sm[i, gdp_col]):
@@ -489,45 +569,42 @@ try:
         nowcasts["beq_backcast"] = _beq_val(last_actual_idx, sigma, mu)
         nowcasts["beq_forecast"] = _beq_val(next_q_idx, sigma, mu)
 except Exception as e:
-    print(f"BEQ failed: {e}")
+    logger.warning("BEQ failed: %s", e)
     nowcasts["beq"] = nowcasts["beq_backcast"] = nowcasts["beq_forecast"] = None
 
-# Weighted ensemble (inverse MAE² weighting, falls back to simple median)
-log_path_ens = Path("docs/daily_log.csv")
-if log_path_ens.exists():
-    log_ens = pd.read_csv(log_path_ens)
-    if len(log_ens) >= 3:
-        weights = {}
-        for m in ["dfm", "bvar", "beq"]:
-            if m in log_ens.columns:
-                sub = log_ens[[m, "actual_gdp_pct"]].dropna()
-                if len(sub) >= 3:
-                    act_vals = pd.to_numeric(sub["actual_gdp_pct"], errors="coerce").values
-                    pred_vals = pd.to_numeric(sub[m], errors="coerce").values
-                    valid = ~np.isnan(act_vals) & ~np.isnan(pred_vals)
-                    if np.sum(valid) >= 3:
-                        mae = compute_mae(act_vals[valid], pred_vals[valid])
-                        weights[m] = 1.0 / (mae ** 2 + 0.01)  # +0.01 prevents divide by zero
-        if weights:
-            total_w = sum(weights.values())
-            ensemble_val = sum(nowcasts.get(m, 0) * weights.get(m, 0) / total_w
-                              for m in ["dfm", "bvar", "beq"] if nowcasts.get(m) is not None)
-            nowcasts["ensemble"] = round(ensemble_val, 2)
-        else:
-            vals = [v for v in [nowcasts.get("dfm"), nowcasts.get("bvar"), nowcasts.get("beq")] if v is not None]
-            nowcasts["ensemble"] = round(np.median(vals), 2) if vals else None
-    else:
-        vals = [v for v in [nowcasts.get("dfm"), nowcasts.get("bvar"), nowcasts.get("beq")] if v is not None]
-        nowcasts["ensemble"] = round(np.median(vals), 2) if vals else None
+# Weighted ensemble (inverse MAE² weighting, falls back to median)
+log_ens = safe_read_csv("docs/daily_log.csv")
+ensemble_models = ["dfm", "bvar", "beq"]
+weights = {}
+if log_ens is not None and len(log_ens) >= 3:
+    for m in ensemble_models:
+        if m in log_ens.columns:
+            sub = log_ens[[m, "actual_gdp_pct"]].dropna()
+            if len(sub) >= 3:
+                act_vals = pd.to_numeric(sub["actual_gdp_pct"], errors="coerce").values
+                pred_vals = pd.to_numeric(sub[m], errors="coerce").values
+                valid = ~np.isnan(act_vals) & ~np.isnan(pred_vals)
+                if np.sum(valid) >= 3:
+                    mae = compute_mae(act_vals[valid], pred_vals[valid])
+                    weights[m] = 1.0 / (mae ** 2 + 0.01)
+
+# Only normalise over models that have BOTH a weight and a current nowcast.
+valid_ens = [m for m in ensemble_models
+             if nowcasts.get(m) is not None and m in weights]
+if valid_ens:
+    total_w = sum(weights[m] for m in valid_ens)
+    nowcasts["ensemble"] = (
+        round(sum(nowcasts[m] * weights[m] / total_w for m in valid_ens), 2)
+        if total_w > 0 else None
+    )
 else:
-    vals = [v for v in [nowcasts.get("dfm"), nowcasts.get("bvar"), nowcasts.get("beq")] if v is not None]
-    nowcasts["ensemble"] = round(np.median(vals), 2) if vals else None
+    vals = [nowcasts.get(m) for m in ensemble_models if nowcasts.get(m) is not None]
+    nowcasts["ensemble"] = round(float(np.median(vals)), 2) if vals else None
 
 # ---------------------------------------------------------------------------
 # 3.5 AR(1) benchmark
 # ---------------------------------------------------------------------------
 try:
-    # Extract GDP values at quarter-end months (in standardized space)
     gdp_qoq = X_est[:, -1]
     q_end_mask = np.array([datet[ff + i, 1] % 3 == 0 for i in range(len(X_est))])
     valid_mask = q_end_mask & ~np.isnan(gdp_qoq)
@@ -541,21 +618,19 @@ try:
             ar_coeffs = np.linalg.lstsq(X_ar, y_curr[valid], rcond=None)[0]
             last_gdp = gdp_vals[-1] if not np.isnan(gdp_vals[-1]) else gdp_vals[-2]
             ar_std = ar_coeffs[0] + ar_coeffs[1] * last_gdp
-            ar_pct = (ar_std * sigma[-1] + mu[-1]) * 100  # un-standardize
+            ar_pct = (ar_std * sigma[-1] + mu[-1]) * 100
             nowcasts["ar1"] = round(ar_pct, 2)
 except Exception as e:
-    print(f"AR(1) failed: {e}")
+    logger.warning("AR(1) failed: %s", e)
     nowcasts["ar1"] = None
 
 # ---------------------------------------------------------------------------
 # 3.6 DOSM Advance Estimate lookup
 # ---------------------------------------------------------------------------
 dosm_advance = None
-advance_path = Path("data/malaysia/dosm_advance_estimates.csv")
-if advance_path.exists():
+adv_df = safe_read_csv("data/malaysia/dosm_advance_estimates.csv")
+if adv_df is not None:
     try:
-        adv_df = pd.read_csv(advance_path)
-        # Find advance estimate for the current quarter
         adv_row = adv_df[adv_df["quarter"] == f"{current_year}-Q{current_quarter}"]
         if len(adv_row) > 0:
             dosm_advance = adv_row.iloc[0]
@@ -565,12 +640,9 @@ if advance_path.exists():
 # ---------------------------------------------------------------------------
 # 3a. Fetch YoY GDP and sector data for DOSM-comparable metrics
 # ---------------------------------------------------------------------------
-client_yoy = OpenDOSMClient()
-
-# Overall YoY GDP
-df_gdp_yoy = client_yoy.fetch("gdp_qtr_real", limit=20000)
+df_gdp_yoy = safe_fetch("gdp_qtr_real")
 actual_yoy_gdp = None
-if df_gdp_yoy is not None and not df_gdp_yoy.empty:
+if not df_gdp_yoy.empty:
     yoy_rows = df_gdp_yoy[df_gdp_yoy["series"] == "growth_yoy"].copy()
     if not yoy_rows.empty:
         yoy_rows["date"] = pd.to_datetime(yoy_rows["date"])
@@ -584,8 +656,8 @@ SECTOR_MAP = {
     "p4": "construction", "p5": "services",
 }
 sector_actuals = {}
-df_supply = client_yoy.fetch("gdp_qtr_real_supply", limit=20000)
-if df_supply is not None and not df_supply.empty:
+df_supply = safe_fetch("gdp_qtr_real_supply")
+if not df_supply.empty:
     for sector_code, sector_name in SECTOR_MAP.items():
         try:
             sector_rows = df_supply[
@@ -598,17 +670,10 @@ if df_supply is not None and not df_supply.empty:
         except Exception:
             pass
 
-client_yoy.close()
-
 # ---------------------------------------------------------------------------
 # 3b. Component-level nowcasts: C, I, G, X, M with GDP identity reconciliation
 # ---------------------------------------------------------------------------
-client2 = OpenDOSMClient()
-
-# Fetch demand-side data ONCE for all components
-df_demand = client2.fetch("gdp_qtr_real_demand", limit=20000)
-if df_demand is None:
-    df_demand = pd.DataFrame()
+df_demand = safe_fetch("gdp_qtr_real_demand")
 
 COMPONENTS = [
     ("consumption", "e1", "growth_yoy"),
@@ -618,12 +683,13 @@ COMPONENTS = [
     ("imports_comp","e6", "growth_yoy"),
 ]
 
-# Collect absolute levels for GDP identity
 comp_levels = {}
 comp_levels_yoy = {}
 
-# Extract absolute levels and actual YoY from pre-fetched demand data
-if not df_demand.empty:
+if df_demand.empty:
+    logger.warning("df_demand fetch failed — skipping all component nowcasts.")
+else:
+    # Extract absolute levels and actual YoY
     for comp_key, comp_type, _ in COMPONENTS:
         try:
             abs_data = df_demand[(df_demand["type"] == comp_type) & (df_demand["series"] == "abs")]
@@ -639,158 +705,123 @@ if not df_demand.empty:
         except Exception:
             pass
 
-# Now run component-level nowcasts using targeted indicator subsets
-for comp_key, comp_type, comp_series in COMPONENTS:
-    try:
-        # Get targeted indicators for this component
-        target_indicators = COMPONENT_INDICATORS.get(comp_key, MN)
-        target_names = [n for n in target_indicators if n in filtered]
-        n_comp = len(target_names)
+    # Run component-level nowcasts using targeted indicator subsets
+    for comp_key, comp_type, comp_series in COMPONENTS:
+        try:
+            target_indicators = COMPONENT_INDICATORS.get(comp_key, MN)
+            target_names = [n for n in target_indicators if n in filtered]
+            n_comp = len(target_names)
 
-        # Filter component data from pre-fetched demand DataFrame
-        comp_val = df_demand[(df_demand["type"] == comp_type) & (df_demand["series"] == comp_series)].copy()
-        if len(comp_val) == 0:
-            continue
-        comp_val = comp_val[["date", "value"]].rename(columns={"value": "target"})
-        comp_val["date"] = pd.to_datetime(comp_val["date"])
-        comp_val = comp_val.sort_values("date").dropna()
-        comp_val["target"] = comp_val["target"] / 100.0
+            comp_val = df_demand[(df_demand["type"] == comp_type) & (df_demand["series"] == comp_series)].copy()
+            if len(comp_val) == 0:
+                continue
+            comp_val = comp_val[["date", "value"]].rename(columns={"value": "target"})
+            comp_val["date"] = pd.to_datetime(comp_val["date"])
+            comp_val = comp_val.sort_values("date").dropna()
+            comp_val["target"] = comp_val["target"] / 100.0
 
-        # Build component-specific grid with targeted indicators
-        Xc = np.full((T, n_comp + 1), np.nan)
-        for j, name in enumerate(target_names):
-            if name in filtered:
+            Xc = np.full((T, n_comp + 1), np.nan)
+            for j, name in enumerate(target_names):
                 df = filtered[name]
                 for _, row in df.iterrows():
                     y, m = row["date"].year, row["date"].month
                     idx = np.where((datet[:, 0] == y) & (datet[:, 1] == m))[0]
                     if len(idx) > 0:
                         Xc[idx[0], j] = row[name]
-        for _, row in comp_val.iterrows():
-            y, m = row["date"].year, row["date"].month
-            qem = ((m - 1) // 3) * 3 + 3
-            idx = np.where((datet[:, 0] == y) & (datet[:, 1] == qem))[0]
-            if len(idx) > 0:
-                # MASK current AND backcast quarter — true out-of-sample forecast
-                # BVAR should not see the actual value for the quarter it's estimating
-                if (y == current_year and qem == current_q_end_m) or \
-                   (y == int(datet[ff + last_actual_idx, 0]) and qem == int(datet[ff + last_actual_idx, 1])):
-                    continue
-                Xc[idx[0], -1] = row["target"]
+            for _, row in comp_val.iterrows():
+                y, m = row["date"].year, row["date"].month
+                qem = ((m - 1) // 3) * 3 + 3
+                idx = np.where((datet[:, 0] == y) & (datet[:, 1] == qem))[0]
+                if len(idx) > 0:
+                    # MASK current AND backcast quarter — true out-of-sample
+                    if (y == current_year and qem == current_q_end_m) or \
+                       (y == int(datet[ff + last_actual_idx, 0]) and qem == int(datet[ff + last_actual_idx, 1])):
+                        continue
+                    Xc[idx[0], -1] = row["target"]
 
-        Xc_trans = Xc.copy()
-        for j, name in enumerate(target_names):
-            tcode = DATASETS.get(name, (None, None, 0, None, {}))[2]
-            Xc_trans[:, j] = transform_series(Xc[:, j].copy(), tcode, "monthly")
-        Xc_trans[:, -1] = Xc[:, -1].copy()
+            Xc_trans = Xc.copy()
+            for j, name in enumerate(target_names):
+                tcode = DATASETS.get(name, (None, None, 0, None, {}))[2]
+                Xc_trans[:, j] = transform_series(Xc[:, j].copy(), tcode, "monthly")
+            Xc_trans[:, -1] = Xc[:, -1].copy()
 
-        muc = np.nanmean(Xc_trans, axis=0)
-        sigmac = np.nanstd(Xc_trans, axis=0)
-        sigmac[sigmac < 1e-10] = 1.0
-        Xc_std = (Xc_trans - muc) / sigmac
-        ffc = np.where(~np.all(np.isnan(Xc_std), axis=1))[0][0]
-        Xc_est = Xc_std[ffc:]
+            Xc_std, muc, sigmac = standardize(Xc_trans)
+            non_empty_c = np.where(~np.all(np.isnan(Xc_std), axis=1))[0]
+            if len(non_empty_c) == 0:
+                continue
+            ffc = non_empty_c[0]
+            Xc_est = Xc_std[ffc:]
 
-        if np.sum(~np.isnan(Xc_est[:, -1])) < 5:
-            continue
+            if np.sum(~np.isnan(Xc_est[:, -1])) < 5:
+                continue
 
-        # Use component-specific hyperparameters
-        cr, cp = COMPONENT_PARAMS.get(comp_key, (3, 2))
-        dfm_c = DFM(DFMParams(r=cr, p=cp, max_iter=30, thresh=1e-5, idio=1))
-        res_c = dfm_c.fit(Xc_est)
-        nwc = float(res_c.X_sm[-1, -1]) * sigmac[-1] + muc[-1]
-        nowcasts[comp_key + "_dfm"] = round(nwc * 100, 2)
+            cr, cp = COMPONENT_PARAMS.get(comp_key, (3, 2))
+            dfm_c = DFM(DFMParams(r=cr, p=cp, max_iter=30, thresh=1e-5, idio=1))
+            res_c = dfm_c.fit(Xc_est)
+            nwc = float(res_c.X_sm[-1, -1]) * sigmac[-1] + muc[-1]
+            nowcasts[comp_key + "_dfm"] = round(nwc * 100, 2)
 
-        # --- BVAR for component (PRIMARY) ---
-        try:
-            Xc_filled = Xc_est.copy()
-            for j in range(Xc_filled.shape[1]):
-                col = Xc_filled[:, j]
-                valid = np.where(~np.isnan(col))[0]
-                if len(valid) < 2:
-                    continue
-                last_valid = valid[-1]
-                # Only interpolate BEFORE the last valid observation (no future leakage)
-                for i in range(last_valid):
-                    if np.isnan(col[i]):
-                        # Find surrounding valid values
-                        prev_valid = valid[valid < i]
-                        next_valid = valid[valid > i]
-                        if len(prev_valid) > 0 and len(next_valid) > 0:
-                            pv, nv = prev_valid[-1], next_valid[0]
-                            col[i] = col[pv] + (col[nv] - col[pv]) * (i - pv) / (nv - pv)
-                        elif len(prev_valid) > 0:
-                            col[i] = col[prev_valid[-1]]
-                Xc_filled[:, j] = col
-            # Leave future NaN as NaN — BVAR should handle missing data properly
-            bvar_c = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
-            res_bc = bvar_c.fit(Xc_filled, datet[ffc:])
-            nwb = float(res_bc.X_sm[-1, -1]) * sigmac[-1] + muc[-1]
-            nowcasts[comp_key] = round(nwb * 100, 2)
-        except Exception as e:
-            nowcasts[comp_key] = nowcasts.get(comp_key + "_dfm")  # fallback to DFM
+            # --- BVAR for component (PRIMARY) ---
+            try:
+                Xc_filled = Xc_est.copy()
+                for j in range(Xc_filled.shape[1]):
+                    Xc_filled[:, j] = interpolate_no_leak(Xc_filled[:, j])
+                bvar_c = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
+                res_bc = bvar_c.fit(Xc_filled, datet[ffc:])
+                nwb = float(res_bc.X_sm[-1, -1]) * sigmac[-1] + muc[-1]
+                nowcasts[comp_key] = round(nwb * 100, 2)
+            except Exception as e:
+                logger.warning("Component BVAR %s failed: %s", comp_key, e)
+                nowcasts[comp_key] = nowcasts.get(comp_key + "_dfm")
 
-        # --- BEQ for component ---
-        try:
-            beq_c = BEQ(BEQParams(lagM=1, lagQ=1, lagY=1, type=901))
-            # Use non-standardized data for BEQ (matches MATLAB toolbox)
-            res_e = beq_c.fit(Xc_trans, datet[ffc:], target_names)
-            if res_e.X_sm is not None and res_e.X_sm.shape[0] > 0:
-                # Find the target quarter end index
-                q_end_idx = -1
-                for t in range(len(datet[ffc:])):
-                    if datet[ffc + t, 0] == current_year and datet[ffc + t, 1] == current_q_end_m:
-                        q_end_idx = t
-                        break
-                if q_end_idx >= 0 and q_end_idx < res_e.X_sm.shape[0]:
-                    nw_e = float(res_e.X_sm[q_end_idx, -1])
-                    nowcasts[comp_key + "_beq"] = round(nw_e * 100, 2) if not np.isnan(nw_e) else None
+            # --- BEQ for component ---
+            try:
+                beq_c = BEQ(BEQParams(lagM=1, lagQ=1, lagY=1, type=901))
+                res_e = beq_c.fit(Xc_trans, datet[ffc:], target_names)
+                if res_e.X_sm is not None and res_e.X_sm.shape[0] > 0:
+                    q_end_idx = -1
+                    for t in range(len(datet[ffc:])):
+                        if datet[ffc + t, 0] == current_year and datet[ffc + t, 1] == current_q_end_m:
+                            q_end_idx = t
+                            break
+                    if 0 <= q_end_idx < res_e.X_sm.shape[0]:
+                        nw_e = float(res_e.X_sm[q_end_idx, -1])
+                        nowcasts[comp_key + "_beq"] = round(nw_e * 100, 2) if not np.isnan(nw_e) else None
+                    else:
+                        nowcasts[comp_key + "_beq"] = None
                 else:
                     nowcasts[comp_key + "_beq"] = None
-            else:
+            except Exception as e:
+                logger.warning("Component BEQ %s failed: %s", comp_key, e)
                 nowcasts[comp_key + "_beq"] = None
         except Exception as e:
-            nowcasts[comp_key + "_beq"] = None
-    except Exception as e:
-        print(f"  Component {comp_key}: {e}")
-        nowcasts[comp_key] = None
-
-client2.close()
+            logger.warning("Component %s: %s", comp_key, e)
+            nowcasts[comp_key] = None
 
 # ---------------------------------------------------------------------------
-# 3b2. Sector-level nowcasts: agriculture, mining, manufacturing, construction, services
+# 3b2. Sector-level nowcasts
 # ---------------------------------------------------------------------------
-print("[cyan]Running sector nowcasts...[/cyan]")
-
-# Fetch sector-specific GDP data
-try:
-    client_sector = OpenDOSMClient()
-    df_sector_gdp = client_sector.fetch("gdp_qtr_real_supply", limit=20000)
-    client_sector.close()
-except Exception:
-    df_sector_gdp = None
+logger.info("Running sector nowcasts...")
+df_sector_gdp = safe_fetch("gdp_qtr_real_supply")
 
 for sector_code, sector_name in SECTOR_MAP.items():
     try:
-        # Get sector GDP YoY
-        if df_sector_gdp is None or df_sector_gdp.empty:
+        if df_sector_gdp.empty:
             nowcasts[f"sector_{sector_name}"] = None
             continue
-            
+
         sector_rows = df_sector_gdp[
             (df_sector_gdp["sector"] == sector_code) & (df_sector_gdp["series"] == "growth_yoy")
         ].copy()
-        
         if sector_rows.empty:
             nowcasts[f"sector_{sector_name}"] = None
             continue
-        
+
         sector_rows["date"] = pd.to_datetime(sector_rows["date"])
         sector_rows = sector_rows.sort_values("date")
-        sector_gdp_vals = sector_rows["value"].values / 100.0  # % to decimal
+        sector_gdp_vals = sector_rows["value"].values / 100.0
         sector_gdp_dates = sector_rows["date"].values
-        
-        # Build sector target on date grid
+
         X_sector_target = np.full(T, np.nan)
         for i, d in enumerate(sector_gdp_dates):
             dt = pd.Timestamp(d)
@@ -799,20 +830,17 @@ for sector_code, sector_name in SECTOR_MAP.items():
             idx = np.where((datet[:, 0] == y) & (datet[:, 1] == qem))[0]
             if len(idx) > 0 and i < len(sector_gdp_vals):
                 X_sector_target[idx[0]] = sector_gdp_vals[i]
-        
-        # Get sector-specific indicators
+
         sector_indicators = SECTOR_INDICATORS.get(sector_name, [])
         if len(sector_indicators) < 3:
-            sector_indicators = [n for n in DATASETS if n != "gdp"]  # fallback to all
-        
-        # Build sector data matrix: monthly indicators + quarterly sector GDP
+            sector_indicators = [n for n in DATASETS if n != "gdp"]
+
         valid_sector_indicators = [n for n in sector_indicators if n in filtered]
         n_sector_m = len(valid_sector_indicators)
-        
         if n_sector_m < 2:
             nowcasts[f"sector_{sector_name}"] = None
             continue
-        
+
         X_sector = np.full((T, n_sector_m + 1), np.nan)
         for j, name in enumerate(valid_sector_indicators):
             df = filtered[name]
@@ -821,69 +849,55 @@ for sector_code, sector_name in SECTOR_MAP.items():
                 idx = np.where((datet[:, 0] == y) & (datet[:, 1] == m))[0]
                 if len(idx) > 0:
                     X_sector[idx[0], j] = row[name]
-        
-        # Add sector GDP as last column
         X_sector[:, -1] = X_sector_target
-        
-        # Transform
+
         X_sector_trans = X_sector.copy()
         for j, name in enumerate(valid_sector_indicators):
             tcode = DATASETS.get(name, (None, None, 0, None, {}))[2]
             X_sector_trans[:, j] = transform_series(X_sector[:, j].copy(), tcode, "monthly")
-        X_sector_trans[:, -1] = X_sector[:, -1].copy()  # keep GDP as-is (already YoY)
-        
-        # Standardize
-        mu_s = np.nanmean(X_sector_trans, axis=0)
-        sigma_s = np.nanstd(X_sector_trans, axis=0)
-        sigma_s[sigma_s < 1e-10] = 1.0
-        X_sector_std = (X_sector_trans - mu_s) / sigma_s
-        
-        # Find estimation start
-        ffs = np.where(~np.all(np.isnan(X_sector_std), axis=1))[0][0]
+        X_sector_trans[:, -1] = X_sector[:, -1].copy()
+
+        X_sector_std, mu_s, sigma_s = standardize(X_sector_trans)
+        non_empty_s = np.where(~np.all(np.isnan(X_sector_std), axis=1))[0]
+        if len(non_empty_s) == 0:
+            nowcasts[f"sector_{sector_name}"] = None
+            continue
+        ffs = non_empty_s[0]
         X_sector_est = X_sector_std[ffs:]
-        
+
         if np.sum(~np.isnan(X_sector_est[:, -1])) < 3:
             nowcasts[f"sector_{sector_name}"] = None
             continue
-        
-        # DFM for sector
+
         try:
             dfm_s = DFM(DFMParams(r=2, p=1, max_iter=15, thresh=1e-4, idio=1))
             res_s = dfm_s.fit(X_sector_est)
-            
-            # Find current quarter end index in the estimation window
             sector_q_idx = -1
             for i in range(len(datet) - ffs):
                 if datet[ffs + i, 0] == current_year and datet[ffs + i, 1] == current_q_end_m:
                     sector_q_idx = i
                     break
-            
-            if sector_q_idx >= 0 and sector_q_idx < res_s.X_sm.shape[0]:
+            if 0 <= sector_q_idx < res_s.X_sm.shape[0]:
                 nws = float(res_s.X_sm[sector_q_idx, -1]) * sigma_s[-1] + mu_s[-1]
             else:
-                # Fallback: use last row
                 nws = float(res_s.X_sm[-1, -1]) * sigma_s[-1] + mu_s[-1]
             nowcasts[f"sector_{sector_name}"] = round(nws * 100, 2)
         except Exception:
             nowcasts[f"sector_{sector_name}"] = None
-        
     except Exception as e:
-        print(f"  Sector {sector_name}: {e}")
+        logger.warning("Sector %s: %s", sector_name, e)
         nowcasts[f"sector_{sector_name}"] = None
 
 # ---------------------------------------------------------------------------
 # 3c. YoY GDP Nowcast (DOSM-comparable metric)
 # ---------------------------------------------------------------------------
-# Use the same indicators but target YoY GDP instead of QoQ SA
-if df_gdp_yoy is not None and not df_gdp_yoy.empty:
+if not df_gdp_yoy.empty:
     try:
-        # Build YoY GDP series
         yoy_rows = df_gdp_yoy[df_gdp_yoy["series"] == "growth_yoy"].copy()
         yoy_rows["date"] = pd.to_datetime(yoy_rows["date"])
         yoy_rows = yoy_rows.sort_values("date")
-        yoy_rows["gdp_yoy"] = yoy_rows["value"] / 100.0  # % to decimal
+        yoy_rows["gdp_yoy"] = yoy_rows["value"] / 100.0
 
-        # Build grid for YoY GDP
         Xy = np.full((T, nM + 1), np.nan)
         for j, name in enumerate(MN):
             if name in filtered:
@@ -893,7 +907,6 @@ if df_gdp_yoy is not None and not df_gdp_yoy.empty:
                     idx = np.where((datet[:, 0] == y) & (datet[:, 1] == m))[0]
                     if len(idx) > 0:
                         Xy[idx[0], j] = row[name]
-        # Fill YoY GDP at quarter-end months
         for _, row in yoy_rows.iterrows():
             y, m = row["date"].year, row["date"].month
             qem = ((m - 1) // 3) * 3 + 3
@@ -901,128 +914,100 @@ if df_gdp_yoy is not None and not df_gdp_yoy.empty:
             if len(idx) > 0:
                 Xy[idx[0], -1] = row["gdp_yoy"]
 
-        # Transform and standardize
         Xy_trans = Xy.copy()
         for j, name in enumerate(MN):
             tcode = DATASETS.get(name, (None, None, 0, None, {}))[2]
             Xy_trans[:, j] = transform_series(Xy[:, j].copy(), tcode, "monthly")
-        Xy_trans[:, -1] = Xy[:, -1].copy()  # YoY already in decimal, no transform
+        Xy_trans[:, -1] = Xy[:, -1].copy()
 
-        mu_y = np.nanmean(Xy_trans, axis=0)
-        sigma_y = np.nanstd(Xy_trans, axis=0)
-        sigma_y[sigma_y < 1e-10] = 1.0
-        Xy_std = (Xy_trans - mu_y) / sigma_y
-        ff_y = np.where(~np.all(np.isnan(Xy_std), axis=1))[0][0]
-        Xy_est = Xy_std[ff_y:]
+        Xy_std, mu_y, sigma_y = standardize(Xy_trans)
+        non_empty_y = np.where(~np.all(np.isnan(Xy_std), axis=1))[0]
+        if len(non_empty_y) > 0:
+            ff_y = non_empty_y[0]
+            Xy_est = Xy_std[ff_y:]
 
-        # Find current quarter index for YoY
-        current_q_idx_y = -1
-        for i in range(len(datet) - ff_y):
-            if datet[ff_y + i, 0] == current_year and datet[ff_y + i, 1] == current_q_end_m:
-                current_q_idx_y = i
-                break
+            current_q_idx_y = -1
+            for i in range(len(datet) - ff_y):
+                if datet[ff_y + i, 0] == current_year and datet[ff_y + i, 1] == current_q_end_m:
+                    current_q_idx_y = i
+                    break
 
-        # DFM YoY nowcast
-        dfm_y = DFM(DFMParams(r=2, p=4, max_iter=50, thresh=1e-5, idio=1))
-        res_y = dfm_y.fit(Xy_est)
-        if current_q_idx_y >= 0 and current_q_idx_y < res_y.X_sm.shape[0]:
-            yoy_nw = float(res_y.X_sm[current_q_idx_y, -1]) * sigma_y[-1] + mu_y[-1]
-            nowcasts["dfm_yoy"] = round(yoy_nw * 100, 2)
+            dfm_y = DFM(DFMParams(r=2, p=4, max_iter=50, thresh=1e-5, idio=1))
+            res_y = dfm_y.fit(Xy_est)
+            if 0 <= current_q_idx_y < res_y.X_sm.shape[0]:
+                yoy_nw = float(res_y.X_sm[current_q_idx_y, -1]) * sigma_y[-1] + mu_y[-1]
+                nowcasts["dfm_yoy"] = round(yoy_nw * 100, 2)
 
-        # BVAR YoY nowcast
-        try:
-            Xy_filled = Xy_est.copy()
-            for j in range(Xy_filled.shape[1]):
-                col = Xy_filled[:, j]
-                valid = np.where(~np.isnan(col))[0]
-                if len(valid) < 2:
-                    continue
-                last_valid = valid[-1]
-                # Only interpolate BEFORE the last valid observation (no future leakage)
-                for i in range(last_valid):
-                    if np.isnan(col[i]):
-                        prev_valid = valid[valid < i]
-                        next_valid = valid[valid > i]
-                        if len(prev_valid) > 0 and len(next_valid) > 0:
-                            pv, nv = prev_valid[-1], next_valid[0]
-                            col[i] = col[pv] + (col[nv] - col[pv]) * (i - pv) / (nv - pv)
-                        elif len(prev_valid) > 0:
-                            col[i] = col[prev_valid[-1]]
-                Xy_filled[:, j] = col
-            bvar_y = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
-            res_by = bvar_y.fit(Xy_filled, datet[ff_y:])
-            if current_q_idx_y >= 0 and current_q_idx_y < res_by.X_sm.shape[0]:
-                yoy_nw_bvar = float(res_by.X_sm[current_q_idx_y, -1]) * sigma_y[-1] + mu_y[-1]
-                nowcasts["bvar_yoy"] = round(yoy_nw_bvar * 100, 2)
-        except Exception:
-            pass
+            try:
+                Xy_filled = Xy_est.copy()
+                for j in range(Xy_filled.shape[1]):
+                    Xy_filled[:, j] = interpolate_no_leak(Xy_filled[:, j])
+                bvar_y = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
+                res_by = bvar_y.fit(Xy_filled, datet[ff_y:])
+                if 0 <= current_q_idx_y < res_by.X_sm.shape[0]:
+                    yoy_nw_bvar = float(res_by.X_sm[current_q_idx_y, -1]) * sigma_y[-1] + mu_y[-1]
+                    nowcasts["bvar_yoy"] = round(yoy_nw_bvar * 100, 2)
+            except Exception as e:
+                logger.warning("YoY BVAR failed: %s", e)
 
-        # Ensemble YoY
-        yoy_vals = [v for v in [nowcasts.get("dfm_yoy"), nowcasts.get("bvar_yoy")] if v is not None]
-        if yoy_vals:
-            nowcasts["ensemble_yoy"] = round(np.median(yoy_vals), 2)
-
+            yoy_vals = [v for v in [nowcasts.get("dfm_yoy"), nowcasts.get("bvar_yoy")] if v is not None]
+            if yoy_vals:
+                nowcasts["ensemble_yoy"] = round(float(np.median(yoy_vals)), 2)
     except Exception as e:
-        print(f"YoY GDP nowcast failed: {e}")
+        logger.warning("YoY GDP nowcast failed: %s", e)
 
-# Store sector actuals
-nowcasts["sector_actuals"] = sector_actuals
+# Store sector actuals as JSON (avoids dict-repr leaking into CSV cells)
+nowcasts["sector_actuals"] = json.dumps(sector_actuals)
 
 # ---------------------------------------------------------------------------
 # 3d. GDP Identity Reconciliation: derive imports from C+I+G+X-GDP
 # ---------------------------------------------------------------------------
-# GDP = C + I + G + X - M  (expenditure approach)
-# => M_growth = (C*C_growth + I*I_growth + G*G_growth + X*X_growth - GDP*GDP_growth) / M
+# All growth rates MUST be on the same basis. Components are YoY, so GDP must
+# also be YoY here — use dfm_yoy, NOT the QoQ-SA dfm nowcast.
 try:
-    # Get absolute levels of each component
     c_level = comp_levels.get("consumption", 0)
     i_level = comp_levels.get("investment", 0)
     g_level = comp_levels.get("government", 0)
     x_level = comp_levels.get("exports_comp", 0)
-    m_level_abs = abs(comp_levels.get("imports_comp", 1))  # imports stored negative
-    
-    # Get nowcasts in decimal form
-    c_growth = nowcasts.get("consumption", 0)
-    i_growth = nowcasts.get("investment", 0)
-    g_growth = nowcasts.get("government", 0)
-    x_growth = nowcasts.get("exports_comp", 0)
-    gdp_growth = nowcasts.get("dfm", 0)  # main GDP nowcast
-    
-    if all(v is not None for v in [c_growth, i_growth, g_growth, x_growth, gdp_growth, c_level, i_level, g_level, x_level, m_level_abs]):
-        # Convert to decimal
-        c_g = c_growth / 100
-        i_g = i_growth / 100
-        g_g = g_growth / 100
-        x_g = x_growth / 100
-        gdp_g = gdp_growth / 100
-        
-        # GDP identity: GDP = C + I + G + X - M
-        # In growth terms: GDP*GDP_g = C*C_g + I*I_g + G*G_g + X*X_g - M*M_g
-        # => M*M_g = C*C_g + I*I_g + G*G_g + X*X_g - GDP*GDP_g
-        m_g = (c_level * c_g + i_level * i_g + g_level * g_g + x_level * x_g - (c_level + i_level + g_level + x_level - m_level_abs) * gdp_g) / m_level_abs
+    m_level_abs = abs(comp_levels.get("imports_comp", 0)) or 1.0  # never 0
+
+    c_growth = nowcasts.get("consumption")
+    i_growth = nowcasts.get("investment")
+    g_growth = nowcasts.get("government")
+    x_growth = nowcasts.get("exports_comp")
+    gdp_growth = nowcasts.get("dfm_yoy")  # YoY basis to match components
+
+    required = [c_growth, i_growth, g_growth, x_growth, gdp_growth,
+                c_level, i_level, g_level, x_level]
+    if all(v is not None for v in required):
+        c_g, i_g, g_g, x_g, gdp_g = (c_growth/100, i_growth/100, g_growth/100,
+                                     x_growth/100, gdp_growth/100)
+        m_g = (c_level*c_g + i_level*i_g + g_level*g_g + x_level*x_g
+               - (c_level + i_level + g_level + x_level - m_level_abs) * gdp_g) / m_level_abs
         nowcasts["imports_identity"] = round(m_g * 100, 2)
+    else:
+        nowcasts["imports_identity"] = None
 except Exception as e:
-    print(f"GDP identity derivation failed: {e}")
+    logger.warning("GDP identity derivation failed: %s", e)
     nowcasts["imports_identity"] = None
 
-# Add actual YoY growth for components
+# Actual YoY growth for components
 for ck in ["consumption", "investment", "government", "exports_comp", "imports_comp"]:
     nowcasts[ck + "_actual"] = comp_levels_yoy.get(ck)
 
 # ---------------------------------------------------------------------------
-# 3.7 Component AR(1) benchmarks (simple momentum for each component)
+# 3.7 Component AR(1) benchmarks
 # ---------------------------------------------------------------------------
 COMP_AR1 = {}
 if not df_demand.empty:
     for comp_key, comp_type, _ in COMPONENTS:
         try:
-            # Get component YoY growth series
             comp_yoy = df_demand[(df_demand["type"] == comp_type) & (df_demand["series"] == "growth_yoy")].copy()
             if len(comp_yoy) < 5:
                 continue
             comp_yoy["date"] = pd.to_datetime(comp_yoy["date"])
             comp_yoy = comp_yoy.sort_values("date")
-            y_vals = comp_yoy["value"].values  # already in %
+            y_vals = comp_yoy["value"].values
             y_lag = y_vals[:-1]
             y_curr = y_vals[1:]
             valid = ~np.isnan(y_lag) & ~np.isnan(y_curr)
@@ -1032,15 +1017,12 @@ if not df_demand.empty:
                 ar_fc = ar_coeffs[0] + ar_coeffs[1] * y_vals[-1]
                 COMP_AR1[comp_key] = round(ar_fc, 2)
         except Exception as e:
-            print(f"  AR(1) {comp_key}: {e}")
+            logger.warning("AR(1) %s: %s", comp_key, e)
 
-# Merge component AR(1) into nowcasts
 for ck, val in COMP_AR1.items():
     nowcasts[ck + "_ar1"] = val
-
-# Naive forecast = last quarter actual for each component
 for ck in ["consumption", "investment", "government", "exports_comp", "imports_comp"]:
-    nowcasts[ck + "_naive"] = comp_levels_yoy.get(ck)  # same as _actual
+    nowcasts[ck + "_naive"] = comp_levels_yoy.get(ck)
 
 # Latest actual GDP
 actual_pct = None
@@ -1050,21 +1032,22 @@ for i in range(len(X_est)-1, -1, -1):
         break
 
 nowcasts["date"] = today_str
-nowcasts["actual_gdp_pct"] = round(actual_pct, 2) if actual_pct else None
-nowcasts["naive"] = nowcasts["actual_gdp_pct"]  # naive = last quarter actual
+nowcasts["actual_gdp_pct"] = round(actual_pct, 2) if actual_pct is not None else None
+nowcasts["naive"] = nowcasts["actual_gdp_pct"]
 
 # ---------------------------------------------------------------------------
-# 4. Append to daily log
+# 4. Append to daily log (atomic write, guarded read)
 # ---------------------------------------------------------------------------
 log_path = Path("docs/daily_log.csv")
+log_path.parent.mkdir(parents=True, exist_ok=True)
 new_row = pd.DataFrame([nowcasts])
-if log_path.exists():
-    log = pd.read_csv(log_path)
-    log = pd.concat([log, new_row], ignore_index=True).drop_duplicates(subset=["date"], keep="last")
+existing = safe_read_csv(log_path)
+if existing is not None:
+    log = pd.concat([existing, new_row], ignore_index=True).drop_duplicates(subset=["date"], keep="last")
 else:
     log = new_row
-log.to_csv(log_path, index=False)
-print(f"[{datetime.now().isoformat()}] Daily log written to {log_path} ({log_path.stat().st_size} bytes, {len(log)} rows)")
+atomic_write_csv(log, log_path)
+logger.info("Daily log written to %s (%d rows)", log_path, len(log))
 
 # ---------------------------------------------------------------------------
 # 5. Compute rolling leaderboard from daily log
@@ -1072,140 +1055,15 @@ print(f"[{datetime.now().isoformat()}] Daily log written to {log_path} ({log_pat
 if len(log) >= 3:
     lb_rows = []
     for model in ["dfm", "bvar", "beq", "ensemble"]:
-        col = model
-        sub = log[[col, "actual_gdp_pct"]].dropna()
+        if model not in log.columns:
+            continue
+        sub = log[[model, "actual_gdp_pct"]].dropna()
         if len(sub) < 3:
             continue
-        pred = pd.to_numeric(sub[col], errors="coerce").values
-        act = pd.to_numeric(sub["actual_gdp_pct"], errors="coerce").values
-        # Remove any remaining NaN after conversion
-        valid = ~np.isnan(pred) & ~np.isnan(act)
-        pred = pred[valid]
-        act = act[valid]
-        if len(pred) < 3:
-            continue
-        lb_rows.append({
-            "model": model.upper(),
-            "MAE (pp)": round(compute_mae(act, pred), 3),
-            "RMSE (pp)": round(compute_rmse(act, pred), 3),
-            "FDA (%)": round(compute_fda(act, pred) * 100, 1),
-            "N": len(pred),
-            "last_nowcast": nowcasts[model],
-        })
-
-    lb_df = pd.DataFrame(lb_rows)
-    lb_df.to_csv(Path("docs/leaderboard.csv"), index=False)
-
-# -------------------------------------------------------------------
-# 6. Generate markdown leaderboard (DOSM-comparable format)
-# -------------------------------------------------------------------
-# Determine latest actual quarter
-latest_actual_label = backcast_label  # Q1 2026
-latest_actual_yoy = actual_yoy_gdp  # +5.4%
-
-md = f"# Malaysia GDP Nowcasting — Live Leaderboard\n\n"
-md += f"**Updated:** {today_str} | **Latest actual:** {latest_actual_label} | **Nowcasting:** {nowcast_label}\n\n"
-
-# --- Section 1: Current Nowcast (YoY %) ---
-# Show forward-looking nowcast (no ground truth yet)
-md += "## GDP Nowcast (YoY %)\n\n"
-md += f"*Nowcasting {nowcast_label} — no ground truth available yet (releases ~mid-{(current_quarter*3+2)%12 or 12}).*\n\n"
-
-md += "| Model | Nowcast |\n"
-md += "|-------|--------|\n"
-for model_name, model_key in [("DFM", "dfm_yoy"), ("BVAR", "bvar_yoy"), ("ENSEMBLE", "ensemble_yoy")]:
-    val = nowcasts.get(model_key)
-    val_str = f"`{val:+.1f}%`" if val is not None else "—"
-    md += f"| {model_name} | {val_str} |\n"
-
-# --- Section 2: Backcast Accuracy (vs latest actual) ---
-# Show how well models estimated the latest known quarter
-md += f"\n## Backcast Accuracy ({latest_actual_label}, YoY %)\n\n"
-md += f"*How well models estimated {latest_actual_label}. DOSM actual: `{latest_actual_yoy:+.1f}%`.*\n\n"
-
-md += "| Model | Estimate | Error |\n"
-md += "|-------|----------|-------|\n"
-
-# Use YoY backcast if available, otherwise approximate from QoQ
-for model_name, model_key in [("DFM", "dfm_yoy"), ("BVAR", "bvar_yoy"), ("ENSEMBLE", "ensemble_yoy")]:
-    val = nowcasts.get(model_key)
-    val_str = f"`{val:+.1f}%`" if val is not None else "—"
-    err_str = "—"
-    if val is not None and latest_actual_yoy is not None:
-        err_val = abs(val - latest_actual_yoy)
-        err_str = f"{err_val:.1f}pp"
-    md += f"| {model_name} | {val_str} | {err_str} |\n"
-
-# --- Section 3: Economic Sectors (DOSM supply-side) ---
-md += "\n## GDP by Economic Sector (YoY %)\n\n"
-md += '*Comparable to DOSM "A deeper look at GDP by economic sector". Actual values from `gdp_qtr_real_supply`.*\n\n'
-
-sector_labels = {
-    "agriculture": "Agriculture",
-    "mining": "Mining & Quarrying",
-    "manufacturing": "Manufacturing",
-    "construction": "Construction",
-    "services": "Services",
-}
-
-md += "| Sector | Latest Actual |\n"
-md += "|--------|---------------|\n"
-for sector_key, sector_name in sector_labels.items():
-    act = sector_actuals.get(sector_key)
-    act_str = f"`{act:+.1f}%`" if act is not None else "—"
-    md += f"| {sector_name} | {act_str} |\n"
-
-if actual_yoy_gdp is not None:
-    md += f"| **Overall GDP** | `{actual_yoy_gdp:+.1f}%` |\n"
-
-# --- Section 4: Expenditure Components (DOSM demand-side) ---
-md += "\n## GDP by Expenditure Category (YoY %)\n\n"
-md += '*Comparable to DOSM "A deeper look at GDP by expenditure category". BVAR primary, DFM comparison.*\n\n'
-
-comp_labels = {
-    "consumption": ("Private Consumption", "C"),
-    "investment": ("Gross Fixed Capital Formation", "I"),
-    "government": ("Government Consumption", "G"),
-    "exports_comp": ("Exports", "X"),
-    "imports_comp": ("Imports", "M"),
-}
-
-md += "| Component | BVAR | DFM | Actual | Error (BVAR) |\n"
-md += "|-----------|------|-----|--------|--------------|\n"
-
-for ck, (clabel, ccode) in comp_labels.items():
-    bvar_val = nowcasts.get(ck)
-    dfm_val = nowcasts.get(ck + "_dfm")
-    act_val = nowcasts.get(ck + "_actual")
-
-    bvar_str = f"{bvar_val:+.1f}%" if bvar_val is not None else "—"
-    dfm_str = f"{dfm_val:+.1f}%" if dfm_val is not None else "—"
-    act_str = f"{act_val:+.1f}%" if act_val is not None else "—"
-    err_str = "—"
-    if bvar_val is not None and act_val is not None:
-        err_val = abs(bvar_val - act_val)
-        err_str = f"{err_val:.1f}pp"
-
-    md += f"| **{clabel}** ({ccode}) | {bvar_str} | {dfm_str} | {act_str} | {err_str} |\n"
-
-# --- Section 5: Model Accuracy Leaderboard ---
-md += "\n## Model Accuracy (Rolling)\n\n"
-md += "*Daily nowcast accuracy vs DOSM actuals. Metrics appear after 3+ days.*\n\n"
-
-if len(log) >= 3:
-    lb_rows = []
-    for model in ["dfm", "bvar", "beq", "ar1", "naive", "ensemble"]:
-        col = model
-        if col not in log.columns:
-            continue
-        sub = log[[col, "actual_gdp_pct"]].dropna()
-        if len(sub) < 3:
-            continue
-        pred = pd.to_numeric(sub[col], errors="coerce").values
+        pred = pd.to_numeric(sub[model], errors="coerce").values
         act = pd.to_numeric(sub["actual_gdp_pct"], errors="coerce").values
         valid = ~np.isnan(pred) & ~np.isnan(act)
-        pred = pred[valid]
-        act = act[valid]
+        pred, act = pred[valid], act[valid]
         if len(pred) < 3:
             continue
         lb_rows.append({
@@ -1216,37 +1074,122 @@ if len(log) >= 3:
             "N": len(pred),
             "last_nowcast": nowcasts.get(model),
         })
-    lb_df = pd.DataFrame(lb_rows)
-    lb_df.to_csv(Path("docs/leaderboard.csv"), index=False)
+    if lb_rows:
+        atomic_write_csv(pd.DataFrame(lb_rows), Path("docs/leaderboard.csv"))
 
-    md += "| Model | MAE (pp) | RMSE (pp) | FDA (%) | N | Latest |\n"
-    md += "|-------|----------|-----------|---------|---|--------|\n"
-    for _, r in lb_df.iterrows():
-        latest = r.get("last_nowcast", "—")
-        latest_str = f"{latest:+.1f}%" if isinstance(latest, (int, float)) else "—"
-        style_note = ""
-        if r["model"] == "AR(1)":
-            style_note = " *(baseline)*"
-        elif r["model"] == "NAIVE":
-            style_note = " *(last Q)*"
-        elif r["model"] == "ENSEMBLE":
-            style_note = " *(combined)*"
-        md += f"| {r['model']}{style_note} | {r['MAE (pp)']:.3f} | {r['RMSE (pp)']:.3f} | {r['FDA (%)']:.1f}% | {int(r['N'])} | {latest_str} |\n"
+# -------------------------------------------------------------------
+# 6. Generate markdown leaderboard (DOSM-comparable format)
+# -------------------------------------------------------------------
+latest_actual_label = backcast_label
+latest_actual_yoy = actual_yoy_gdp
+
+md_out = "# Malaysia GDP Nowcasting — Live Leaderboard\n\n"
+md_out += f"**Updated:** {today_str} | **Latest actual:** {latest_actual_label} | **Nowcasting:** {nowcast_label}\n\n"
+
+md_out += "## GDP Nowcast (YoY %)\n\n"
+md_out += f"*Nowcasting {nowcast_label} — no ground truth available yet (releases ~mid-{(current_quarter*3+2)%12 or 12}).*\n\n"
+md_out += "| Model | Nowcast |\n|-------|--------|\n"
+for model_name, model_key in [("DFM", "dfm_yoy"), ("BVAR", "bvar_yoy"), ("ENSEMBLE", "ensemble_yoy")]:
+    val = nowcasts.get(model_key)
+    md_out += f"| {model_name} | {f'`{val:+.1f}%`' if val is not None else '—'} |\n"
+
+md_out += f"\n## Backcast Accuracy ({latest_actual_label}, YoY %)\n\n"
+if latest_actual_yoy is not None:
+    md_out += f"*How well models estimated {latest_actual_label}. DOSM actual: `{latest_actual_yoy:+.1f}%`.*\n\n"
 else:
-    md += f"*Requires 3+ daily observations. Currently: {len(log)}.*\n\n"
-    md += "| Model | MAE | RMSE | FDA | N | Latest |\n"
-    md += "|-------|-----|------|-----|---|--------|\n"
-    for model in ["DFM", "BVAR", "BEQ", "AR(1)", "NAIVE", "ENSEMBLE"]:
-        col = model.lower()
-        val = nowcasts.get(col)
-        latest_str = f"{val:+.1f}%" if val is not None else "—"
-        style_note = " *(baseline)*" if model == "AR(1)" else " *(last Q)*" if model == "NAIVE" else " *(combined)*" if model == "ENSEMBLE" else ""
-        md += f"| {model}{style_note} | — | — | — | {len(log)} | {latest_str} |\n"
+    md_out += f"*How well models estimated {latest_actual_label}. DOSM actual: unavailable.*\n\n"
+md_out += "| Model | Estimate | Error |\n|-------|----------|-------|\n"
+for model_name, model_key in [("DFM", "dfm_yoy"), ("BVAR", "bvar_yoy"), ("ENSEMBLE", "ensemble_yoy")]:
+    val = nowcasts.get(model_key)
+    val_str = f"`{val:+.1f}%`" if val is not None else "—"
+    err_str = "—"
+    if val is not None and latest_actual_yoy is not None:
+        err_str = f"{abs(val - latest_actual_yoy):.1f}pp"
+    md_out += f"| {model_name} | {val_str} | {err_str} |\n"
 
-# --- Section 6: Recent Nowcasts ---
-md += f"\n## Recent Nowcasts ({min(30, len(log))} days)\n\n"
-md += "| Date | DFM | BVAR | BEQ | AR(1) | NAIVE | ENSEMBLE | Actual |\n"
-md += "|------|-----|------|-----|-------|-------|----------|--------|\n"
+md_out += "\n## GDP by Economic Sector (YoY %)\n\n"
+md_out += '*Comparable to DOSM "A deeper look at GDP by economic sector". Actual values from `gdp_qtr_real_supply`.*\n\n'
+sector_labels = {
+    "agriculture": "Agriculture", "mining": "Mining & Quarrying",
+    "manufacturing": "Manufacturing", "construction": "Construction", "services": "Services",
+}
+md_out += "| Sector | Latest Actual |\n|--------|---------------|\n"
+for sector_key, sector_name in sector_labels.items():
+    act = sector_actuals.get(sector_key)
+    md_out += f"| {sector_name} | {f'`{act:+.1f}%`' if act is not None else '—'} |\n"
+if actual_yoy_gdp is not None:
+    md_out += f"| **Overall GDP** | `{actual_yoy_gdp:+.1f}%` |\n"
+
+md_out += "\n## GDP by Expenditure Category (YoY %)\n\n"
+md_out += '*Comparable to DOSM "A deeper look at GDP by expenditure category". BVAR primary, DFM comparison.*\n\n'
+comp_labels = {
+    "consumption": ("Private Consumption", "C"),
+    "investment": ("Gross Fixed Capital Formation", "I"),
+    "government": ("Government Consumption", "G"),
+    "exports_comp": ("Exports", "X"),
+    "imports_comp": ("Imports", "M"),
+}
+md_out += "| Component | BVAR | DFM | Actual | Error (BVAR) |\n|-----------|------|-----|--------|--------------|\n"
+for ck, (clabel, ccode) in comp_labels.items():
+    bvar_val = nowcasts.get(ck)
+    dfm_val = nowcasts.get(ck + "_dfm")
+    act_val = nowcasts.get(ck + "_actual")
+    bvar_str = f"{bvar_val:+.1f}%" if bvar_val is not None else "—"
+    dfm_str = f"{dfm_val:+.1f}%" if dfm_val is not None else "—"
+    act_str = f"{act_val:+.1f}%" if act_val is not None else "—"
+    err_str = f"{abs(bvar_val - act_val):.1f}pp" if (bvar_val is not None and act_val is not None) else "—"
+    md_out += f"| **{clabel}** ({ccode}) | {bvar_str} | {dfm_str} | {act_str} | {err_str} |\n"
+
+md_out += "\n## Model Accuracy (Rolling)\n\n"
+md_out += "*Daily nowcast accuracy vs DOSM actuals. Metrics appear after 3+ days.*\n\n"
+if len(log) >= 3:
+    lb_rows = []
+    for model in ["dfm", "bvar", "beq", "ar1", "naive", "ensemble"]:
+        if model not in log.columns:
+            continue
+        sub = log[[model, "actual_gdp_pct"]].dropna()
+        if len(sub) < 3:
+            continue
+        pred = pd.to_numeric(sub[model], errors="coerce").values
+        act = pd.to_numeric(sub["actual_gdp_pct"], errors="coerce").values
+        valid = ~np.isnan(pred) & ~np.isnan(act)
+        pred, act = pred[valid], act[valid]
+        if len(pred) < 3:
+            continue
+        lb_rows.append({
+            "model": model.upper(),
+            "MAE (pp)": round(compute_mae(act, pred), 3),
+            "RMSE (pp)": round(compute_rmse(act, pred), 3),
+            "FDA (%)": round(compute_fda(act, pred) * 100, 1),
+            "N": len(pred),
+            "last_nowcast": nowcasts.get(model),
+        })
+    if lb_rows:
+        lb_df = pd.DataFrame(lb_rows)
+        atomic_write_csv(lb_df, Path("docs/leaderboard.csv"))
+        md_out += "| Model | MAE (pp) | RMSE (pp) | FDA (%) | N | Latest |\n"
+        md_out += "|-------|----------|-----------|---------|---|--------|\n"
+        for _, r in lb_df.iterrows():
+            latest = r.get("last_nowcast", "—")
+            latest_str = f"{latest:+.1f}%" if isinstance(latest, (int, float)) else "—"
+            note = {"AR1": " *(baseline)*", "NAIVE": " *(last Q)*",
+                    "ENSEMBLE": " *(combined)*"}.get(r["model"], "")
+            md_out += f"| {r['model']}{note} | {r['MAE (pp)']:.3f} | {r['RMSE (pp)']:.3f} | {r['FDA (%)']:.1f}% | {int(r['N'])} | {latest_str} |\n"
+    else:
+        md_out += f"*Requires 3+ daily observations. Currently: {len(log)}.*\n\n"
+else:
+    md_out += f"*Requires 3+ daily observations. Currently: {len(log)}.*\n\n"
+    md_out += "| Model | MAE | RMSE | FDA | N | Latest |\n|-------|-----|------|-----|---|--------|\n"
+    for model in ["DFM", "BVAR", "BEQ", "AR1", "NAIVE", "ENSEMBLE"]:
+        val = nowcasts.get(model.lower())
+        latest_str = f"{val:+.1f}%" if val is not None else "—"
+        note = {"AR1": " *(baseline)*", "NAIVE": " *(last Q)*",
+                "ENSEMBLE": " *(combined)*"}.get(model, "")
+        md_out += f"| {model}{note} | — | — | — | {len(log)} | {latest_str} |\n"
+
+md_out += f"\n## Recent Nowcasts ({min(30, len(log))} days)\n\n"
+md_out += "| Date | DFM | BVAR | BEQ | AR(1) | NAIVE | ENSEMBLE | Actual |\n"
+md_out += "|------|-----|------|-----|-------|-------|----------|--------|\n"
 for _, row in log.tail(30).iterrows():
     vals = []
     for m in ["dfm", "bvar", "beq", "ar1", "naive", "ensemble"]:
@@ -1254,32 +1197,36 @@ for _, row in log.tail(30).iterrows():
         vals.append(f"{v:+.1f}%" if pd.notna(v) else "—")
     actual_v = row.get("actual_gdp_pct")
     actual_str = f"{actual_v:+.1f}%" if pd.notna(actual_v) else "—"
-    md += f"| {row['date']} | {vals[0]} | {vals[1]} | {vals[2]} | {vals[3]} | {vals[4]} | {vals[5]} | {actual_str} |\n"
+    md_out += f"| {row['date']} | {vals[0]} | {vals[1]} | {vals[2]} | {vals[3]} | {vals[4]} | {vals[5]} | {actual_str} |\n"
 
-# --- Section 7: Data Sources ---
-md += "\n## Data Sources\n\n"
-md += "- **GDP (YoY):** DOSM `gdp_qtr_real` — non-SA, constant 2015 prices\n"
-md += "- **Sectors:** DOSM `gdp_qtr_real_supply` — supply-side breakdown\n"
-md += "- **Expenditure:** DOSM `gdp_qtr_real_demand` — demand-side breakdown\n"
-md += "- **Dashboard:** [OpenDOSM GDP](https://open.dosm.gov.my/dashboard/gdp)\n"
-md += "- **API:** [OpenDOSM Developer](https://developer.data.gov.my/static-api/opendosm)\n"
-md += f"- **Last updated:** {today_str}\n\n"
-md += f"---\n*Auto-generated daily at 8am MYT via GitHub Actions. [View source](https://github.com/pengkodammaya/BM-ECB)*\n"
+md_out += "\n## Data Sources\n\n"
+md_out += "- **GDP (YoY):** DOSM `gdp_qtr_real` — non-SA, constant 2015 prices\n"
+md_out += "- **Sectors:** DOSM `gdp_qtr_real_supply` — supply-side breakdown\n"
+md_out += "- **Expenditure:** DOSM `gdp_qtr_real_demand` — demand-side breakdown\n"
+md_out += "- **Dashboard:** [OpenDOSM GDP](https://open.dosm.gov.my/dashboard/gdp)\n"
+md_out += "- **API:** [OpenDOSM Developer](https://developer.data.gov.my/static-api/opendosm)\n"
+md_out += f"- **Last updated:** {today_str}\n\n"
+md_out += "---\n*Auto-generated daily at 8am MYT via GitHub Actions. [View source](https://github.com/pengkodammaya/BM-ECB)*\n"
+
 leaderboard_path = Path("docs") / "leaderboard.md"
-leaderboard_path.write_text(md, encoding="utf-8")
-print(f"[{datetime.now().isoformat()}] Leaderboard written to {leaderboard_path} ({leaderboard_path.stat().st_size} bytes)")
+leaderboard_path.write_text(md_out, encoding="utf-8")
+logger.info("Leaderboard written to %s", leaderboard_path)
 
 # Generate dashboards
 import subprocess
 for script in ["generate_dashboard.py", "generate_dashboard_md.py"]:
-    result = subprocess.run([sys.executable, f"scripts/{script}"], capture_output=True, text=True)
-    if result.returncode == 0:
-        print(f"[{datetime.now().isoformat()}] {script} completed")
-    else:
-        print(f"[{datetime.now().isoformat()}] {script} failed: {result.stderr}")
+    try:
+        result = subprocess.run([sys.executable, f"scripts/{script}"],
+                                capture_output=True, text=True, timeout=300)
+        if result.returncode == 0:
+            logger.info("%s completed", script)
+        else:
+            logger.warning("%s failed: %s", script, result.stderr)
+    except Exception as e:
+        logger.warning("%s could not run: %s", script, e)
 
 # ---------------------------------------------------------------------------
-# 7. Generate HTML dashboard (DOSM-style)
+# 7. Generate HTML dashboard data + inject (idempotent)
 # ---------------------------------------------------------------------------
 dashboard_data = {
     "lastUpdated": today_str,
@@ -1295,46 +1242,28 @@ dashboard_data = {
         "bvar": {"estimate": nowcasts.get("bvar_yoy"), "error": None},
         "ensemble": {"estimate": nowcasts.get("ensemble_yoy"), "error": None},
     },
-    "components": {
-        "consumption": {
-            "bvar": nowcasts.get("consumption"),
-            "actual": nowcasts.get("consumption_actual"),
-            "error": round(abs(nowcasts.get("consumption", 0) - nowcasts.get("consumption_actual", 0)), 1) if nowcasts.get("consumption") and nowcasts.get("consumption_actual") else None,
-        },
-        "investment": {
-            "bvar": nowcasts.get("investment"),
-            "actual": nowcasts.get("investment_actual"),
-            "error": round(abs(nowcasts.get("investment", 0) - nowcasts.get("investment_actual", 0)), 1) if nowcasts.get("investment") and nowcasts.get("investment_actual") else None,
-        },
-        "government": {
-            "bvar": nowcasts.get("government"),
-            "actual": nowcasts.get("government_actual"),
-            "error": round(abs(nowcasts.get("government", 0) - nowcasts.get("government_actual", 0)), 1) if nowcasts.get("government") and nowcasts.get("government_actual") else None,
-        },
-        "exports": {
-            "bvar": nowcasts.get("exports_comp"),
-            "actual": nowcasts.get("exports_comp_actual"),
-            "error": round(abs(nowcasts.get("exports_comp", 0) - nowcasts.get("exports_comp_actual", 0)), 1) if nowcasts.get("exports_comp") and nowcasts.get("exports_comp_actual") else None,
-        },
-        "imports": {
-            "bvar": nowcasts.get("imports_comp"),
-            "actual": nowcasts.get("imports_comp_actual"),
-            "error": round(abs(nowcasts.get("imports_comp", 0) - nowcasts.get("imports_comp_actual", 0)), 1) if nowcasts.get("imports_comp") and nowcasts.get("imports_comp_actual") else None,
-        },
-    },
+    "components": {},
     "sectors": sector_actuals,
     "leaderboard": [],
     "recent": [],
 }
 
-# Compute backcast errors
+for comp_out, comp_key in [("consumption", "consumption"), ("investment", "investment"),
+                           ("government", "government"), ("exports", "exports_comp"),
+                           ("imports", "imports_comp")]:
+    bvar_v = nowcasts.get(comp_key)
+    act_v = nowcasts.get(comp_key + "_actual")
+    err = round(abs(bvar_v - act_v), 1) if (bvar_v is not None and act_v is not None) else None
+    dashboard_data["components"][comp_out] = {"bvar": bvar_v, "actual": act_v, "error": err}
+
+# Backcast errors
 if actual_yoy_gdp is not None:
     for model_key in ["dfm", "bvar", "ensemble"]:
         est = dashboard_data["backcast"][model_key]["estimate"]
         if est is not None:
             dashboard_data["backcast"][model_key]["error"] = round(abs(est - actual_yoy_gdp), 1)
 
-# Build leaderboard rows
+# Leaderboard rows
 if len(log) >= 3:
     for model in ["dfm", "bvar", "beq", "ensemble"]:
         if model not in log.columns:
@@ -1345,8 +1274,7 @@ if len(log) >= 3:
         pred = pd.to_numeric(sub[model], errors="coerce").values
         act = pd.to_numeric(sub["actual_gdp_pct"], errors="coerce").values
         valid = ~np.isnan(pred) & ~np.isnan(act)
-        pred = pred[valid]
-        act = act[valid]
+        pred, act = pred[valid], act[valid]
         if len(pred) < 3:
             continue
         dashboard_data["leaderboard"].append({
@@ -1355,10 +1283,9 @@ if len(log) >= 3:
             "rmse": round(compute_rmse(act, pred), 3),
             "fda": round(compute_fda(act, pred) * 100, 1),
             "n": len(pred),
-            "latest": round(float(nowcasts.get(model, 0)), 1),
+            "latest": round(float(nowcasts.get(model, 0)), 1) if nowcasts.get(model) is not None else None,
         })
 
-# Build recent rows
 for _, row in log.tail(30).iterrows():
     recent_row = {"date": row["date"]}
     for m in ["dfm", "bvar", "beq", "ensemble"]:
@@ -1368,20 +1295,25 @@ for _, row in log.tail(30).iterrows():
     recent_row["actual"] = round(float(actual_v), 1) if pd.notna(actual_v) else None
     dashboard_data["recent"].append(recent_row)
 
-# Inject data into HTML template
+# Inject data into HTML template — idempotent regex replace (count=1).
+# Using a function replacement avoids backslashes in the JSON being treated
+# as regex group references. subn lets us detect a missing marker.
 dashboard_html_path = Path("docs") / "dashboard.html"
 if dashboard_html_path.exists():
     html_template = dashboard_html_path.read_text(encoding="utf-8")
-    
-    # Replace the data object in the script
     data_json = json.dumps(dashboard_data, indent=2)
-    html_new = html_template.replace(
-        "const data = {",
-        f"const data = {data_json};\n        // Original template below\n        const data_old = {{"
+    html_new, n_sub = re.subn(
+        r"const data = \{.*?\};",
+        lambda _m: f"const data = {data_json};",
+        html_template,
+        count=1,
+        flags=re.DOTALL,
     )
-    
-    dashboard_html_path.write_text(html_new, encoding="utf-8")
-    print(f"[{datetime.now().isoformat()}] Dashboard written to {dashboard_html_path}")
+    if n_sub == 0:
+        logger.warning("Dashboard marker 'const data = {...};' not found — skipping injection.")
+    else:
+        dashboard_html_path.write_text(html_new, encoding="utf-8")
+        logger.info("Dashboard written to %s", dashboard_html_path)
 
-print(f"[{datetime.now().isoformat()}] Daily update complete.")
-print(json.dumps(nowcasts, indent=2))
+logger.info("Daily update complete.")
+logger.info("Nowcasts: %s", json.dumps({k: v for k, v in nowcasts.items() if k != "sector_actuals"}, indent=2))
