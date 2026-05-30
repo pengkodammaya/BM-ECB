@@ -18,9 +18,9 @@
 
 | Model | Nowcast | 90% Confidence Band | Description |
 |-------|:-------:|:-------------------:|-------------|
-| **DFM** | `+10.5%` | — | Dynamic Factor Model (r=2, p=4) |
+| **DFM** | `+9.7%` | — | Dynamic Factor Model (r=2, p=4) |
 | **BVAR** | `+4.1%` | `[—, —]` | Bayesian VAR with Minnesota prior |
-| **Ensemble** | `+7.3%` | — | Median of DFM + BVAR |
+| **Ensemble** | `+6.9%` | — | Median of DFM + BVAR |
 
 > *Q2 2026 actual releases ~August 2026. Nowcasts cannot be validated yet.*
 > *BVAR confidence band computed from posterior draws (10th/90th percentiles).*
@@ -33,9 +33,9 @@
 
 | Model | Estimate | Error | Accuracy |
 |-------|:--------:|:-----:|----------|
-| **DFM** | +10.5% | 5.1pp | 🔴 Fair |
+| **DFM** | +9.7% | 4.3pp | 🔴 Fair |
 | **BVAR** | +4.1% | 1.3pp | 🟡 Good |
-| **Ensemble** | +7.3% | 1.9pp | 🟡 Good |
+| **Ensemble** | +6.9% | 1.5pp | 🟡 Good |
 
 ---
 
@@ -74,12 +74,12 @@
 
 | Model | MAE (pp) | RMSE (pp) | FDA (%) | N | Latest |
 |-------|:--------:|:---------:|:-------:|:-:|:------:|
-| DFM | 3.114 | 3.404 | 0.0% | 5 | +3.0% |
+| DFM | 3.046 | 3.347 | 0.0% | 5 | +2.6% |
 | BVAR | 0.930 | 0.930 | 0.0% | 4 | +nan% |
 | BEQ | 1.088 | 1.088 | 0.0% | 5 | +1.1% |
 | AR1 *(baseline)* | 1.470 | 1.470 | 100.0% | 5 | +1.5% |
 | NAIVE *(last Q)* | 0.000 | 0.000 | 100.0% | 4 | -0.0% |
-| ENSEMBLE *(combined)* | 1.182 | 1.190 | 0.0% | 5 | +1.3% |
+| ENSEMBLE *(combined)* | 1.176 | 1.183 | 0.0% | 5 | +1.2% |
 
 ---
 
@@ -91,7 +91,7 @@
 | 2026-05-27 | +2.4% | +0.9% | [-203.0%, -201.0%] | +1.1% | +1.1% | -0.0% |
 | 2026-05-28 | +5.8% | +0.9% | [-202.0%, -201.0%] | +1.1% | +1.4% | -0.0% |
 | 2026-05-29 | +2.2% | +0.9% | — | +1.1% | +1.0% | -0.0% |
-| 2026-05-30 | +3.0% | — | — | +1.1% | +1.3% | -0.0% |
+| 2026-05-30 | +2.6% | — | — | +1.1% | +1.2% | -0.0% |
 
 ---
 
