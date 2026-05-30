@@ -1104,8 +1104,9 @@ if existing is not None:
         mask = existing["target_quarter"].isna()
         if mask.any():
             # Old rows without target_quarter: assume they targeted the current quarter
-            existing.loc[mask, "target_quarter"] = target_q
-            logger.info("Backfilled target_quarter=%s for %d old rows.", target_q, mask.sum())
+            tq_fill = nowcasts.get("target_quarter", f"{current_year}-Q{current_quarter}")
+            existing.loc[mask, "target_quarter"] = tq_fill
+            logger.info("Backfilled target_quarter=%s for %d old rows.", tq_fill, mask.sum())
     # Backfill YoY migration: old rows have QoQ in dfm, YoY in dfm_yoy
     # Move dfm_yoy -> dfm for old rows where dfm_yoy exists
     if "dfm_yoy" in existing.columns and "dfm" in existing.columns:
