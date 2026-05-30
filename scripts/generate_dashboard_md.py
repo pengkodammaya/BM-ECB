@@ -1,156 +1,110 @@
-"""Generate markdown dashboard resembling DOSM GDP style.
+"""Generate markdown dashboard (DOSM-style) from docs/data.json.
 
-Run after daily_update.py to create docs/dashboard.md
+data.json is the single source of truth, written by daily_update.py. Reading
+from it guarantees dashboard.md never drifts from dashboard.html, and that
+quarter labels / actuals roll forward automatically — nothing is hardcoded.
+
+CI-safe: if data.json is missing or malformed, this exits 0 with a warning
+instead of failing the GitHub Action.
 """
-import sys; sys.path.insert(0, "src")
-
 import json
-import pandas as pd
+import logging
 from pathlib import Path
-from datetime import datetime
 
-from nowcasting_toolbox.eval.metrics import compute_mae, compute_fda, compute_rmse
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger("dashboard_md")
 
-# Load daily log
-log_path = Path("docs/daily_log.csv")
-if not log_path.exists():
-    print("No daily_log.csv found. Run daily_update.py first.")
-    sys.exit(1)
+DATA_PATH = Path("docs/data.json")
+OUT_PATH = Path("docs/dashboard.md")
 
-log = pd.read_csv(log_path)
-latest = log.iloc[-1]
 
-# Load leaderboard if exists
-lb_path = Path("docs/leaderboard.csv")
-leaderboard = []
-if lb_path.exists():
-    lb = pd.read_csv(lb_path)
-    for _, row in lb.iterrows():
-        leaderboard.append({
-            "model": row["model"],
-            "mae": round(row["MAE (pp)"], 3),
-            "rmse": round(row["RMSE (pp)"], 3),
-            "fda": round(row["FDA (%)"], 1),
-            "n": int(row["N"]),
-            "latest": round(float(row.get("last_nowcast", 0)), 1),
-        })
+def fmt_pct(v):
+    return "—" if v is None else f"{v:+.1f}%"
 
-# Extract values
-today_str = str(latest["date"])
-actual_yoy = 5.4  # Q1 2026 actual
-actual_quarter = "Q1 2026"
-nowcast_quarter = "Q2 2026"
 
-dfm_yoy = round(float(latest.get("dfm_yoy", 0)), 1) if pd.notna(latest.get("dfm_yoy")) else None
-bvar_yoy = round(float(latest.get("bvar_yoy", 0)), 1) if pd.notna(latest.get("bvar_yoy")) else None
-ensemble_yoy = round(float(latest.get("ensemble_yoy", 0)), 1) if pd.notna(latest.get("ensemble_yoy")) else None
+def fmt_err(v):
+    return "—" if v is None else f"{v:.1f}pp"
 
-# Components
-components = {
-    "consumption": {
-        "bvar": round(float(latest.get("consumption", 0)), 1) if pd.notna(latest.get("consumption")) else None,
-        "actual": round(float(latest.get("consumption_actual", 0)), 1) if pd.notna(latest.get("consumption_actual")) else None,
-    },
-    "investment": {
-        "bvar": round(float(latest.get("investment", 0)), 1) if pd.notna(latest.get("investment")) else None,
-        "actual": round(float(latest.get("investment_actual", 0)), 1) if pd.notna(latest.get("investment_actual")) else None,
-    },
-    "government": {
-        "bvar": round(float(latest.get("government", 0)), 1) if pd.notna(latest.get("government")) else None,
-        "actual": round(float(latest.get("government_actual", 0)), 1) if pd.notna(latest.get("government_actual")) else None,
-    },
-    "exports": {
-        "bvar": round(float(latest.get("exports_comp", 0)), 1) if pd.notna(latest.get("exports_comp")) else None,
-        "actual": round(float(latest.get("exports_comp_actual", 0)), 1) if pd.notna(latest.get("exports_comp_actual")) else None,
-    },
-    "imports": {
-        "bvar": round(float(latest.get("imports_comp", 0)), 1) if pd.notna(latest.get("imports_comp")) else None,
-        "actual": round(float(latest.get("imports_comp_actual", 0)), 1) if pd.notna(latest.get("imports_comp_actual")) else None,
-    },
-}
 
-# Compute errors
-for k, v in components.items():
-    if v["bvar"] is not None and v["actual"] is not None:
-        v["error"] = round(abs(v["bvar"] - v["actual"]), 1)
-    else:
-        v["error"] = None
-
-# Sectors (hardcoded from latest DOSM data)
-sectors = {
-    "Agriculture": 2.6,
-    "Mining & Quarrying": -2.1,
-    "Manufacturing": 5.9,
-    "Construction": 7.7,
-    "Services": 5.6,
-}
-
-# Helper functions
-def fmt_pct(val):
-    if val is None:
-        return "—"
-    return f"{val:+.1f}%"
-
-def fmt_err(val):
-    if val is None:
-        return "—"
-    return f"{val:.1f}pp"
-
-def accuracy_badge(err):
+def badge(err):
     if err is None:
         return "—"
     if err < 1:
         return "🟢 Excellent"
-    elif err < 2:
+    if err < 2:
         return "🟡 Good"
-    else:
-        return "🔴 Fair"
+    return "🔴 Fair"
 
-def sign(val):
-    if val is None:
-        return "—"
-    return f"{val:+.1f}%"
 
-# Build markdown
-md = f"""# Malaysia GDP Nowcasting — Dashboard
+def main():
+    if not DATA_PATH.exists():
+        logger.warning("No data.json found — run daily_update.py first. Skipping.")
+        return
+    try:
+        data = json.loads(DATA_PATH.read_text(encoding="utf-8"))
+    except Exception as e:
+        logger.warning("data.json malformed (%s) — skipping dashboard.md.", e)
+        return
+
+    today = data.get("lastUpdated", "—")
+    target_q = data.get("targetQuarter", "—")
+    la = data.get("latestActual", {}) or {}
+    actual_quarter = la.get("quarter", "—")
+    actual_yoy = la.get("yoy")
+    nc = data.get("nowcast", {}) or {}
+    nowcast_quarter = nc.get("quarter", "—")
+    bc = data.get("backcast", {}) or {}
+    components = data.get("components", {}) or {}
+    sectors = data.get("sectors", {}) or {}
+    sector_nc = data.get("sectorNowcast", {}) or {}
+    leaderboard = data.get("leaderboard", []) or []
+    by_h = data.get("byHorizon", []) or []
+    recent = data.get("recent", []) or []
+
+    ci10, ci90 = nc.get("bvar_ci_10"), nc.get("bvar_ci_90")
+    band = f"[{fmt_pct(ci10)}, {fmt_pct(ci90)}]" if (ci10 is not None and ci90 is not None) else "—"
+
+    md = f"""# Malaysia GDP Nowcasting — Dashboard
 
 > *Comparable to [OpenDOSM GDP Dashboard](https://open.dosm.gov.my/dashboard/gdp)*
 
-**Last updated:** {today_str} | **Latest actual:** {actual_quarter} | **Nowcasting:** {nowcast_quarter}
+**Last updated:** {today} | **Latest actual:** {actual_quarter} | **Nowcasting:** {nowcast_quarter}
 
 ---
 
 ## How is GDP trending?
 
-### Q1 2026 Actual (YoY)
+### {actual_quarter} Actual (YoY)
 
 | | Value | Source |
 |---|:---:|---|
 | **GDP Growth** | **`{fmt_pct(actual_yoy)}`** | DOSM Official |
 
-### Q2 2026 Nowcast (YoY) — No ground truth yet
+### {nowcast_quarter} Nowcast (YoY) — No ground truth yet
 
 | Model | Nowcast | 90% Confidence Band | Description |
 |-------|:-------:|:-------------------:|-------------|
-| **DFM** | `{sign(dfm_yoy)}` | — | Dynamic Factor Model (r=2, p=4) |
-| **BVAR** | `{sign(bvar_yoy)}` | `[{sign(round(float(latest.get('bvar_ci_10', 0)) * 100, 1) if pd.notna(latest.get('bvar_ci_10')) else None)}, {sign(round(float(latest.get('bvar_ci_90', 0)) * 100, 1) if pd.notna(latest.get('bvar_ci_90')) else None)}]` | Bayesian VAR with Minnesota prior |
-| **Ensemble** | `{sign(ensemble_yoy)}` | — | Median of DFM + BVAR |
+| **DFM** | `{fmt_pct(nc.get('dfm'))}` | — | Dynamic Factor Model (r=2, p=4) |
+| **BVAR** | `{fmt_pct(nc.get('bvar'))}` | `{band}` | Bayesian VAR with Minnesota prior |
+| **Ensemble** | `{fmt_pct(nc.get('ensemble'))}` | — | Median of DFM + BVAR |
 
-> *Q2 2026 actual releases ~August 2026. Nowcasts cannot be validated yet.*
-> *BVAR confidence band computed from posterior draws (10th/90th percentiles).*
+> *{nowcast_quarter} actual releases the quarter after it ends; scored once published.*
 
 ---
 
 ## Backcast Accuracy — {actual_quarter}
 
-*How well models estimated {actual_quarter}. Actual: `{fmt_pct(actual_yoy)}` YoY.*
+*Nowcasts made for {actual_quarter}, scored against its FROZEN first-release actual (`{fmt_pct(actual_yoy)}` YoY).*
 
 | Model | Estimate | Error | Accuracy |
 |-------|:--------:|:-----:|----------|
-| **DFM** | {sign(dfm_yoy)} | {fmt_err(abs(dfm_yoy - actual_yoy) if dfm_yoy else None)} | {accuracy_badge(abs(dfm_yoy - actual_yoy) if dfm_yoy else None)} |
-| **BVAR** | {sign(bvar_yoy)} | {fmt_err(abs(bvar_yoy - actual_yoy) if bvar_yoy else None)} | {accuracy_badge(abs(bvar_yoy - actual_yoy) if bvar_yoy else None)} |
-| **Ensemble** | {sign(ensemble_yoy)} | {fmt_err(abs(ensemble_yoy - actual_yoy) if ensemble_yoy else None)} | {accuracy_badge(abs(ensemble_yoy - actual_yoy) if ensemble_yoy else None)} |
+"""
+    for label, key in [("DFM", "dfm"), ("BVAR", "bvar"), ("Ensemble", "ensemble")]:
+        d = bc.get(key, {}) or {}
+        est, err = d.get("estimate"), d.get("error")
+        md += f"| **{label}** | {fmt_pct(est)} | {fmt_err(err)} | {badge(err)} |\n"
 
+    md += f"""
 ---
 
 ## A deeper look at GDP by economic sector
@@ -159,13 +113,18 @@ md = f"""# Malaysia GDP Nowcasting — Dashboard
 
 | Sector | Actual | Nowcast | Error |
 |--------|:------:|:-------:|:-----:|
-| Agriculture | `{sign(sectors['Agriculture'])}` | `{sign(round(float(latest.get('sector_agriculture', 0)), 1) if pd.notna(latest.get('sector_agriculture')) else None)}` | `{fmt_err(abs(sectors['Agriculture'] - round(float(latest.get('sector_agriculture', 0)), 1)) if pd.notna(latest.get('sector_agriculture')) else None)}` |
-| Mining & Quarrying | `{sign(sectors['Mining & Quarrying'])}` | `{sign(round(float(latest.get('sector_mining', 0)), 1) if pd.notna(latest.get('sector_mining')) else None)}` | `{fmt_err(abs(sectors['Mining & Quarrying'] - round(float(latest.get('sector_mining', 0)), 1)) if pd.notna(latest.get('sector_mining')) else None)}` |
-| Manufacturing | `{sign(sectors['Manufacturing'])}` | `{sign(round(float(latest.get('sector_manufacturing', 0)), 1) if pd.notna(latest.get('sector_manufacturing')) else None)}` | `{fmt_err(abs(sectors['Manufacturing'] - round(float(latest.get('sector_manufacturing', 0)), 1)) if pd.notna(latest.get('sector_manufacturing')) else None)}` |
-| Construction | `{sign(sectors['Construction'])}` | `{sign(round(float(latest.get('sector_construction', 0)), 1) if pd.notna(latest.get('sector_construction')) else None)}` | `{fmt_err(abs(sectors['Construction'] - round(float(latest.get('sector_construction', 0)), 1)) if pd.notna(latest.get('sector_construction')) else None)}` |
-| Services | `{sign(sectors['Services'])}` | `{sign(round(float(latest.get('sector_services', 0)), 1) if pd.notna(latest.get('sector_services')) else None)}` | `{fmt_err(abs(sectors['Services'] - round(float(latest.get('sector_services', 0)), 1)) if pd.notna(latest.get('sector_services')) else None)}` |
-| **Overall GDP** | **`{sign(actual_yoy)}`** | **`{sign(bvar_yoy)}`** | {fmt_err(abs(actual_yoy - bvar_yoy) if bvar_yoy else None)} |
+"""
+    sector_names = {"agriculture": "Agriculture", "mining": "Mining & Quarrying",
+                    "manufacturing": "Manufacturing", "construction": "Construction",
+                    "services": "Services"}
+    for key, name in sector_names.items():
+        act = sectors.get(key)
+        ncv = sector_nc.get(key)
+        err = round(abs(ncv - act), 1) if (act is not None and ncv is not None) else None
+        md += f"| {name} | `{fmt_pct(act)}` | `{fmt_pct(ncv)}` | `{fmt_err(err)}` |\n"
+    md += f"| **Overall GDP** | **`{fmt_pct(actual_yoy)}`** | **`{fmt_pct(bc.get('bvar', {}).get('estimate'))}`** | {fmt_err(bc.get('bvar', {}).get('error'))} |\n"
 
+    md += f"""
 ---
 
 ## A deeper look at GDP by expenditure category
@@ -174,54 +133,62 @@ md = f"""# Malaysia GDP Nowcasting — Dashboard
 
 | Component | BVAR | Actual | Error |
 |-----------|:----:|:------:|:-----:|
-| **Consumption** (C) | {sign(components['consumption']['bvar'])} | {sign(components['consumption']['actual'])} | {fmt_err(components['consumption']['error'])} |
-| **Investment** (I) | {sign(components['investment']['bvar'])} | {sign(components['investment']['actual'])} | {fmt_err(components['investment']['error'])} |
-| **Government** (G) | {sign(components['government']['bvar'])} | {sign(components['government']['actual'])} | {fmt_err(components['government']['error'])} |
-| **Exports** (X) | {sign(components['exports']['bvar'])} | {sign(components['exports']['actual'])} | {fmt_err(components['exports']['error'])} |
-| **Imports** (M) | {sign(components['imports']['bvar'])} | {sign(components['imports']['actual'])} | {fmt_err(components['imports']['error'])} |
+"""
+    comp_names = {"consumption": "Consumption (C)", "investment": "Investment (I)",
+                  "government": "Government (G)", "exports": "Exports (X)", "imports": "Imports (M)"}
+    for key, name in comp_names.items():
+        d = components.get(key, {}) or {}
+        md += f"| **{name}** | {fmt_pct(d.get('bvar'))} | {fmt_pct(d.get('actual'))} | {fmt_err(d.get('error'))} |\n"
 
+    md += """
 ---
 
-## Model Accuracy (Rolling)
+## Model Accuracy (vintage-frozen, quarter-matched)
 
-*Daily nowcast accuracy vs DOSM actuals. Lower MAE = better. Higher FDA = better.*
+*MAE/RMSE/FDA vs FIRST-RELEASE actuals, joined on target quarter. Lower MAE = better.*
 
 | Model | MAE (pp) | RMSE (pp) | FDA (%) | N | Latest |
 |-------|:--------:|:---------:|:-------:|:-:|:------:|
 """
+    if leaderboard:
+        for r in leaderboard:
+            note = {"AR1": " *(baseline)*", "NAIVE": " *(last Q)*",
+                    "ENSEMBLE": " *(combined)*"}.get(r.get("model"), "")
+            md += (f"| {r.get('model')}{note} | {r.get('mae', 0):.3f} | {r.get('rmse', 0):.3f} "
+                   f"| {r.get('fda', 0):.1f}% | {r.get('n', 0)} | {fmt_pct(r.get('latest'))} |\n")
+    else:
+        md += "| — | — | — | — | 0 | — |\n"
 
-for r in leaderboard:
-    model = r["model"]
-    note = ""
-    if model == "AR1":
-        note = " *(baseline)*"
-    elif model == "NAIVE":
-        note = " *(last Q)*"
-    elif model == "ENSEMBLE":
-        note = " *(combined)*"
-    md += f"| {model}{note} | {r['mae']:.3f} | {r['rmse']:.3f} | {r['fda']:.1f}% | {r['n']} | {sign(r['latest'])} |\n"
+    md += """
+---
 
-md += f"""
+## Accuracy by Horizon (QoQ)
+
+*forecast = before quarter; m1/m2/m3 = month within quarter; backcast = after quarter, pre-release.*
+
+| Model | Horizon | MAE (pp) | N |
+|-------|:-------:|:--------:|:-:|
+"""
+    if by_h:
+        for r in sorted(by_h, key=lambda x: (x.get("model", ""), x.get("horizon", ""))):
+            md += f"| {r.get('model')} | {r.get('horizon')} | {r.get('MAE (pp)', 0):.3f} | {r.get('N', 0)} |\n"
+    else:
+        md += "| — | — | — | — |\n"
+
+    md += """
 ---
 
 ## Recent Nowcasts
 
-| Date | DFM | BVAR | 90% Band | BEQ | Ensemble | Actual |
-|------|:---:|:----:|:--------:|:---:|:--------:|:------:|
+| Date | Target Q | DFM | BVAR | BEQ | Ensemble | Actual |
+|------|:--------:|:---:|:----:|:---:|:--------:|:------:|
 """
+    for r in recent:
+        md += (f"| {r.get('date')} | {r.get('target_quarter', '—')} | {fmt_pct(r.get('dfm'))} "
+               f"| {fmt_pct(r.get('bvar'))} | {fmt_pct(r.get('beq'))} "
+               f"| {fmt_pct(r.get('ensemble'))} | {fmt_pct(r.get('actual'))} |\n")
 
-for _, row in log.tail(30).iterrows():
-    dfm = round(float(row["dfm"]), 1) if pd.notna(row.get("dfm")) else None
-    bvar = round(float(row["bvar"]), 1) if pd.notna(row.get("bvar")) else None
-    beq = round(float(row["beq"]), 1) if pd.notna(row.get("beq")) else None
-    ens = round(float(row["ensemble"]), 1) if pd.notna(row.get("ensemble")) else None
-    act = round(float(row["actual_gdp_pct"]), 1) if pd.notna(row.get("actual_gdp_pct")) else None
-    ci_10 = round(float(row["bvar_ci_10"]) * 100, 1) if pd.notna(row.get("bvar_ci_10")) else None
-    ci_90 = round(float(row["bvar_ci_90"]) * 100, 1) if pd.notna(row.get("bvar_ci_90")) else None
-    band = f"[{sign(ci_10)}, {sign(ci_90)}]" if ci_10 is not None and ci_90 is not None else "—"
-    md += f"| {row['date']} | {sign(dfm)} | {sign(bvar)} | {band} | {sign(beq)} | {sign(ens)} | {sign(act)} |\n"
-
-md += f"""
+    md += f"""
 ---
 
 ## Data Sources
@@ -231,16 +198,21 @@ md += f"""
 | GDP (YoY) | DOSM `gdp_qtr_real` — non-SA, constant 2015 prices |
 | Sectors | DOSM `gdp_qtr_real_supply` — supply-side breakdown |
 | Expenditure | DOSM `gdp_qtr_real_demand` — demand-side breakdown |
-| Indicators | OpenDOSM, BNM, yfinance (23 monthly indicators) |
+| Vintages | `docs/actuals_vintage.csv` — first-release frozen, revisions tracked |
 
 **Dashboard:** [OpenDOSM GDP](https://open.dosm.gov.my/dashboard/gdp) | **API:** [Developer Docs](https://developer.data.gov.my/static-api/opendosm) | **Source:** [GitHub](https://github.com/pengkodammaya/BM-ECB)
 
 ---
 
-*Auto-generated daily at 8am MYT via GitHub Actions.*
+*Auto-generated daily via GitHub Actions.*
 """
 
-# Write markdown
-dashboard_path = Path("docs") / "dashboard.md"
-dashboard_path.write_text(md, encoding="utf-8")
-print(f"Dashboard written to {dashboard_path} ({len(md)} bytes)")
+    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp = OUT_PATH.with_suffix(".md.tmp")
+    tmp.write_text(md, encoding="utf-8")
+    tmp.replace(OUT_PATH)
+    logger.info("dashboard.md written (%d bytes).", len(md))
+
+
+if __name__ == "__main__":
+    main()

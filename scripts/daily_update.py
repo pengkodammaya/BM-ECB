@@ -1043,6 +1043,16 @@ try:
             for _, row in cd.iterrows():
                 vintage = update_vintage(vintage, date_to_quarter(row["date"]),
                                          f"{comp_key}_yoy", row["value"], today_str, CURRENT_BASE_YEAR)
+    # Sector YoY (so sectors are quarter-matchable too)
+    if not df_supply.empty:
+        for sc, sn in SECTOR_MAP.items():
+            sd = df_supply[(df_supply["sector"] == sc) & (df_supply["series"] == "growth_yoy")].copy()
+            if sd.empty:
+                continue
+            sd["date"] = pd.to_datetime(sd["date"])
+            for _, row in sd.iterrows():
+                vintage = update_vintage(vintage, date_to_quarter(row["date"]),
+                                         f"sector_{sn}_yoy", row["value"], today_str, CURRENT_BASE_YEAR)
     atomic_write_csv(vintage, vintage_path)
     logger.info("Vintage table updated (%d quarter-metric rows).", len(vintage))
 except Exception as e:
@@ -1151,61 +1161,162 @@ Path("docs").mkdir(parents=True, exist_ok=True)
 (Path("docs") / "leaderboard.md").write_text(md_out, encoding="utf-8")
 logger.info("Leaderboard written.")
 
-# Dashboards (subprocess, guarded)
-import subprocess
-for script in ["generate_dashboard.py", "generate_dashboard_md.py"]:
+# ---------------------------------------------------------------------------
+# 7. Canonical data.json — single source of truth for dashboard.html AND
+#    dashboard.md. Rolls with the calendar; backtest uses the latest PUBLISHED
+#    quarter scored against frozen first-release actuals.
+# ---------------------------------------------------------------------------
+def fmt_quarter(qkey):
+    """'2026-Q2' -> 'Q2 2026' for display."""
     try:
-        result = subprocess.run([sys.executable, f"scripts/{script}"],
-                                capture_output=True, text=True, timeout=300)
-        if result.returncode == 0:
-            logger.info("%s completed", script)
-        else:
-            logger.warning("%s failed: %s", script, result.stderr)
-    except Exception as e:
-        logger.warning("%s could not run: %s", script, e)
+        y, q = parse_quarter(qkey)
+        return f"Q{q} {y}"
+    except Exception:
+        return qkey
 
-# ---------------------------------------------------------------------------
-# 7. HTML dashboard data (idempotent injection)
-# ---------------------------------------------------------------------------
-dashboard_data = {
-    "lastUpdated": today_str,
-    "targetQuarter": target_q,
-    "latestActual": {"quarter": backcast_label, "yoy": actual_yoy_gdp},
-    "nowcast": {"quarter": nowcast_label, "dfm": nowcasts.get("dfm_yoy"),
-                "bvar": nowcasts.get("bvar_yoy"), "ensemble": nowcasts.get("ensemble_yoy")},
-    "components": {}, "sectors": sector_actuals,
-    "leaderboard": qoq_overall, "byHorizon": qoq_by_h, "recent": [],
-}
-for out_key, ck in [("consumption", "consumption"), ("investment", "investment"),
-                    ("government", "government"), ("exports", "exports_comp"), ("imports", "imports_comp")]:
-    bv = nowcasts.get(ck)
-    at = vintage_first_map(vintage, f"{ck}_yoy").get(target_q)
-    at = None if (at is not None and np.isnan(at)) else at
-    err = round(abs(bv - at), 1) if (bv is not None and at is not None) else None
-    dashboard_data["components"][out_key] = {"bvar": bv, "actual": at, "error": err}
 
+def latest_published_quarter(vintage_df, metric="gdp_yoy"):
+    """Most recent quarter (by year, q) that has a published value for `metric`."""
+    if vintage_df is None or vintage_df.empty:
+        return None
+    sub = vintage_df[vintage_df["metric"] == metric]
+    best, best_key = None, (-1, -1)
+    for q in sub["quarter"].unique():
+        try:
+            key = parse_quarter(q)
+        except Exception:
+            continue
+        if key > best_key:
+            best_key, best = key, q
+    return best
+
+
+def nowcast_for_quarter(log_df, col, qkey):
+    """Most-converged (latest-dated) value in `col` from rows targeting qkey."""
+    if log_df is None or col not in log_df.columns:
+        return None
+    work = log_df.copy()
+    work["_tq"] = work.apply(resolve_target_quarter, axis=1)
+    sub = work[(work["_tq"] == qkey) & work[col].notna()]
+    if sub.empty:
+        return None
+    sub = sub.sort_values("date")
+    try:
+        return round(float(sub.iloc[-1][col]), 1)
+    except Exception:
+        return None
+
+
+# Latest published quarter (the one with a known actual → drives the backtest).
+pub_q = latest_published_quarter(vintage, "gdp_yoy")
+yoy_latest_map = {}  # for display we show the current official value
+if vintage is not None and not vintage.empty:
+    sub_yoy = vintage[vintage["metric"] == "gdp_yoy"]
+    yoy_latest_map = dict(zip(sub_yoy["quarter"], pd.to_numeric(sub_yoy["latest_value"], errors="coerce")))
+yoy_first_map = vintage_first_map(vintage, "gdp_yoy")
+
+latest_actual_quarter_disp = fmt_quarter(pub_q) if pub_q else backcast_label
+latest_actual_yoy = yoy_latest_map.get(pub_q) if pub_q else actual_yoy_gdp
+if latest_actual_yoy is not None and isinstance(latest_actual_yoy, float) and np.isnan(latest_actual_yoy):
+    latest_actual_yoy = actual_yoy_gdp
+
+# Leaderboard rows in the shape dashboard.html expects (mae/rmse/fda/n/latest).
+lb_for_dash = []
+for r in qoq_overall:
+    mkey = r["model"].lower()
+    lb_for_dash.append({
+        "model": r["model"], "mae": r["MAE (pp)"], "rmse": r["RMSE (pp)"],
+        "fda": r["FDA (%)"], "n": r["N"],
+        "latest": round(float(nowcasts.get(mkey)), 1) if nowcasts.get(mkey) is not None else 0.0,
+    })
+
+# Backcast: what we nowcast for the latest PUBLISHED quarter vs its frozen actual.
+backcast = {}
+for m_disp, m_yoy in [("dfm", "dfm_yoy"), ("bvar", "bvar_yoy"), ("ensemble", "ensemble_yoy")]:
+    est = nowcast_for_quarter(log, m_yoy, pub_q) if pub_q else None
+    actual_first = yoy_first_map.get(pub_q) if pub_q else None
+    if actual_first is not None and isinstance(actual_first, float) and np.isnan(actual_first):
+        actual_first = None
+    err = round(abs(est - actual_first), 1) if (est is not None and actual_first is not None) else None
+    backcast[m_disp] = {"estimate": est, "error": err}
+
+# Components: backtest for the latest published quarter (nowcast-for-Q vs frozen actual).
+components_out = {}
+comp_col = {"consumption": "consumption", "investment": "investment", "government": "government",
+            "exports": "exports_comp", "imports": "imports_comp"}
+for out_key, logcol in comp_col.items():
+    nc = nowcast_for_quarter(log, logcol, pub_q) if pub_q else None
+    actual = vintage_first_map(vintage, f"{logcol}_yoy").get(pub_q) if pub_q else None
+    if actual is not None and isinstance(actual, float) and np.isnan(actual):
+        actual = None
+    err = round(abs(nc - actual), 1) if (nc is not None and actual is not None) else None
+    components_out[out_key] = {"bvar": nc, "actual": actual, "error": err}
+
+# Sectors: flat {key: actual} for the published quarter (HTML reads numbers).
+sectors_out, sector_nowcast_out = {}, {}
+for sc, sn in SECTOR_MAP.items():
+    actual = vintage_first_map(vintage, f"sector_{sn}_yoy").get(pub_q) if pub_q else None
+    if actual is None or (isinstance(actual, float) and np.isnan(actual)):
+        actual = sector_actuals.get(sn)  # fall back to latest snapshot
+    if actual is not None:
+        sectors_out[sn] = round(float(actual), 1)
+    nc = nowcast_for_quarter(log, f"sector_{sn}", pub_q) if pub_q else None
+    sector_nowcast_out[sn] = nc
+
+# Recent: each row's actual = frozen QoQ for its target quarter, if published.
+qoq_first_map = vintage_first_map(vintage, "gdp_qoq")
+recent_out = []
 for _, row in log.tail(30).iterrows():
-    rr = {"date": row["date"], "target_quarter": resolve_target_quarter(row)}
+    tq = resolve_target_quarter(row)
+    rr = {"date": str(row["date"]), "target_quarter": tq}
     for m in ["dfm", "bvar", "beq", "ensemble"]:
         v = row.get(m)
         rr[m] = round(float(v), 1) if pd.notna(v) else None
-    dashboard_data["recent"].append(rr)
+    a = qoq_first_map.get(tq)
+    rr["actual"] = round(float(a), 1) if (a is not None and not (isinstance(a, float) and np.isnan(a))) else None
+    recent_out.append(rr)
 
-dashboard_html_path = Path("docs") / "dashboard.html"
-if dashboard_html_path.exists():
-    try:
-        html_template = dashboard_html_path.read_text(encoding="utf-8")
-        data_json = json.dumps(dashboard_data, indent=2)
-        html_new, n_sub = re.subn(r"const data = \{.*?\};",
-                                  lambda _m: f"const data = {data_json};",
-                                  html_template, count=1, flags=re.DOTALL)
-        if n_sub == 0:
-            logger.warning("Dashboard marker 'const data = {...};' not found — skipping injection.")
-        else:
-            dashboard_html_path.write_text(html_new, encoding="utf-8")
-            logger.info("Dashboard written.")
-    except Exception as e:
-        logger.warning("Dashboard injection failed (non-fatal): %s", e)
+dashboard_data = {
+    "lastUpdated": today_str,
+    "targetQuarter": target_q,
+    "latestActual": {"quarter": latest_actual_quarter_disp, "yoy": latest_actual_yoy},
+    "nowcast": {
+        "quarter": nowcast_label,
+        "dfm": nowcasts.get("dfm_yoy"), "bvar": nowcasts.get("bvar_yoy"),
+        "ensemble": nowcasts.get("ensemble_yoy"),
+        "bvar_ci_10": nowcasts.get("bvar_ci_10"), "bvar_ci_90": nowcasts.get("bvar_ci_90"),
+    },
+    "backcast": backcast,
+    "components": components_out,
+    "sectors": sectors_out,
+    "sectorNowcast": sector_nowcast_out,
+    "leaderboard": lb_for_dash,
+    "byHorizon": qoq_by_h,
+    "recent": recent_out,
+}
+
+try:
+    data_path = Path("docs/data.json")
+    data_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = data_path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(dashboard_data, indent=2), encoding="utf-8")
+    tmp.replace(data_path)
+    logger.info("data.json written (dashboard source of truth).")
+except Exception as e:
+    logger.warning("data.json write failed (non-fatal): %s", e)
+
+# Render dashboard.md from the same data.json. generate_dashboard.py is retired
+# (dashboard.html already fetches data.json directly), so it is no longer called.
+import subprocess
+try:
+    result = subprocess.run([sys.executable, "scripts/generate_dashboard_md.py"],
+                            capture_output=True, text=True, timeout=300)
+    if result.returncode == 0:
+        logger.info("generate_dashboard_md.py completed")
+    else:
+        logger.warning("generate_dashboard_md.py failed: %s", result.stderr)
+except Exception as e:
+    logger.warning("generate_dashboard_md.py could not run: %s", e)
 
 logger.info("Daily update complete. Target quarter: %s", target_q)
 logger.info("Nowcasts: %s",
