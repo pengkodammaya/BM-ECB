@@ -1099,6 +1099,42 @@ log_path = Path("docs/daily_log.csv")
 new_row = pd.DataFrame([nowcasts])
 existing = safe_read_csv(log_path)
 if existing is not None:
+    # Backfill target_quarter for old rows that don't have it
+    if "target_quarter" in existing.columns:
+        mask = existing["target_quarter"].isna()
+        if mask.any():
+            # Old rows without target_quarter: assume they targeted the current quarter
+            existing.loc[mask, "target_quarter"] = target_q
+            logger.info("Backfilled target_quarter=%s for %d old rows.", target_q, mask.sum())
+    # Backfill YoY migration: old rows have QoQ in dfm, YoY in dfm_yoy
+    # Move dfm_yoy -> dfm for old rows where dfm_yoy exists
+    if "dfm_yoy" in existing.columns and "dfm" in existing.columns:
+        mask = existing["dfm_yoy"].notna() & (existing.get("dfm_qoq").isna() if "dfm_qoq" in existing.columns else True)
+        if mask.any():
+            # Old rows: rename dfm -> dfm_qoq, dfm_yoy -> dfm
+            if "dfm_qoq" not in existing.columns:
+                existing["dfm_qoq"] = np.nan
+            existing.loc[mask, "dfm_qoq"] = existing.loc[mask, "dfm"]
+            existing.loc[mask, "dfm"] = existing.loc[mask, "dfm_yoy"]
+            logger.info("Migrated %d old rows: dfm_yoy -> dfm, dfm -> dfm_qoq.", mask.sum())
+    # Same for bvar
+    if "bvar_yoy" in existing.columns and "bvar" in existing.columns:
+        mask = existing["bvar_yoy"].notna() & (existing.get("bvar_qoq").isna() if "bvar_qoq" in existing.columns else True)
+        if mask.any():
+            if "bvar_qoq" not in existing.columns:
+                existing["bvar_qoq"] = np.nan
+            existing.loc[mask, "bvar_qoq"] = existing.loc[mask, "bvar"]
+            existing.loc[mask, "bvar"] = existing.loc[mask, "bvar_yoy"]
+            logger.info("Migrated %d old rows: bvar_yoy -> bvar, bvar -> bvar_qoq.", mask.sum())
+    # Same for ensemble
+    if "ensemble_yoy" in existing.columns and "ensemble" in existing.columns:
+        mask = existing["ensemble_yoy"].notna() & (existing.get("ensemble_qoq").isna() if "ensemble_qoq" in existing.columns else True)
+        if mask.any():
+            if "ensemble_qoq" not in existing.columns:
+                existing["ensemble_qoq"] = np.nan
+            existing.loc[mask, "ensemble_qoq"] = existing.loc[mask, "ensemble"]
+            existing.loc[mask, "ensemble"] = existing.loc[mask, "ensemble_yoy"]
+            logger.info("Migrated %d old rows: ensemble_yoy -> ensemble, ensemble -> ensemble_qoq.", mask.sum())
     log = pd.concat([existing, new_row], ignore_index=True).drop_duplicates(subset=["date"], keep="last")
 else:
     log = new_row
