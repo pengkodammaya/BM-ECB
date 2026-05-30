@@ -28,13 +28,13 @@
 
 ## Backcast Accuracy — Q1 2026
 
-*Nowcasts made for Q1 2026, scored against its QoQ SA actual.*
+*Nowcasts made for Q1 2026, scored against its YoY actual.*
 
-| Model | Estimate (QoQ SA) | Error | Accuracy |
-|-------|:-----------------:|:-----:|----------|
-| **DFM** | +0.1% | 0.1pp | 🟢 Excellent |
-| **BVAR** | +0.8% | 0.8pp | 🟢 Excellent |
-| **Ensemble** | +0.5% | 0.5pp | 🟢 Excellent |
+| Model | Estimate (YoY) | Error | Accuracy |
+|-------|:--------------:|:-----:|----------|
+| **DFM** | +5.3% | 0.1pp | 🟢 Excellent |
+| **BVAR** | +3.4% | 2.0pp | 🔴 Fair |
+| **Ensemble** | +4.3% | 1.1pp | 🟡 Good |
 
 ---
 
@@ -49,7 +49,7 @@
 | Manufacturing | `+5.9%` | `+4.3%` | `1.6pp` |
 | Construction | `+7.7%` | `+4.2%` | `3.5pp` |
 | Services | `+5.6%` | `+8.5%` | `2.9pp` |
-| **Overall GDP** | **`+5.4%`** | **`+0.8%`** | 0.8pp |
+| **Overall GDP** | **`+5.4%`** | **`+3.4%`** | 2.0pp |
 
 ---
 
@@ -95,7 +95,7 @@
 | 2026-05-27 | 2026-Q2 | +2.4% | +0.9% | +1.1% | +1.1% | — |
 | 2026-05-28 | 2026-Q2 | +5.8% | +0.9% | +1.1% | +1.4% | — |
 | 2026-05-29 | 2026-Q2 | +2.2% | +0.9% | +1.1% | +1.0% | — |
-| 2026-05-30 | 2026-Q2 | +2.6% | — | +1.1% | +1.8% | — |
+| 2026-05-30 | 2026-Q2 | +9.5% | +4.1% | — | +6.8% | — |
 
 ---
 
