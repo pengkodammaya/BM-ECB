@@ -659,7 +659,7 @@ ensemble_models = ["dfm", "bvar", "beq"]
 weights = {}
 vintage_for_weights = safe_read_csv("docs/actuals_vintage.csv")
 if log_ens is not None and len(log_ens) >= 3 and vintage_for_weights is not None:
-    qmap = vintage_first_map(vintage_for_weights, "gdp_qoq")
+    qmap = vintage_first_map(vintage_for_weights, "gdp_yoy")  # YoY for ensemble weights
     if qmap:
         tmp = log_ens.copy()
         tmp["_tq"] = tmp.apply(resolve_target_quarter, axis=1)
@@ -961,6 +961,40 @@ if not df_gdp_yoy.empty:
     except Exception as e:
         logger.warning("YoY GDP nowcast failed: %s", e)
 
+# ---------------------------------------------------------------------------
+# 3c.1 YoY migration: rename columns so YoY is primary
+# ---------------------------------------------------------------------------
+# QoQ SA → _qoq suffix (keep for reference)
+for base in ["dfm", "bvar", "beq", "ensemble"]:
+    if base in nowcasts:
+        nowcasts[f"{base}_qoq"] = nowcasts.pop(base)
+    if f"{base}_backcast" in nowcasts:
+        nowcasts[f"{base}_backcast_qoq"] = nowcasts.pop(f"{base}_backcast")
+    if f"{base}_forecast" in nowcasts:
+        nowcasts[f"{base}_forecast_qoq"] = nowcasts.pop(f"{base}_forecast")
+
+# YoY → primary (drop _yoy suffix)
+for base in ["dfm", "bvar", "ensemble"]:
+    if f"{base}_yoy" in nowcasts:
+        nowcasts[base] = nowcasts.pop(f"{base}_yoy")
+
+# Actual: YoY becomes primary
+nowcasts["actual"] = nowcasts.get("actual_yoy_gdp")
+nowcasts["actual_qoq"] = nowcasts.get("actual_gdp_pct")
+
+# YoY backcast: use dfm_yoy estimate for last_actual_idx (T-1)
+# The YoY model already ran; extract T-1 estimate as backcast
+try:
+    if 'dfm_y' in dir() and 0 <= last_actual_idx < res_y.X_sm.shape[0]:
+        nowcasts["dfm_backcast"] = round((float(res_y.X_sm[last_actual_idx, -1]) * sigma_y[-1] + mu_y[-1]) * 100, 2)
+except Exception:
+    pass
+try:
+    if 'res_by' in dir() and 0 <= last_actual_idx < res_by.X_sm.shape[0]:
+        nowcasts["bvar_backcast"] = round((float(res_by.X_sm[last_actual_idx, -1]) * sigma_y[-1] + mu_y[-1]) * 100, 2)
+except Exception:
+    pass
+
 nowcasts["sector_actuals"] = json.dumps(sector_actuals)
 
 # 3d. GDP identity (all YoY)
@@ -1071,11 +1105,11 @@ else:
 atomic_write_csv(log, log_path)
 logger.info("Daily log written (%d rows).", len(log))
 
-# Vintage-frozen, quarter-matched, horizon-stratified scoring
+# Vintage-frozen, quarter-matched, horizon-stratified scoring (YoY)
 qoq_overall, qoq_by_h = [], []
 try:
     qoq_overall, qoq_by_h = score_log(
-        log, vintage, "gdp_qoq", ["dfm", "bvar", "beq", "ar1", "naive", "ensemble"])
+        log, vintage, "gdp_yoy", ["dfm", "bvar", "beq", "ar1", "naive", "ensemble"])
     if qoq_overall:
         atomic_write_csv(pd.DataFrame(qoq_overall), Path("docs/leaderboard.csv"))
     if qoq_by_h:
@@ -1095,7 +1129,7 @@ md_out += f"**Updated:** {today_str} | **Latest actual:** {backcast_label} | **N
 md_out += "## GDP Nowcast (YoY %)\n\n"
 md_out += f"*Nowcasting {nowcast_label}. Actual releases ~mid-{(current_quarter*3+2) % 12 or 12}; scored once published.*\n\n"
 md_out += "| Model | Nowcast |\n|-------|--------|\n"
-for nm, key in [("DFM", "dfm_yoy"), ("BVAR", "bvar_yoy"), ("ENSEMBLE", "ensemble_yoy")]:
+for nm, key in [("DFM", "dfm"), ("BVAR", "bvar"), ("ENSEMBLE", "ensemble")]:
     v = nowcasts.get(key)
     md_out += f"| {nm} | {f'`{v:+.1f}%`' if v is not None else '—'} |\n"
 
@@ -1233,20 +1267,20 @@ for r in qoq_overall:
 # Backcast: what we nowcast for the latest PUBLISHED quarter vs its frozen actual.
 # When no historical daily-log rows target pub_q (e.g. fresh install), fall back
 # to the latest-model backcast estimate for that quarter.
-# Use QoQ basis since that's what backcast values are stored as.
+# Now uses YoY basis (primary metric).
 backcast = {}
-for m_disp, m_qoq in [("dfm", "dfm_backcast"), ("bvar", "bvar_backcast"), ("ensemble", None)]:
+for m_disp, m_back in [("dfm", "dfm_backcast"), ("bvar", "bvar_backcast"), ("ensemble", None)]:
     # Try historical log first (target_quarter == pub_q)
     est = None
-    if pub_q and m_qoq:
+    if pub_q and m_back:
         # Look for latest row where target == pub_q
-        if log is not None and "target_quarter" in log.columns and m_qoq in log.columns:
-            sub = log[(log["target_quarter"] == pub_q) & log[m_qoq].notna()]
+        if log is not None and "target_quarter" in log.columns and m_back in log.columns:
+            sub = log[(log["target_quarter"] == pub_q) & log[m_back].notna()]
             if not sub.empty:
-                est = round(float(sub.sort_values("date").iloc[-1][m_qoq]), 1)
+                est = round(float(sub.sort_values("date").iloc[-1][m_back]), 1)
     # Fallback: use latest backcast from today's run
-    if est is None and m_qoq:
-        val = nowcasts.get(m_qoq)
+    if est is None and m_back:
+        val = nowcasts.get(m_back)
         if val is not None:
             est = round(float(val), 1)
     # Ensemble fallback: median of DFM + BVAR backcasts
@@ -1255,8 +1289,8 @@ for m_disp, m_qoq in [("dfm", "dfm_backcast"), ("bvar", "bvar_backcast"), ("ense
         bvar_est = backcast.get("bvar", {}).get("estimate")
         vals = [v for v in [dfm_est, bvar_est] if v is not None]
         est = round(float(np.median(vals)), 1) if vals else None
-    actual_qoq = nowcasts.get("actual_gdp_pct")
-    err = round(abs(est - actual_qoq), 1) if (est is not None and actual_qoq is not None) else None
+    actual_yoy = nowcasts.get("actual")  # YoY actual
+    err = round(abs(est - actual_yoy), 1) if (est is not None and actual_yoy is not None) else None
     backcast[m_disp] = {"estimate": est, "error": err}
 
 # Components: backtest for the latest published quarter (nowcast-for-Q vs frozen actual).
@@ -1310,8 +1344,8 @@ dashboard_data = {
     "latestActual": {"quarter": latest_actual_quarter_disp, "yoy": latest_actual_yoy},
     "nowcast": {
         "quarter": nowcast_label,
-        "dfm": nowcasts.get("dfm_yoy"), "bvar": nowcasts.get("bvar_yoy"),
-        "ensemble": nowcasts.get("ensemble_yoy"),
+        "dfm": nowcasts.get("dfm"), "bvar": nowcasts.get("bvar"),
+        "ensemble": nowcasts.get("ensemble"),
         "bvar_ci_10": nowcasts.get("bvar_ci_10"), "bvar_ci_90": nowcasts.get("bvar_ci_90"),
     },
     "backcast": backcast,

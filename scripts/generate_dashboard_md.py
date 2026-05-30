@@ -94,10 +94,10 @@ def main():
 
 ## Backcast Accuracy — {actual_quarter}
 
-*Nowcasts made for {actual_quarter}, scored against its QoQ SA actual.*
+*Nowcasts made for {actual_quarter}, scored against its YoY actual.*
 
-| Model | Estimate (QoQ SA) | Error | Accuracy |
-|-------|:-----------------:|:-----:|----------|
+| Model | Estimate (YoY) | Error | Accuracy |
+|-------|:--------------:|:-----:|----------|
 """
     for label, key in [("DFM", "dfm"), ("BVAR", "bvar"), ("Ensemble", "ensemble")]:
         d = bc.get(key, {}) or {}
