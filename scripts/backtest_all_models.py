@@ -44,7 +44,7 @@ DATASETS = {
     "imports_capital": ("trade_enduse_bec", "imports", 0, "external", {"bec": "000", "end_use": "capital", "series": "growth_mom"}),  # capital goods imports -> investment signal
     "imports_consumer": ("trade_enduse_bec", "imports", 0, "external", {"bec": "000", "end_use": "consumption", "series": "growth_mom"}),  # consumer goods imports -> consumption signal
     "wrt": ("iowrt", "sales", 1, "services", {"series": "abs"}),
-    "gdp": ("gdp_qtr_real_sa", "value", 0, "target", {"series": "abs"}),
+    "gdp": ("gdp_qtr_real", "value", 0, "target", {"series": "growth_yoy"}),  # YoY growth
 }
 MONTHLY_NAMES = [n for n in DATASETS if n != "gdp"]
 ALL_NAMES = MONTHLY_NAMES + ["gdp"]
@@ -179,12 +179,8 @@ DATASET_IDS_FOR_ARC = [
 ] + ["gdp"]
 
 gdp_df = filtered["gdp"].copy().sort_values("date")
-gdp_vals = gdp_df["gdp"].values
-gdp_qoq_arr = np.full(len(gdp_vals), np.nan)
-for i in range(1, len(gdp_vals)):
-    if gdp_vals[i - 1] > 0:
-        gdp_qoq_arr[i] = (gdp_vals[i] - gdp_vals[i - 1]) / gdp_vals[i - 1]
-gdp_df["gdp"] = gdp_qoq_arr
+# YoY values are already in % from API, convert to decimal
+gdp_df["gdp"] = gdp_df["gdp"] / 100.0
 gdp_df = gdp_df.dropna(subset=["gdp"])
 filtered["gdp"] = gdp_df
 
