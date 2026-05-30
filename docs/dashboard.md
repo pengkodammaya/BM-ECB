@@ -19,23 +19,22 @@
 | Model | Nowcast | 90% Confidence Band | Description |
 |-------|:-------:|:-------------------:|-------------|
 | **DFM** | `+9.5%` | — | Dynamic Factor Model (r=2, p=4) |
-| **BVAR** | `+4.1%` | `[—, —]` | Bayesian VAR with Minnesota prior |
+| **BVAR** | `+4.1%` | `—` | Bayesian VAR with Minnesota prior |
 | **Ensemble** | `+6.8%` | — | Median of DFM + BVAR |
 
-> *Q2 2026 actual releases ~August 2026. Nowcasts cannot be validated yet.*
-> *BVAR confidence band computed from posterior draws (10th/90th percentiles).*
+> *Q2 2026 actual releases the quarter after it ends; scored once published.*
 
 ---
 
 ## Backcast Accuracy — Q1 2026
 
-*How well models estimated Q1 2026. Actual: `+5.4%` YoY.*
+*Nowcasts made for Q1 2026, scored against its FROZEN first-release actual (`+5.4%` YoY).*
 
 | Model | Estimate | Error | Accuracy |
 |-------|:--------:|:-----:|----------|
-| **DFM** | +9.5% | 4.1pp | 🔴 Fair |
-| **BVAR** | +4.1% | 1.3pp | 🟡 Good |
-| **Ensemble** | +6.8% | 1.4pp | 🟡 Good |
+| **DFM** | — | — | — |
+| **BVAR** | — | — | — |
+| **Ensemble** | — | — | — |
 
 ---
 
@@ -45,12 +44,12 @@
 
 | Sector | Actual | Nowcast | Error |
 |--------|:------:|:-------:|:-----:|
-| Agriculture | `+2.6%` | `+0.8%` | `1.8pp` |
-| Mining & Quarrying | `-2.1%` | `-1.1%` | `1.0pp` |
-| Manufacturing | `+5.9%` | `+4.3%` | `1.6pp` |
-| Construction | `+7.7%` | `+4.2%` | `3.5pp` |
-| Services | `+5.6%` | `+8.5%` | `2.9pp` |
-| **Overall GDP** | **`+5.4%`** | **`+4.1%`** | 1.3pp |
+| Agriculture | `+2.6%` | `—` | `—` |
+| Mining & Quarrying | `-2.1%` | `—` | `—` |
+| Manufacturing | `+5.9%` | `—` | `—` |
+| Construction | `+7.7%` | `—` | `—` |
+| Services | `+5.6%` | `—` | `—` |
+| **Overall GDP** | **`+5.4%`** | **`—`** | — |
 
 ---
 
@@ -60,38 +59,43 @@
 
 | Component | BVAR | Actual | Error |
 |-----------|:----:|:------:|:-----:|
-| **Consumption** (C) | +5.0% | +4.7% | 0.3pp |
-| **Investment** (I) | +9.1% | +7.3% | 1.8pp |
-| **Government** (G) | +6.6% | +4.1% | 2.5pp |
-| **Exports** (X) | +6.4% | +5.2% | 1.2pp |
-| **Imports** (M) | +9.1% | +4.6% | 4.5pp |
+| **Consumption (C)** | — | +4.7% | — |
+| **Investment (I)** | — | +7.3% | — |
+| **Government (G)** | — | +4.1% | — |
+| **Exports (X)** | — | +5.2% | — |
+| **Imports (M)** | — | +4.6% | — |
 
 ---
 
-## Model Accuracy (Rolling)
+## Model Accuracy (vintage-frozen, quarter-matched)
 
-*Daily nowcast accuracy vs DOSM actuals. Lower MAE = better. Higher FDA = better.*
+*MAE/RMSE/FDA vs FIRST-RELEASE actuals, joined on target quarter. Lower MAE = better.*
 
 | Model | MAE (pp) | RMSE (pp) | FDA (%) | N | Latest |
 |-------|:--------:|:---------:|:-------:|:-:|:------:|
-| DFM | 3.046 | 3.347 | 0.0% | 5 | +2.6% |
-| BVAR | 0.930 | 0.930 | 0.0% | 4 | +nan% |
-| BEQ | 1.088 | 1.088 | 0.0% | 5 | +1.1% |
-| AR1 *(baseline)* | 1.470 | 1.470 | 100.0% | 5 | +1.5% |
-| NAIVE *(last Q)* | 0.000 | 0.000 | 100.0% | 4 | -0.0% |
-| ENSEMBLE *(combined)* | 1.176 | 1.183 | 0.0% | 5 | +1.2% |
+| — | — | — | — | 0 | — |
+
+---
+
+## Accuracy by Horizon (QoQ)
+
+*forecast = before quarter; m1/m2/m3 = month within quarter; backcast = after quarter, pre-release.*
+
+| Model | Horizon | MAE (pp) | N |
+|-------|:-------:|:--------:|:-:|
+| — | — | — | — |
 
 ---
 
 ## Recent Nowcasts
 
-| Date | DFM | BVAR | 90% Band | BEQ | Ensemble | Actual |
-|------|:---:|:----:|:--------:|:---:|:--------:|:------:|
-| 2026-05-26 | +2.1% | +0.9% | — | +1.1% | +1.1% | -0.0% |
-| 2026-05-27 | +2.4% | +0.9% | [-203.0%, -201.0%] | +1.1% | +1.1% | -0.0% |
-| 2026-05-28 | +5.8% | +0.9% | [-202.0%, -201.0%] | +1.1% | +1.4% | -0.0% |
-| 2026-05-29 | +2.2% | +0.9% | — | +1.1% | +1.0% | -0.0% |
-| 2026-05-30 | +2.6% | — | — | +1.1% | +1.8% | -0.0% |
+| Date | Target Q | DFM | BVAR | BEQ | Ensemble | Actual |
+|------|:--------:|:---:|:----:|:---:|:--------:|:------:|
+| 2026-05-26 | 2026-Q2 | +2.1% | +0.9% | +1.1% | +1.1% | — |
+| 2026-05-27 | 2026-Q2 | +2.4% | +0.9% | +1.1% | +1.1% | — |
+| 2026-05-28 | 2026-Q2 | +5.8% | +0.9% | +1.1% | +1.4% | — |
+| 2026-05-29 | 2026-Q2 | +2.2% | +0.9% | +1.1% | +1.0% | — |
+| 2026-05-30 | 2026-Q2 | +2.6% | — | +1.1% | +1.8% | — |
 
 ---
 
@@ -102,10 +106,10 @@
 | GDP (YoY) | DOSM `gdp_qtr_real` — non-SA, constant 2015 prices |
 | Sectors | DOSM `gdp_qtr_real_supply` — supply-side breakdown |
 | Expenditure | DOSM `gdp_qtr_real_demand` — demand-side breakdown |
-| Indicators | OpenDOSM, BNM, yfinance (23 monthly indicators) |
+| Vintages | `docs/actuals_vintage.csv` — first-release frozen, revisions tracked |
 
 **Dashboard:** [OpenDOSM GDP](https://open.dosm.gov.my/dashboard/gdp) | **API:** [Developer Docs](https://developer.data.gov.my/static-api/opendosm) | **Source:** [GitHub](https://github.com/pengkodammaya/BM-ECB)
 
 ---
 
-*Auto-generated daily at 8am MYT via GitHub Actions.*
+*Auto-generated daily via GitHub Actions.*
