@@ -4,27 +4,27 @@
 
 ## GDP Nowcast (YoY %)
 
-*Nowcasting Q2 2026 — no ground truth available yet (releases ~mid-8).*
+*Nowcasting Q2 2026. Actual releases ~mid-8; scored once published.*
 
 | Model | Nowcast |
 |-------|--------|
-| DFM | `+9.7%` |
+| DFM | `+9.5%` |
 | BVAR | `+4.1%` |
-| ENSEMBLE | `+6.9%` |
+| ENSEMBLE | `+6.8%` |
 
-## Backcast Accuracy (Q1 2026, YoY %)
+## GDP by Expenditure Category (YoY %)
 
-*How well models estimated Q1 2026. DOSM actual: `+5.4%`.*
+*Nowcasts target Q2 2026. "Actual" is the FROZEN first-release value once Q2 2026 publishes; "pending" until then.*
 
-| Model | Estimate | Error |
-|-------|----------|-------|
-| DFM | `+9.7%` | 4.3pp |
-| BVAR | `+4.1%` | 1.3pp |
-| ENSEMBLE | `+6.9%` | 1.5pp |
+| Component | BVAR | DFM | Actual (target Q) | Error |
+|-----------|------|-----|-------------------|-------|
+| **Private Consumption** (C) | +5.0% | +10.3% | pending | pending |
+| **Gross Fixed Capital Formation** (I) | +9.1% | +1.6% | pending | pending |
+| **Government Consumption** (G) | +6.6% | +4.9% | pending | pending |
+| **Exports** (X) | +6.4% | +10.3% | pending | pending |
+| **Imports** (M) | +9.1% | +14.2% | pending | pending |
 
 ## GDP by Economic Sector (YoY %)
-
-*Comparable to DOSM "A deeper look at GDP by economic sector". Actual values from `gdp_qtr_real_supply`.*
 
 | Sector | Latest Actual |
 |--------|---------------|
@@ -35,49 +35,34 @@
 | Services | `+5.6%` |
 | **Overall GDP** | `+5.4%` |
 
-## GDP by Expenditure Category (YoY %)
+## Model Accuracy (vintage-frozen, quarter-matched)
 
-*Comparable to DOSM "A deeper look at GDP by expenditure category". BVAR primary, DFM comparison.*
+*MAE/RMSE/FDA vs FIRST-RELEASE actuals, joined on target quarter. Appears after 3+ scored quarters.*
 
-| Component | BVAR | DFM | Actual | Error (BVAR) |
-|-----------|------|-----|--------|--------------|
-| **Private Consumption** (C) | +6.1% | +6.3% | +4.7% | 1.4pp |
-| **Gross Fixed Capital Formation** (I) | +9.3% | +2.3% | +7.3% | 2.0pp |
-| **Government Consumption** (G) | +6.6% | +4.8% | +4.1% | 2.5pp |
-| **Exports** (X) | +6.3% | +4.1% | +5.2% | 1.1pp |
-| **Imports** (M) | +9.0% | +4.7% | +4.6% | 4.4pp |
+*No quarters scored yet — accumulating nowcasts until target quarters publish.*
 
-## Model Accuracy (Rolling)
+## Accuracy by Horizon (QoQ)
 
-*Daily nowcast accuracy vs DOSM actuals. Metrics appear after 3+ days.*
+*forecast = before quarter; m1/m2/m3 = month within quarter; backcast = after quarter end, pre-release.*
 
-| Model | MAE (pp) | RMSE (pp) | FDA (%) | N | Latest |
-|-------|----------|-----------|---------|---|--------|
-| DFM | 3.046 | 3.347 | 0.0% | 5 | +2.6% |
-| BVAR | 0.930 | 0.930 | 0.0% | 4 | +nan% |
-| BEQ | 1.088 | 1.088 | 0.0% | 5 | +1.1% |
-| AR1 *(baseline)* | 1.470 | 1.470 | 100.0% | 5 | +1.5% |
-| NAIVE *(last Q)* | 0.000 | 0.000 | 100.0% | 4 | -0.0% |
-| ENSEMBLE *(combined)* | 1.176 | 1.183 | 0.0% | 5 | +1.2% |
+*Not enough scored observations per horizon yet.*
 
 ## Recent Nowcasts (5 days)
 
-| Date | DFM | BVAR | BEQ | AR(1) | NAIVE | ENSEMBLE | Actual |
-|------|-----|------|-----|-------|-------|----------|--------|
-| 2026-05-26 | +2.1% | +0.9% | +1.1% | +1.5% | — | +1.1% | -0.0% |
-| 2026-05-27 | +2.4% | +0.9% | +1.1% | +1.5% | -0.0% | +1.1% | -0.0% |
-| 2026-05-28 | +5.8% | +0.9% | +1.1% | +1.5% | -0.0% | +1.4% | -0.0% |
-| 2026-05-29 | +2.2% | +0.9% | +1.1% | +1.5% | -0.0% | +1.0% | -0.0% |
-| 2026-05-30 | +2.6% | — | +1.1% | +1.5% | -0.0% | +1.2% | -0.0% |
+| Date | Target Q | DFM | BVAR | BEQ | ENSEMBLE |
+|------|----------|-----|------|-----|----------|
+| 2026-05-26 | 2026-Q2 | +2.1% | +0.9% | +1.1% | +1.1% |
+| 2026-05-27 | 2026-Q2 | +2.4% | +0.9% | +1.1% | +1.1% |
+| 2026-05-28 | 2026-Q2 | +5.8% | +0.9% | +1.1% | +1.4% |
+| 2026-05-29 | 2026-Q2 | +2.2% | +0.9% | +1.1% | +1.0% |
+| 2026-05-30 | 2026-Q2 | +2.6% | — | +1.1% | +1.8% |
 
 ## Data Sources
 
-- **GDP (YoY):** DOSM `gdp_qtr_real` — non-SA, constant 2015 prices
-- **Sectors:** DOSM `gdp_qtr_real_supply` — supply-side breakdown
-- **Expenditure:** DOSM `gdp_qtr_real_demand` — demand-side breakdown
-- **Dashboard:** [OpenDOSM GDP](https://open.dosm.gov.my/dashboard/gdp)
-- **API:** [OpenDOSM Developer](https://developer.data.gov.my/static-api/opendosm)
+- **GDP:** DOSM `gdp_qtr_real` (YoY), `gdp_qtr_real_sa` (QoQ)
+- **Expenditure:** DOSM `gdp_qtr_real_demand`; **Sectors:** `gdp_qtr_real_supply`
+- **Vintages:** `docs/actuals_vintage.csv` (first-release frozen, revisions tracked)
 - **Last updated:** 2026-05-30
 
 ---
-*Auto-generated daily at 8am MYT via GitHub Actions. [View source](https://github.com/pengkodammaya/BM-ECB)*
+*Auto-generated daily via GitHub Actions. [Source](https://github.com/pengkodammaya/BM-ECB)*

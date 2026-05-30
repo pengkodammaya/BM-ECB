@@ -18,9 +18,9 @@
 
 | Model | Nowcast | 90% Confidence Band | Description |
 |-------|:-------:|:-------------------:|-------------|
-| **DFM** | `+9.7%` | — | Dynamic Factor Model (r=2, p=4) |
+| **DFM** | `+9.5%` | — | Dynamic Factor Model (r=2, p=4) |
 | **BVAR** | `+4.1%` | `[—, —]` | Bayesian VAR with Minnesota prior |
-| **Ensemble** | `+6.9%` | — | Median of DFM + BVAR |
+| **Ensemble** | `+6.8%` | — | Median of DFM + BVAR |
 
 > *Q2 2026 actual releases ~August 2026. Nowcasts cannot be validated yet.*
 > *BVAR confidence band computed from posterior draws (10th/90th percentiles).*
@@ -33,9 +33,9 @@
 
 | Model | Estimate | Error | Accuracy |
 |-------|:--------:|:-----:|----------|
-| **DFM** | +9.7% | 4.3pp | 🔴 Fair |
+| **DFM** | +9.5% | 4.1pp | 🔴 Fair |
 | **BVAR** | +4.1% | 1.3pp | 🟡 Good |
-| **Ensemble** | +6.9% | 1.5pp | 🟡 Good |
+| **Ensemble** | +6.8% | 1.4pp | 🟡 Good |
 
 ---
 
@@ -60,11 +60,11 @@
 
 | Component | BVAR | Actual | Error |
 |-----------|:----:|:------:|:-----:|
-| **Consumption** (C) | +6.1% | +4.7% | 1.4pp |
-| **Investment** (I) | +9.3% | +7.3% | 2.0pp |
+| **Consumption** (C) | +5.0% | +4.7% | 0.3pp |
+| **Investment** (I) | +9.1% | +7.3% | 1.8pp |
 | **Government** (G) | +6.6% | +4.1% | 2.5pp |
-| **Exports** (X) | +6.3% | +5.2% | 1.1pp |
-| **Imports** (M) | +9.0% | +4.6% | 4.4pp |
+| **Exports** (X) | +6.4% | +5.2% | 1.2pp |
+| **Imports** (M) | +9.1% | +4.6% | 4.5pp |
 
 ---
 
@@ -91,7 +91,7 @@
 | 2026-05-27 | +2.4% | +0.9% | [-203.0%, -201.0%] | +1.1% | +1.1% | -0.0% |
 | 2026-05-28 | +5.8% | +0.9% | [-202.0%, -201.0%] | +1.1% | +1.4% | -0.0% |
 | 2026-05-29 | +2.2% | +0.9% | — | +1.1% | +1.0% | -0.0% |
-| 2026-05-30 | +2.6% | — | — | +1.1% | +1.2% | -0.0% |
+| 2026-05-30 | +2.6% | — | — | +1.1% | +1.8% | -0.0% |
 
 ---
 
