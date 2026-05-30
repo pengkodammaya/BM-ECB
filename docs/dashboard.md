@@ -44,11 +44,11 @@
 
 | Sector | Actual | Nowcast | Error |
 |--------|:------:|:-------:|:-----:|
-| Agriculture | `+2.6%` | `—` | `—` |
-| Mining & Quarrying | `-2.1%` | `—` | `—` |
-| Manufacturing | `+5.9%` | `—` | `—` |
-| Construction | `+7.7%` | `—` | `—` |
-| Services | `+5.6%` | `—` | `—` |
+| Agriculture | `+2.6%` | `+0.8%` | `1.8pp` |
+| Mining & Quarrying | `-2.1%` | `-1.1%` | `1.0pp` |
+| Manufacturing | `+5.9%` | `+4.3%` | `1.6pp` |
+| Construction | `+7.7%` | `+4.2%` | `3.5pp` |
+| Services | `+5.6%` | `+8.5%` | `2.9pp` |
 | **Overall GDP** | **`+5.4%`** | **`+0.8%`** | 0.8pp |
 
 ---
@@ -59,11 +59,11 @@
 
 | Component | BVAR | Actual | Error |
 |-----------|:----:|:------:|:-----:|
-| **Consumption (C)** | — | +4.7% | — |
-| **Investment (I)** | — | +7.3% | — |
-| **Government (G)** | — | +4.1% | — |
-| **Exports (X)** | — | +5.2% | — |
-| **Imports (M)** | — | +4.6% | — |
+| **Consumption (C)** | +5.0% | +4.7% | 0.3pp |
+| **Investment (I)** | +9.1% | +7.3% | 1.8pp |
+| **Government (G)** | +6.6% | +4.1% | 2.5pp |
+| **Exports (X)** | +6.4% | +5.2% | 1.2pp |
+| **Imports (M)** | +9.1% | +4.6% | 4.5pp |
 
 ---
 

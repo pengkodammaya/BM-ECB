@@ -29,29 +29,29 @@
   },
   "components": {
     "consumption": {
-      "bvar": null,
+      "bvar": 5.0,
       "actual": 4.7,
-      "error": null
+      "error": 0.3
     },
     "investment": {
-      "bvar": null,
+      "bvar": 9.1,
       "actual": 7.3,
-      "error": null
+      "error": 1.8
     },
     "government": {
-      "bvar": null,
+      "bvar": 6.6,
       "actual": 4.1,
-      "error": null
+      "error": 2.5
     },
     "exports": {
-      "bvar": null,
+      "bvar": 6.4,
       "actual": 5.2,
-      "error": null
+      "error": 1.2
     },
     "imports": {
-      "bvar": null,
+      "bvar": 9.1,
       "actual": 4.6,
-      "error": null
+      "error": 4.5
     }
   },
   "sectors": {
@@ -62,11 +62,11 @@
     "services": 5.6
   },
   "sectorNowcast": {
-    "agriculture": null,
-    "mining": null,
-    "manufacturing": null,
-    "construction": null,
-    "services": null
+    "agriculture": 0.8,
+    "mining": -1.1,
+    "manufacturing": 4.3,
+    "construction": 4.2,
+    "services": 8.5
   },
   "leaderboard": [],
   "byHorizon": [],
