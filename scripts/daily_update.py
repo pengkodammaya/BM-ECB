@@ -1231,13 +1231,32 @@ for r in qoq_overall:
     })
 
 # Backcast: what we nowcast for the latest PUBLISHED quarter vs its frozen actual.
+# When no historical daily-log rows target pub_q (e.g. fresh install), fall back
+# to the latest-model backcast estimate for that quarter.
+# Use QoQ basis since that's what backcast values are stored as.
 backcast = {}
-for m_disp, m_yoy in [("dfm", "dfm_yoy"), ("bvar", "bvar_yoy"), ("ensemble", "ensemble_yoy")]:
-    est = nowcast_for_quarter(log, m_yoy, pub_q) if pub_q else None
-    actual_first = yoy_first_map.get(pub_q) if pub_q else None
-    if actual_first is not None and isinstance(actual_first, float) and np.isnan(actual_first):
-        actual_first = None
-    err = round(abs(est - actual_first), 1) if (est is not None and actual_first is not None) else None
+for m_disp, m_qoq in [("dfm", "dfm_backcast"), ("bvar", "bvar_backcast"), ("ensemble", None)]:
+    # Try historical log first (target_quarter == pub_q)
+    est = None
+    if pub_q and m_qoq:
+        # Look for latest row where target == pub_q
+        if log is not None and "target_quarter" in log.columns and m_qoq in log.columns:
+            sub = log[(log["target_quarter"] == pub_q) & log[m_qoq].notna()]
+            if not sub.empty:
+                est = round(float(sub.sort_values("date").iloc[-1][m_qoq]), 1)
+    # Fallback: use latest backcast from today's run
+    if est is None and m_qoq:
+        val = nowcasts.get(m_qoq)
+        if val is not None:
+            est = round(float(val), 1)
+    # Ensemble fallback: median of DFM + BVAR backcasts
+    if m_disp == "ensemble":
+        dfm_est = backcast.get("dfm", {}).get("estimate")
+        bvar_est = backcast.get("bvar", {}).get("estimate")
+        vals = [v for v in [dfm_est, bvar_est] if v is not None]
+        est = round(float(np.median(vals)), 1) if vals else None
+    actual_qoq = nowcasts.get("actual_gdp_pct")
+    err = round(abs(est - actual_qoq), 1) if (est is not None and actual_qoq is not None) else None
     backcast[m_disp] = {"estimate": est, "error": err}
 
 # Components: backtest for the latest published quarter (nowcast-for-Q vs frozen actual).
