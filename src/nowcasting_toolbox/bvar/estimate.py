@@ -106,6 +106,7 @@ class BVAR:
                 lags,
                 mSeries,
                 stationary,
+                datet=datet,
                 thresh=thresh,
                 max_iter=max_iter,
                 n_draws=self.params.bvar_n_draws,

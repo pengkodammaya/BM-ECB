@@ -31,6 +31,7 @@ def block_bvar(
     lags: int,
     m_series: list[int],
     stationary: list[int],
+    datet: FloatArray | None = None,
     lambda0: float = 0.2,
     theta0: float = 1.0,
     miu0: float = 1.0,
@@ -45,14 +46,16 @@ def block_bvar(
     Parameters
     ----------
     X : (T, N) array
-        Mixed-frequency data. Monthly variables repeated 3 times
-        (one block per month-of-quarter), quarterly target at end.
+        Mixed-frequency data. Monthly variables first, quarterly target last.
     lags : int
         Number of lags.
     m_series : list[int]
         Indices of monthly variables.
     stationary : list[int]
         Indices of stationary variables.
+    datet : (T, 2) array, optional
+        Year-month for each row. If provided, restructures data into
+        quarter-block format (matching MATLAB BVAR_bbvar behavior).
     lambda0, theta0, miu0, alpha0 : float
         Initial hyperparameter values.
     thresh : float
@@ -63,7 +66,6 @@ def block_bvar(
         Number of Gibbs sampler draws.
     burn_in : int
         Gibbs sampler burn-in period.
-        Maximum optimization iterations.
 
     Returns
     -------
@@ -71,10 +73,28 @@ def block_bvar(
     """
     T, N = X.shape
     nM = len(m_series)
-    nQ = N - 3 * nM  # quarterly variables
+    nQ = N - nM  # quarterly variables
 
     # ---------- Fill missing data ----------
-    X_filled = _fill_data(X)
+    # If datet provided, restructure into quarter-block format
+    X_filled = _fill_data(X, datet)
+
+    # For quarter-block mode, the filled data has different dimensions
+    # month1 | month2 | month3 (with quarterly in month3)
+    if datet is not None:
+        # X_filled is now (T_q, 3*nM + nQ)
+        # Fill remaining NaN with spline interpolation (like MATLAB BVAR_remNaNs_spline)
+        X_filled = _spline_fill_block(X_filled)
+        T_q = len(X_filled)
+        N_block = X_filled.shape[1]
+        # Update m_series for block format: monthly vars are in first 2*nM columns
+        m_series_block = list(range(2 * nM))
+        stationary_block = list(range(N_block))
+    else:
+        T_q = T
+        N_block = N
+        m_series_block = m_series
+        stationary_block = stationary
 
     # ---------- Optimize hyperparameters ----------
     def obj_func(phi: FloatArray) -> float:
@@ -83,7 +103,7 @@ def block_bvar(
         phi_clamped = np.clip(phi, -10.0, 10.0)
         lam, th, mu, al = np.exp(phi_clamped)  # enforce positivity
         try:
-            ml = _log_ml(X_filled, lags, lam, th, mu, al, m_series, stationary)
+            ml = _log_ml(X_filled, lags, lam, th, mu, al, m_series_block, stationary_block)
             if not np.isfinite(ml):
                 return 1e10
             return -ml
@@ -99,11 +119,17 @@ def block_bvar(
     # ---------- Gibbs sampler ----------
     B, Sigma, B_draws, Sigma_draws = _gibbs_sampler(
         X_filled, lags, lambda_opt, theta_opt, miu_opt, alpha_opt,
-        m_series, stationary, n_draws=n_draws, burn_in=burn_in,
+        m_series_block, stationary_block, n_draws=n_draws, burn_in=burn_in,
     )
 
     # ---------- Generate smoothed data ----------
-    X_sm = _kalman_smooth(X_filled, B, Sigma, lags, nM, nQ)
+    X_sm_block = _kalman_smooth(X_filled, B, Sigma, lags, nM, nQ)
+
+    # If quarter-block mode, restructure back to monthly format
+    if datet is not None:
+        X_sm = _restructure_from_quarter_blocks(X_sm_block, nM, nQ, T)
+    else:
+        X_sm = X_sm_block
 
     return {
         "X_sm": X_sm,
@@ -265,11 +291,29 @@ def _inv_wishart_rvs(rng: np.random.Generator, df: int, scale: FloatArray) -> Fl
 
 
 # ---------------------------------------------------------------------------
-# Data filling
+# Data filling and quarter-block restructuring
 # ---------------------------------------------------------------------------
 
 
-def _fill_data(X: FloatArray) -> FloatArray:
+def _fill_data(X: FloatArray, datet: FloatArray | None = None) -> FloatArray:
+    """Prepare data for BVAR estimation.
+
+    If datet is provided, restructures data into quarter-block format:
+    - Month 1 of each quarter in columns 0:nM
+    - Month 2 of each quarter in columns nM:2*nM
+    - Month 3 of each quarter in columns 2*nM:end
+
+    This matches the MATLAB BVAR_filldata + BVAR_bbvar behavior.
+
+    If datet is None, falls back to forward-fill (legacy behavior).
+    """
+    if datet is not None:
+        return _restructure_quarter_blocks(X, datet)
+    else:
+        return _forward_fill(X)
+
+
+def _forward_fill(X: FloatArray) -> FloatArray:
     """Forward-fill for missing values (no future interpolation).
 
     Only uses past/present data to fill NaN, preventing data leakage
@@ -287,6 +331,177 @@ def _fill_data(X: FloatArray) -> FloatArray:
             elif not np.isnan(last_valid):
                 X_filled[t, j] = last_valid
     return X_filled
+
+
+def _spline_fill_block(X: FloatArray) -> FloatArray:
+    """Fill NaN values with spline interpolation (like MATLAB BVAR_remNaNs_spline).
+
+    This is used for quarter-block data where forward-fill alone may not
+    be sufficient. Uses linear interpolation for interior NaN, forward-fill
+    for trailing NaN.
+    """
+    from scipy.interpolate import interp1d
+
+    X_filled = X.copy()
+    T, N = X.shape
+
+    for j in range(N):
+        col = X[:, j]
+        nan_mask = np.isnan(col)
+        if not np.any(nan_mask):
+            continue
+
+        valid_idx = np.where(~nan_mask)[0]
+        if len(valid_idx) < 2:
+            # Not enough valid points, forward-fill
+            last_valid = np.nan
+            for t in range(T):
+                if not np.isnan(col[t]):
+                    last_valid = col[t]
+                elif not np.isnan(last_valid):
+                    X_filled[t, j] = last_valid
+            continue
+
+        # Linear interpolation for interior NaN
+        f = interp1d(valid_idx, col[valid_idx], kind='linear',
+                     bounds_error=False, fill_value='extrapolate')
+        interior_idx = np.where(nan_mask)[0]
+        # Only fill NaN that are between valid points (not trailing)
+        max_valid = valid_idx[-1]
+        fill_mask = interior_idx < max_valid
+        X_filled[interior_idx[fill_mask], j] = f(interior_idx[fill_mask])
+
+        # Forward-fill for trailing NaN (after last valid point)
+        last_valid = col[max_valid]
+        for t in range(max_valid + 1, T):
+            if np.isnan(X_filled[t, j]):
+                X_filled[t, j] = last_valid
+
+    return X_filled
+
+
+def _align_to_quarter_boundary(datet: FloatArray) -> tuple[FloatArray, int, int]:
+    """Align date grid to quarter boundaries.
+
+    Returns (aligned_datet, n_pad_start, n_pad_end).
+    """
+    T = len(datet)
+
+    # Check start: should be month 1 of a quarter
+    start_month = int(datet[0, 1])
+    if start_month % 3 == 0:
+        # Month 3: need to pad 2 months at start
+        n_pad_start = 2
+    elif start_month % 3 == 2:
+        # Month 2: need to pad 1 month at start
+        n_pad_start = 1
+    else:
+        # Month 1: already aligned
+        n_pad_start = 0
+
+    # Check end: should be month 3 of a quarter
+    end_month = int(datet[-1, 1])
+    if end_month % 3 == 1:
+        # Month 1: need to pad 2 months at end
+        n_pad_end = 2
+    elif end_month % 3 == 2:
+        # Month 2: need to pad 1 month at end
+        n_pad_end = 1
+    else:
+        # Month 3: already aligned
+        n_pad_end = 0
+
+    return datet, n_pad_start, n_pad_end
+
+
+def _restructure_quarter_blocks(X: FloatArray, datet: FloatArray) -> FloatArray:
+    """Restructure monthly data into quarter-block format.
+
+    Input: X (T, N) where N = nM + nQ
+    Output: X_block (T_q, 3*nM + nQ) where T_q = T/3
+
+    Each row of output contains:
+    - Month 1 values for all monthly variables
+    - Month 2 values for all monthly variables
+    - Month 3 values for all monthly variables (including quarterly target)
+
+    This matches the MATLAB BVAR_bbvar structure.
+    """
+    T, N = X.shape
+
+    # Determine nM (monthly) and nQ (quarterly)
+    # Quarterly variables are at the end and have NaN in months 1-2
+    # For now, assume last column is quarterly target
+    nQ = 1
+    nM = N - nQ
+
+    # Align to quarter boundaries
+    _, n_pad_start, n_pad_end = _align_to_quarter_boundary(datet)
+
+    # Pad with NaN if needed
+    if n_pad_start > 0:
+        X = np.vstack([np.full((n_pad_start, N), np.nan), X])
+    if n_pad_end > 0:
+        X = np.vstack([X, np.full((n_pad_end, N), np.nan)])
+
+    T_aligned = len(X)
+    T_q = T_aligned // 3  # number of quarters
+
+    # Restructure into quarter blocks
+    # MATLAB: month1 = X(1:3:end, mSeries)
+    #         month2 = X(2:3:end, mSeries)
+    #         month3 = X(3:3:end, :)
+    #         xQ = [month1 month2 month3]
+    X_block = np.full((T_q, 3 * nM + nQ), np.nan)
+
+    for q in range(T_q):
+        idx1 = q * 3
+        idx2 = q * 3 + 1
+        idx3 = q * 3 + 2
+
+        # Month 1: monthly variables only
+        if idx1 < T_aligned:
+            X_block[q, :nM] = X[idx1, :nM]
+
+        # Month 2: monthly variables only
+        if idx2 < T_aligned:
+            X_block[q, nM:2 * nM] = X[idx2, :nM]
+
+        # Month 3: all variables (monthly + quarterly)
+        if idx3 < T_aligned:
+            X_block[q, 2 * nM:] = X[idx3, :]
+
+    return X_block
+
+
+def _restructure_from_quarter_blocks(X_block: FloatArray, nM: int, nQ: int, T_original: int) -> FloatArray:
+    """Restructure quarter-block data back to monthly format.
+
+    Input: X_block (T_q, 3*nM + nQ)
+    Output: X_monthly (T, nM + nQ)
+
+    This is the inverse of _restructure_quarter_blocks.
+    """
+    T_q = len(X_block)
+    N = nM + nQ
+    X_monthly = np.full((T_q * 3, N), np.nan)
+
+    for q in range(T_q):
+        idx1 = q * 3
+        idx2 = q * 3 + 1
+        idx3 = q * 3 + 2
+
+        # Month 1: monthly variables only
+        X_monthly[idx1, :nM] = X_block[q, :nM]
+
+        # Month 2: monthly variables only
+        X_monthly[idx2, :nM] = X_block[q, nM:2 * nM]
+
+        # Month 3: all variables
+        X_monthly[idx3, :] = X_block[q, 2 * nM:]
+
+    # Trim to original length
+    return X_monthly[:T_original]
 
 
 # ---------------------------------------------------------------------------
