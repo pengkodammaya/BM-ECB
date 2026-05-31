@@ -75,6 +75,55 @@ def block_bvar(
     nM = len(m_series)
     nQ = N - nM  # quarterly variables
 
+    # ---------- Minimum observations check (like MATLAB BVAR_estimate) ----------
+    # Variables with insufficient data are dropped
+    min_obs_monthly = 3 * 2 * lags + 1  # MATLAB: min_obs = 3*2*Par.bvar_lags + 1
+    min_obs_quarterly = 2 * lags + 1
+
+    # Find last row with any non-NaN data
+    iMax = np.where(~np.all(np.isnan(X), axis=1))[0]
+    if len(iMax) == 0:
+        logger.warning("All data is NaN, returning empty result")
+        return {"X_sm": X, "B": None, "Sigma": None, "B_draws": None, "Sigma_draws": None,
+                "lambda": lambda0, "theta": theta0, "miu": miu0, "alpha": alpha0}
+    iMax = iMax[-1]
+
+    # Check monthly variables
+    keep_monthly = []
+    for j in m_series:
+        iX = np.where(~np.isnan(X[:, j]))[0]
+        if len(iX) > 0 and iMax - iX[0] + 1 >= min_obs_monthly:
+            keep_monthly.append(j)
+
+    # Check quarterly variables (except target which is always kept)
+    keep_quarterly = []
+    for j in range(nM, N - 1):  # exclude last column (target)
+        iX = np.where(~np.isnan(X[:, j]))[0]
+        if len(iX) > 0 and iMax - iX[0] + 1 >= min_obs_quarterly:
+            keep_quarterly.append(j)
+
+    # Always keep target variable
+    keep_target = [N - 1]
+
+    # Build kept indices
+    keep_idx = keep_monthly + keep_quarterly + keep_target
+    nM_kept = len(keep_monthly)
+    nQ_kept = len(keep_quarterly) + 1  # +1 for target
+
+    if nM_kept == 0:
+        logger.warning("No monthly variables with sufficient data, returning empty result")
+        return {"X_sm": X, "B": None, "Sigma": None, "B_draws": None, "Sigma_draws": None,
+                "lambda": lambda0, "theta": theta0, "miu": miu0, "alpha": alpha0}
+
+    if len(keep_idx) < N:
+        logger.info("Dropped %d variables with insufficient data (kept %d/%d)",
+                    N - len(keep_idx), len(keep_idx), N)
+        X = X[:, keep_idx]
+        m_series = list(range(nM_kept))
+        T, N = X.shape
+        nM = nM_kept
+        nQ = nQ_kept
+
     # ---------- Fill missing data ----------
     # If datet provided, restructure into quarter-block format
     X_filled = _fill_data(X, datet)
