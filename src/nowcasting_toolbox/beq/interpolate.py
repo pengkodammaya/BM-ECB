@@ -8,9 +8,9 @@ Three modes (matching Par.type 901-903):
 - 902: BVAR only on selected variables
 - 903: Univariate BVAR (one series at a time)
 
-WARNING: Line 126 uses np.interp which interpolates between past AND future
-values. This causes data leakage in pseudo-real-time backtesting. For
-backtesting, consider using forward-fill before calling this function.
+Lambda values match MATLAB BEQ_estimate:
+- Multivariate (901): lambda = 0.2
+- Univariate (903): lambda = 0.5
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ FloatArray = NDArray[np.float64]
 def extrapolate_bvar(
     X: FloatArray,
     lags: int = 6,
-    lambda_: float = 0.2,
+    lambda_: float | None = None,
     method: int = 901,
 ) -> FloatArray:
     """Fill trailing NaN values using a small BVAR.
@@ -35,8 +35,10 @@ def extrapolate_bvar(
         Data with trailing NaN (ragged edge).
     lags : int
         Number of VAR lags for interpolation.
-    lambda_ : float
+    lambda_ : float, optional
         Shrinkage parameter (Minnesota prior tightness).
+        If None, uses 0.2 for multivariate (901) and 0.5 for univariate (903).
+        Matches MATLAB BEQ_estimate behavior.
     method : int
         901 = multivariate BVAR, 903 = univariate BVAR.
 
@@ -48,13 +50,42 @@ def extrapolate_bvar(
     if N == 1:
         method = 903  # univariate only option
 
+    # Set default lambda based on method (MATLAB BEQ_estimate behavior)
+    if lambda_ is None:
+        if method == 903 or N == 1:
+            lambda_ = 0.5  # univariate (MATLAB: Par_BVAR.lambda = 0.5)
+        else:
+            lambda_ = 0.2  # multivariate (MATLAB: Par_BVAR.lambda = 0.2)
+
+    # Minimum observations check (MATLAB: min_obs = 2*lags + 1)
+    min_obs = 2 * lags + 1
+    iMax = np.where(~np.all(np.isnan(X), axis=1))[0]
+    if len(iMax) == 0:
+        return X.copy()
+    iMax = iMax[-1]
+
+    # Check each variable has enough observations
+    keep_cols = []
+    for j in range(N):
+        iX = np.where(~np.isnan(X[:, j]))[0]
+        if len(iX) > 0 and iMax - iX[0] + 1 >= min_obs:
+            keep_cols.append(j)
+
+    if len(keep_cols) == 0:
+        return X.copy()
+
     X_out = X.copy()
 
     if method == 903 or N == 1:
         for j in range(N):
-            X_out[:, j] = _univariate_ar_extrapolate(X[:, j], lags)
+            if j in keep_cols:
+                X_out[:, j] = _univariate_ar_extrapolate(X[:, j], lags)
     else:
-        X_out = _multivariate_bvar_extrapolate(X, lags, lambda_)
+        # Only use columns with enough data for BVAR
+        X_subset = X[:, keep_cols]
+        X_filled = _multivariate_bvar_extrapolate(X_subset, lags, lambda_)
+        for idx, j in enumerate(keep_cols):
+            X_out[:, j] = X_filled[:, idx]
 
     return X_out
 

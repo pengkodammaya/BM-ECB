@@ -67,6 +67,18 @@
 
 ---
 
+## Model Accuracy (Backtest)
+
+*8-vintage pseudo-real-time backtest (2023-Q3 to 2025-Q2). YoY GDP.*
+
+| Model | MAE (pp) | FDA (%) | N |
+|-------|:--------:|:-------:|:-:|
+| DFM | 2.303 | 57.1% | 8 |
+| BVAR | 1.642 | 71.4% | 8 |
+| ENSEMBLE | 1.505 | 57.1% | 8 |
+
+*BVAR uses quarter-block restructuring. Ensemble = median of DFM + BVAR.*
+
 ## Model Accuracy (vintage-frozen, quarter-matched)
 
 *MAE/RMSE/FDA vs FIRST-RELEASE actuals, joined on target quarter. Lower MAE = better.*

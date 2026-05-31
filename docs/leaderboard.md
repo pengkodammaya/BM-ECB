@@ -35,6 +35,18 @@
 | Services | `+5.6%` |
 | **Overall GDP** | `+5.4%` |
 
+## Model Accuracy (Backtest)
+
+*8-vintage pseudo-real-time backtest (2023-Q3 to 2025-Q2) with ARC publication lags. YoY GDP.*
+
+| Model | MAE (pp) | FDA (%) | N |
+|-------|:--------:|:-------:|:-:|
+| DFM | 2.303 | 57.1% | 8 |
+| BVAR | 1.642 | 71.4% | 8 |
+| ENSEMBLE | 1.505 | 57.1% | 8 |
+
+*BVAR now uses quarter-block restructuring (matching MATLAB toolbox). Ensemble = median of DFM + BVAR.*
+
 ## Model Accuracy (vintage-frozen, quarter-matched)
 
 *MAE/RMSE/FDA vs FIRST-RELEASE actuals, joined on target quarter. Appears after 3+ scored quarters.*

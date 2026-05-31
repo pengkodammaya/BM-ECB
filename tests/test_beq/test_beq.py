@@ -183,11 +183,11 @@ def test_beq_interpolation_fallback():
     """BEQ interpolation should fall back to forward-fill when BVAR fails."""
     from nowcasting_toolbox.beq.interpolate import extrapolate_bvar
 
-    # Very few observations — BVAR will fail, should fall back to forward-fill
+    # Few observations — BVAR will fail, should fall back to forward-fill
     T = 36
     X = np.full((T, 2), np.nan)
-    X[:5, 0] = np.random.randn(5)
-    X[:5, 1] = np.random.randn(5)
+    X[:15, 0] = np.random.randn(15)  # 15 observations (enough for min_obs)
+    X[:15, 1] = np.random.randn(15)
 
     result = extrapolate_bvar(X, method=901)
 
