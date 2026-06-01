@@ -29,6 +29,10 @@ def compute_fda(actual: FloatArray, predicted: FloatArray) -> float:
 
     FDA = fraction of periods where sign(predicted[t] - actual[t-1])
           matches sign(actual[t] - actual[t-1]).
+
+    Ties (zero change) are excluded from the count:
+    - If actual change = 0, skip (no direction to predict)
+    - If predicted change = 0 but actual change != 0, count as wrong
     """
     mask = ~np.isnan(actual) & ~np.isnan(predicted)
     if np.sum(mask) < 2:
@@ -44,7 +48,13 @@ def compute_fda(actual: FloatArray, predicted: FloatArray) -> float:
     if n == 0:
         return np.nan
 
-    correct = np.sign(act_change) == np.sign(pred_change)
-    # Also count zero-change as correct if both are zero
-    both_zero = (act_change == 0) & (pred_change == 0)
-    return float(np.mean(correct | both_zero))
+    # Exclude periods where actual has no change (no direction to predict)
+    has_direction = act_change != 0
+    if not np.any(has_direction):
+        return np.nan
+
+    act_dir = act_change[has_direction]
+    pred_dir = pred_change[has_direction]
+
+    correct = np.sign(act_dir) == np.sign(pred_dir)
+    return float(np.mean(correct))
