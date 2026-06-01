@@ -47,6 +47,39 @@ for t in range(T):
 
 ---
 
+## 0b. BVAR Speed Optimization: Skip Quarter-Block Restructuring
+
+**Date**: 2026-06-01
+
+**Context**: BVAR with quarter-block restructuring (`datet` parameter) was too slow for GitHub Actions (30+ min timeout).
+
+**Quarter-block restructuring** (MATLAB BVAR_bbvar behavior):
+- 7 monthly variables → 19 columns (6×3 months + 1 quarterly)
+- Month 1 values: columns 0-5
+- Month 2 values: columns 6-11
+- Month 3 values: columns 12-18
+- Gibbs sampler: 19³ = 6,859 operations per draw
+
+**Fix**: Skip `datet` parameter for daily nowcasting:
+```python
+# Fast (daily nowcasting)
+bvar.fit(X)           # 7 vars, ~30 seconds
+
+# Accurate (backtesting)
+bvar.fit(X, datet)    # 19 vars, ~10 minutes
+```
+
+**When to use each:**
+| Context | Use datet? | Why |
+|---------|-----------|-----|
+| Daily nowcast | No | Speed critical, accuracy acceptable |
+| Backtest | Yes | Accuracy critical, speed acceptable |
+| Production | No | GitHub Actions 30min timeout |
+
+**Speed gain**: ~20x faster per Gibbs draw (7³=343 vs 19³=6859)
+
+---
+
 ## 1. GDP Identity Reconciliation (Negative Finding)
 
 **Date**: 2026-05-26
