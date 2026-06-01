@@ -596,7 +596,7 @@ def _extract(res, idx, sigma_arr, mu_arr, gdp_col=-1):
 
 
 try:
-    dfm = DFM(DFMParams(r=2, p=4, max_iter=50, thresh=1e-5, idio=1))
+    dfm = DFM(DFMParams(r=2, p=4, max_iter=20, thresh=1e-4, idio=1))
     res = dfm.fit(X_est)
     nowcasts["dfm"] = _extract(res, current_q_idx, sigma, mu)
     nowcasts["dfm_backcast"] = _extract(res, last_actual_idx, sigma, mu)
@@ -612,7 +612,7 @@ try:
     X_bvar = X_filled.copy()
     if 0 <= last_actual_idx < X_bvar.shape[0]:
         X_bvar[last_actual_idx, -1] = np.nan
-    bvar = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-5, bvar_max_iter=10, bvar_n_draws=50, bvar_burn_in=15))
+    bvar = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-5, bvar_max_iter=5, bvar_n_draws=20, bvar_burn_in=5))
     res_b = bvar.fit(X_bvar, datet[ff:])
     nowcasts["bvar"] = _extract(res_b, current_q_idx, sigma, mu)
     nowcasts["bvar_backcast"] = _extract(res_b, last_actual_idx, sigma, mu)
@@ -941,7 +941,7 @@ if not df_gdp_yoy.empty:
             ff_y = non_empty_y[0]
             Xy_est = Xy_std[ff_y:]
             cqy = grid_quarter_idx(ff_y, current_year, current_q_end_m)
-            dfm_y = DFM(DFMParams(r=2, p=4, max_iter=50, thresh=1e-5, idio=1))
+            dfm_y = DFM(DFMParams(r=2, p=4, max_iter=20, thresh=1e-4, idio=1))
             res_y = dfm_y.fit(Xy_est)
             if 0 <= cqy < res_y.X_sm.shape[0]:
                 nowcasts["dfm_yoy"] = round((float(res_y.X_sm[cqy, -1]) * sigma_y[-1] + mu_y[-1]) * 100, 2)
