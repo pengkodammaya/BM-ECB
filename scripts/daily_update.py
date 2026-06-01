@@ -14,12 +14,23 @@ This version is quarter-matched, vintage-frozen, and horizon-stratified:
 CI-safety: all new reads use safe_read_csv, all writes are atomic, all new
 files are created on first run, and every new block is wrapped so a failure
 degrades to a warning rather than crashing the Action.
+
+Diagnostics: a SIGTERM handler + checkpoint heartbeat pinpoint exactly which
+step is running if the runner kills the job (exit 143 = timeout/OOM). Run with
+PYTHONUNBUFFERED=1 (or `python -u`) so checkpoint logs stream in real time.
+
+Perf note: the per-component (5x) and per-sector (5x) model loops, dominated by
+BEQ, are the real runtime cost (~17 min observed), NOT the main BVAR. BVAR fits
+ALWAYS receive `datet` — dropping it breaks the mixed-frequency quarter-block
+alignment (matmul 96-vs-64 dimension mismatch) and silently nulls the nowcast.
+BEQ is now skipped when its target column is all-NaN to avoid wasted work.
 """
 import sys; sys.path.insert(0, "src")
 
 import re
 import json
 import time
+import signal
 import warnings
 import logging
 import numpy as np
@@ -35,6 +46,37 @@ logger = logging.getLogger("daily_update")
 
 # Bump this when DOSM rebases the constant-price series (currently 2015).
 CURRENT_BASE_YEAR = 2015
+
+# ---------------------------------------------------------------------------
+# Diagnostics — SIGTERM handler + checkpoint heartbeat
+# ---------------------------------------------------------------------------
+# Exit 143 means the runner sent SIGTERM (timeout or OOM). When that happens we
+# log the last checkpoint reached so the next run names the exact dying step.
+_T0 = time.monotonic()
+_CHECKPOINT = "startup"
+
+
+def checkpoint(label):
+    """Record + log the current step with elapsed wall-clock time."""
+    global _CHECKPOINT
+    _CHECKPOINT = label
+    logger.info("[CHECKPOINT] %s (t+%.1fs)", label, time.monotonic() - _T0)
+
+
+def _on_sigterm(signum, frame):
+    logger.error(
+        "Received signal %d (SIGTERM) — killed externally (timeout/OOM). "
+        "Last checkpoint: '%s' at t+%.1fs",
+        signum, _CHECKPOINT, time.monotonic() - _T0,
+    )
+    sys.exit(143)
+
+
+try:
+    signal.signal(signal.SIGTERM, _on_sigterm)
+    signal.signal(signal.SIGINT, _on_sigterm)
+except Exception as _sig_e:  # signal may be unavailable in some sandboxes
+    logger.warning("Could not install signal handlers: %s", _sig_e)
 
 try:
     from nowcasting_toolbox.data.sources.opendosm import OpenDOSMClient
@@ -117,6 +159,19 @@ def standardize(arr):
     sigma = np.nan_to_num(sigma, nan=1.0)
     sigma[sigma < 1e-10] = 1.0
     return (arr - mu) / sigma, mu, sigma
+
+
+def beq_target_usable(arr, gdp_col=-1, min_obs=3):
+    """True if the BEQ target column has enough non-NaN observations to fit.
+
+    BEQ on an all-NaN (or near-empty) target column wastes minutes producing
+    'All-NaN slice' nanmedian warnings and a useless forecast. Guard against it.
+    """
+    try:
+        col = np.asarray(arr)[:, gdp_col]
+        return int(np.sum(~np.isnan(col))) >= min_obs
+    except Exception:
+        return False
 
 
 # ---------------------------------------------------------------------------
@@ -287,6 +342,7 @@ AN = MN + ["gdp"]
 # 2. Fetch data (parallel)
 # ---------------------------------------------------------------------------
 logger.info("Daily update starting...")
+checkpoint("fetch:start")
 
 cache = DataCache(ttl_hours=6)
 filtered = {}
@@ -329,6 +385,7 @@ with ThreadPoolExecutor(max_workers=5) as executor:
         name, df = future.result()
         if df is not None:
             filtered[name] = df
+checkpoint("fetch:opendosm_done")
 
 for var in ["ipi", "imports_capital", "imports_consumer"]:
     if var in filtered:
@@ -354,6 +411,7 @@ try:
         filtered["fx_usd"] = fx_df[["date", "fx_usd"]]
 except Exception as e:
     logger.warning("BNM exchange rate failed (non-fatal): %s", e)
+checkpoint("fetch:bnm_done")
 
 for k in ["interbank", "fx_usd"]:
     if k in filtered:
@@ -413,6 +471,7 @@ if yf is not None:
             logger.info("yfinance %s: %d monthly obs", label, len(df_out))
         except Exception as e:
             logger.warning("yfinance %s failed: %s", label, e)
+checkpoint("fetch:yfinance_done")
 
 # 1.7 FRED — with exponential backoff retry on 429
 FRED_SERIES = {
@@ -425,7 +484,7 @@ if fred_key_path.exists():
     for label, (sid, group) in FRED_SERIES.items():
         try:
             import httpx
-            # FIX 1: retry with exponential backoff on HTTP 429 Too Many Requests
+            # retry with exponential backoff on HTTP 429 Too Many Requests
             resp = None
             for _attempt in range(3):
                 try:
@@ -468,6 +527,7 @@ if fred_key_path.exists():
             logger.info("FRED %s: %d monthly obs", label, len(df_fred))
         except Exception as e:
             logger.warning("FRED %s failed: %s", label, e)
+checkpoint("fetch:fred_done")
 
 # 1.8 SITC
 sitc_df = safe_fetch("trade_sitc_1d")
@@ -483,6 +543,7 @@ if not sitc_df.empty:
                 DATASETS[label] = (label, label, 1, "external", {})
         except Exception as e:
             logger.warning("SITC %s failed: %s", label, e)
+checkpoint("fetch:sitc_done")
 
 # FATAL GUARD
 if "gdp" not in filtered or filtered["gdp"].empty:
@@ -564,6 +625,7 @@ if len(non_empty_rows) == 0:
     sys.exit(1)
 ff = non_empty_rows[0]
 X_est = X_std[ff:]
+checkpoint("grid:built")
 
 # ---------------------------------------------------------------------------
 # 3. Models — all pinned to the CURRENT quarter
@@ -613,6 +675,7 @@ def _extract(res, idx, sigma_arr, mu_arr, gdp_col=-1):
     return None
 
 
+checkpoint("model:dfm")
 try:
     dfm = DFM(DFMParams(r=2, p=4, max_iter=20, thresh=1e-4, idio=1))
     res = dfm.fit(X_est)
@@ -623,6 +686,7 @@ except Exception as e:
     logger.warning("DFM failed: %s", e)
     nowcasts["dfm"] = None
 
+checkpoint("model:bvar")
 try:
     X_filled = X_est.copy()
     for j in range(X_filled.shape[1]):
@@ -631,7 +695,9 @@ try:
     if 0 <= last_actual_idx < X_bvar.shape[0]:
         X_bvar[last_actual_idx, -1] = np.nan
     bvar = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-5, bvar_max_iter=5, bvar_n_draws=20, bvar_burn_in=5))
-    res_b = bvar.fit(X_bvar)  # Skip datet for speed (no quarter-block restructuring)
+    # datet is REQUIRED for mixed-frequency quarter-block alignment. Dropping it
+    # causes a matmul (96-vs-64) dimension mismatch and a null nowcast.
+    res_b = bvar.fit(X_bvar, datet[ff:])
     nowcasts["bvar"] = _extract(res_b, current_q_idx, sigma, mu)
     nowcasts["bvar_backcast"] = _extract(res_b, last_actual_idx, sigma, mu)
     nowcasts["bvar_forecast"] = _extract(res_b, next_q_idx, sigma, mu)
@@ -649,24 +715,29 @@ except Exception as e:
     logger.warning("BVAR failed: %s", e)
     nowcasts["bvar"] = None
 
+checkpoint("model:beq")
 try:
     X_raw_beq = X_trans[ff:]
-    beq = BEQ(BEQParams(lagM=1, lagQ=1, lagY=1, type=901))
-    res_e = beq.fit(X_raw_beq, datet[ff:], AN)
-    gdp_col = -1
-    last_q = None
-    for i in range(len(datet)-ff-1, -1, -1):
-        if (datet[ff+i, 1] % 3 == 0) and not np.isnan(res_e.X_sm[i, gdp_col]):
-            last_q = i
-            break
-    if last_q is not None:
-        def _beq_val(idx, s, m):
-            if idx is not None and idx >= 0 and idx < res_e.X_sm.shape[0]:
-                return round((float(res_e.X_sm[idx, gdp_col]) * s[gdp_col] + m[gdp_col]) * 100, 2)
-            return None
-        nowcasts["beq"] = _beq_val(current_q_idx, sigma, mu)
-        nowcasts["beq_backcast"] = _beq_val(last_actual_idx, sigma, mu)
-        nowcasts["beq_forecast"] = _beq_val(next_q_idx, sigma, mu)
+    if not beq_target_usable(X_raw_beq):
+        logger.warning("BEQ target column all-NaN — skipping main BEQ.")
+        nowcasts["beq"] = nowcasts["beq_backcast"] = nowcasts["beq_forecast"] = None
+    else:
+        beq = BEQ(BEQParams(lagM=1, lagQ=1, lagY=1, type=901))
+        res_e = beq.fit(X_raw_beq, datet[ff:], AN)
+        gdp_col = -1
+        last_q = None
+        for i in range(len(datet)-ff-1, -1, -1):
+            if (datet[ff+i, 1] % 3 == 0) and not np.isnan(res_e.X_sm[i, gdp_col]):
+                last_q = i
+                break
+        if last_q is not None:
+            def _beq_val(idx, s, m):
+                if idx is not None and idx >= 0 and idx < res_e.X_sm.shape[0]:
+                    return round((float(res_e.X_sm[idx, gdp_col]) * s[gdp_col] + m[gdp_col]) * 100, 2)
+                return None
+            nowcasts["beq"] = _beq_val(current_q_idx, sigma, mu)
+            nowcasts["beq_backcast"] = _beq_val(last_actual_idx, sigma, mu)
+            nowcasts["beq_forecast"] = _beq_val(next_q_idx, sigma, mu)
 except Exception as e:
     logger.warning("BEQ failed: %s", e)
     nowcasts["beq"] = nowcasts["beq_backcast"] = nowcasts["beq_forecast"] = None
@@ -714,13 +785,13 @@ try:
             X_ar = np.column_stack([np.ones(np.sum(valid)), y_lag[valid]])
             ar_coeffs = np.linalg.lstsq(X_ar, y_curr[valid], rcond=None)[0]
             last_gdp = gdp_vals[-1] if not np.isnan(gdp_vals[-1]) else gdp_vals[-2]
-            # FIX 2: removed dead `if False` branch and misplaced parenthesis
             nowcasts["ar1"] = round(
                 ((ar_coeffs[0] + ar_coeffs[1] * last_gdp) * sigma[-1] + mu[-1]) * 100, 2
             )
 except Exception as e:
     logger.warning("AR(1) failed: %s", e)
     nowcasts["ar1"] = None
+checkpoint("model:qoq_done")
 
 # ---------------------------------------------------------------------------
 # 3a. YoY GDP + sector actuals
@@ -777,6 +848,7 @@ else:
             pass
 
     for comp_key, comp_type, comp_series in COMPONENTS:
+        checkpoint(f"component:{comp_key}")
         try:
             target_names = [n for n in COMPONENT_INDICATORS.get(comp_key, MN) if n in filtered]
             n_comp = len(target_names)
@@ -836,26 +908,32 @@ else:
                 for j in range(Xc_filled.shape[1]):
                     Xc_filled[:, j] = interpolate_no_leak(Xc_filled[:, j])
                 bvar_c = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
-                res_bc = bvar_c.fit(Xc_filled)  # Skip datet for speed
+                # datet REQUIRED (mixed-frequency alignment) — see main BVAR note.
+                res_bc = bvar_c.fit(Xc_filled, datet[ffc:])
                 nowcasts[comp_key] = round((float(res_bc.X_sm[comp_q_idx, -1]) * sigmac[-1] + muc[-1]) * 100, 2)
             except Exception as e:
                 logger.warning("Component BVAR %s failed: %s", comp_key, e)
                 nowcasts[comp_key] = nowcasts.get(comp_key + "_dfm")
 
             try:
-                beq_c = BEQ(BEQParams(lagM=1, lagQ=1, lagY=1, type=901))
-                res_ec = beq_c.fit(Xc_trans, datet[ffc:], target_names)
-                if res_ec.X_sm is not None and res_ec.X_sm.shape[0] > 0 and 0 <= comp_q_idx < res_ec.X_sm.shape[0]:
-                    nw_e = float(res_ec.X_sm[comp_q_idx, -1])
-                    nowcasts[comp_key + "_beq"] = round(nw_e * 100, 2) if not np.isnan(nw_e) else None
-                else:
+                if not beq_target_usable(Xc_trans):
+                    logger.warning("Component BEQ %s target all-NaN — skipping.", comp_key)
                     nowcasts[comp_key + "_beq"] = None
+                else:
+                    beq_c = BEQ(BEQParams(lagM=1, lagQ=1, lagY=1, type=901))
+                    res_ec = beq_c.fit(Xc_trans, datet[ffc:], target_names)
+                    if res_ec.X_sm is not None and res_ec.X_sm.shape[0] > 0 and 0 <= comp_q_idx < res_ec.X_sm.shape[0]:
+                        nw_e = float(res_ec.X_sm[comp_q_idx, -1])
+                        nowcasts[comp_key + "_beq"] = round(nw_e * 100, 2) if not np.isnan(nw_e) else None
+                    else:
+                        nowcasts[comp_key + "_beq"] = None
             except Exception as e:
                 logger.warning("Component BEQ %s failed: %s", comp_key, e)
                 nowcasts[comp_key + "_beq"] = None
         except Exception as e:
             logger.warning("Component %s: %s", comp_key, e)
             nowcasts[comp_key] = None
+checkpoint("components:done")
 
 # ---------------------------------------------------------------------------
 # 3b2. Sector nowcasts
@@ -863,6 +941,7 @@ else:
 logger.info("Running sector nowcasts...")
 df_sector_gdp = safe_fetch("gdp_qtr_real_supply")
 for sector_code, sector_name in SECTOR_MAP.items():
+    checkpoint(f"sector:{sector_name}")
     try:
         if df_sector_gdp.empty:
             nowcasts[f"sector_{sector_name}"] = None
@@ -926,10 +1005,12 @@ for sector_code, sector_name in SECTOR_MAP.items():
     except Exception as e:
         logger.warning("Sector %s: %s", sector_name, e)
         nowcasts[f"sector_{sector_name}"] = None
+checkpoint("sectors:done")
 
 # ---------------------------------------------------------------------------
 # 3c. YoY GDP nowcast
 # ---------------------------------------------------------------------------
+checkpoint("model:yoy")
 if not df_gdp_yoy.empty:
     try:
         yoy_rows = df_gdp_yoy[df_gdp_yoy["series"] == "growth_yoy"].copy()
@@ -970,7 +1051,8 @@ if not df_gdp_yoy.empty:
                 for j in range(Xy_filled.shape[1]):
                     Xy_filled[:, j] = interpolate_no_leak(Xy_filled[:, j])
                 bvar_y = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
-                res_by = bvar_y.fit(Xy_filled)  # Skip datet for speed
+                # datet REQUIRED (mixed-frequency alignment) — see main BVAR note.
+                res_by = bvar_y.fit(Xy_filled, datet[ff_y:])
                 if 0 <= cqy < res_by.X_sm.shape[0]:
                     nowcasts["bvar_yoy"] = round((float(res_by.X_sm[cqy, -1]) * sigma_y[-1] + mu_y[-1]) * 100, 2)
             except Exception as e:
@@ -980,6 +1062,7 @@ if not df_gdp_yoy.empty:
                 nowcasts["ensemble_yoy"] = round(float(np.median(yv)), 2)
     except Exception as e:
         logger.warning("YoY GDP nowcast failed: %s", e)
+checkpoint("model:yoy_done")
 
 # ---------------------------------------------------------------------------
 # 3c.1 YoY migration: rename columns so YoY is primary
@@ -1072,6 +1155,7 @@ nowcasts["naive"] = nowcasts["actual_gdp_pct"]
 # ---------------------------------------------------------------------------
 # 4. Vintage-frozen actuals table (first release frozen; revisions tracked)
 # ---------------------------------------------------------------------------
+checkpoint("vintage:write")
 vintage_path = Path("docs/actuals_vintage.csv")
 vintage = safe_read_csv(vintage_path)
 if vintage is None or vintage.empty or "metric" not in (vintage.columns if vintage is not None else []):
@@ -1115,6 +1199,7 @@ except Exception as e:
 # ---------------------------------------------------------------------------
 # 5. Append to daily log (atomic, target_quarter stamped)
 # ---------------------------------------------------------------------------
+checkpoint("log:write")
 log_path = Path("docs/daily_log.csv")
 new_row = pd.DataFrame([nowcasts])
 existing = safe_read_csv(log_path)
@@ -1173,6 +1258,7 @@ try:
         atomic_write_csv(pd.DataFrame(qoq_by_h), Path("docs/leaderboard_by_horizon.csv"))
 except Exception as e:
     logger.warning("Scoring failed (non-fatal): %s", e)
+checkpoint("scoring:done")
 
 # ---------------------------------------------------------------------------
 # 6. Markdown leaderboard
@@ -1257,6 +1343,7 @@ logger.info("Leaderboard written.")
 #    dashboard.md. Rolls with the calendar; backtest uses the latest PUBLISHED
 #    quarter scored against frozen first-release actuals.
 # ---------------------------------------------------------------------------
+checkpoint("datajson:write")
 def fmt_quarter(qkey):
     """'2026-Q2' -> 'Q2 2026' for display."""
     try:
@@ -1322,42 +1409,33 @@ for r in qoq_overall:
     })
 
 # Backcast: what we nowcast for the latest PUBLISHED quarter vs its frozen actual.
-# When no historical daily-log rows target pub_q (e.g. fresh install), fall back
-# to the latest-model backcast estimate for that quarter.
-# Now uses YoY basis (primary metric).
 backcast = {}
 for m_disp, m_back in [("dfm", "dfm_backcast"), ("bvar", "bvar_backcast"), ("ensemble", None)]:
-    # Try historical log first (target_quarter == pub_q)
     est = None
     if pub_q and m_back:
-        # Look for latest row where target == pub_q
         if log is not None and "target_quarter" in log.columns and m_back in log.columns:
             sub = log[(log["target_quarter"] == pub_q) & log[m_back].notna()]
             if not sub.empty:
                 est = round(float(sub.sort_values("date").iloc[-1][m_back]), 1)
-    # Fallback: use latest backcast from today's run
     if est is None and m_back:
         val = nowcasts.get(m_back)
         if val is not None:
             est = round(float(val), 1)
-    # Ensemble fallback: median of DFM + BVAR backcasts
     if m_disp == "ensemble":
         dfm_est = backcast.get("dfm", {}).get("estimate")
         bvar_est = backcast.get("bvar", {}).get("estimate")
         vals = [v for v in [dfm_est, bvar_est] if v is not None]
         est = round(float(np.median(vals)), 1) if vals else None
-    actual_yoy = nowcasts.get("actual")  # YoY actual
+    actual_yoy = nowcasts.get("actual")
     err = round(abs(est - actual_yoy), 1) if (est is not None and actual_yoy is not None) else None
     backcast[m_disp] = {"estimate": est, "error": err}
 
 # Components: backtest for the latest published quarter (nowcast-for-Q vs frozen actual).
-# Fall back to latest component nowcast from today's run when no historical data exists.
 components_out = {}
 comp_col = {"consumption": "consumption", "investment": "investment", "government": "government",
             "exports": "exports_comp", "imports": "imports_comp"}
 for out_key, logcol in comp_col.items():
     nc = nowcast_for_quarter(log, logcol, pub_q) if pub_q else None
-    # Fallback: use latest value from today's nowcast
     if nc is None:
         nc = nowcasts.get(logcol)
     if nc is not None:
@@ -1373,11 +1451,10 @@ sectors_out, sector_nowcast_out = {}, {}
 for sc, sn in SECTOR_MAP.items():
     actual = vintage_first_map(vintage, f"sector_{sn}_yoy").get(pub_q) if pub_q else None
     if actual is None or (isinstance(actual, float) and np.isnan(actual)):
-        actual = sector_actuals.get(sn)  # fall back to latest snapshot
+        actual = sector_actuals.get(sn)
     if actual is not None:
         sectors_out[sn] = round(float(actual), 1)
     nc = nowcast_for_quarter(log, f"sector_{sn}", pub_q) if pub_q else None
-    # Fallback: use latest sector nowcast from today's run
     if nc is None:
         nc = nowcasts.get(f"sector_{sn}")
     sector_nowcast_out[sn] = round(float(nc), 1) if nc is not None else None
@@ -1424,8 +1501,7 @@ try:
 except Exception as e:
     logger.warning("data.json write failed (non-fatal): %s", e)
 
-# Render dashboard.md from the same data.json. generate_dashboard.py is retired
-# (dashboard.html already fetches data.json directly), so it is no longer called.
+# Render dashboard.md from the same data.json.
 import subprocess
 try:
     result = subprocess.run([sys.executable, "scripts/generate_dashboard_md.py"],
@@ -1437,6 +1513,7 @@ try:
 except Exception as e:
     logger.warning("generate_dashboard_md.py could not run: %s", e)
 
-logger.info("Daily update complete. Target quarter: %s", target_q)
+checkpoint("complete")
+logger.info("Daily update complete. Target quarter: %s (total %.1fs)", target_q, time.monotonic() - _T0)
 logger.info("Nowcasts: %s",
             json.dumps({k: v for k, v in nowcasts.items() if k != "sector_actuals"}, indent=2))
