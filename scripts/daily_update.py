@@ -19,6 +19,7 @@ import sys; sys.path.insert(0, "src")
 
 import re
 import json
+import time
 import warnings
 import logging
 import numpy as np
@@ -413,7 +414,7 @@ if yf is not None:
         except Exception as e:
             logger.warning("yfinance %s failed: %s", label, e)
 
-# 1.7 FRED
+# 1.7 FRED — with exponential backoff retry on 429
 FRED_SERIES = {
     "us_ip": ("INDPRO", "global_demand"), "us_caputil": ("TCU", "global_demand"),
     "us_sentiment": ("UMCSENT", "global_demand"),
@@ -424,12 +425,29 @@ if fred_key_path.exists():
     for label, (sid, group) in FRED_SERIES.items():
         try:
             import httpx
-            resp = httpx.get(
-                "https://api.stlouisfed.org/fred/series/observations",
-                params={"series_id": sid, "api_key": fred_key, "file_type": "json",
-                        "observation_start": "2015-01-01"},
-                timeout=15,
-            )
+            # FIX 1: retry with exponential backoff on HTTP 429 Too Many Requests
+            resp = None
+            for _attempt in range(3):
+                try:
+                    resp = httpx.get(
+                        "https://api.stlouisfed.org/fred/series/observations",
+                        params={"series_id": sid, "api_key": fred_key, "file_type": "json",
+                                "observation_start": "2015-01-01"},
+                        timeout=15,
+                    )
+                    if resp.status_code == 429:
+                        wait = 2 ** _attempt
+                        logger.warning("FRED 429 for %s, retrying in %ds...", sid, wait)
+                        time.sleep(wait)
+                        resp = None
+                        continue
+                    break
+                except Exception as _req_e:
+                    logger.warning("FRED request error %s (attempt %d): %s", sid, _attempt + 1, _req_e)
+                    break
+            if resp is None:
+                logger.warning("FRED %s skipped after retries.", sid)
+                continue
             obs = resp.json().get("observations", [])
             records = [(o["date"], float(o["value"])) for o in obs if o["value"] != "."]
             if len(records) < 24:
@@ -696,8 +714,10 @@ try:
             X_ar = np.column_stack([np.ones(np.sum(valid)), y_lag[valid]])
             ar_coeffs = np.linalg.lstsq(X_ar, y_curr[valid], rcond=None)[0]
             last_gdp = gdp_vals[-1] if not np.isnan(gdp_vals[-1]) else gdp_vals[-2]
-            nowcasts["ar1"] = round((ar_coeffs[0] + ar_coeffs[1] * last_gdp) * sigma[-1] + mu[-1]) * 100 \
-                if False else round(((ar_coeffs[0] + ar_coeffs[1] * last_gdp) * sigma[-1] + mu[-1]) * 100, 2)
+            # FIX 2: removed dead `if False` branch and misplaced parenthesis
+            nowcasts["ar1"] = round(
+                ((ar_coeffs[0] + ar_coeffs[1] * last_gdp) * sigma[-1] + mu[-1]) * 100, 2
+            )
 except Exception as e:
     logger.warning("AR(1) failed: %s", e)
     nowcasts["ar1"] = None
