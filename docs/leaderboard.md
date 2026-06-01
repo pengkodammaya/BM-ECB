@@ -1,6 +1,6 @@
 # Malaysia GDP Nowcasting — Live Leaderboard
 
-**Updated:** 2026-05-30 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
+**Updated:** 2026-06-01 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
 
 ## GDP Nowcast (YoY %)
 
@@ -8,9 +8,9 @@
 
 | Model | Nowcast |
 |-------|--------|
-| DFM | `+9.0%` |
-| BVAR | `+4.1%` |
-| ENSEMBLE | `+6.6%` |
+| DFM | `+8.5%` |
+| BVAR | `+3.9%` |
+| ENSEMBLE | `+6.2%` |
 
 ## GDP by Expenditure Category (YoY %)
 
@@ -18,11 +18,11 @@
 
 | Component | BVAR | DFM | Actual (target Q) | Error |
 |-----------|------|-----|-------------------|-------|
-| **Private Consumption** (C) | +4.9% | +10.3% | pending | pending |
-| **Gross Fixed Capital Formation** (I) | +9.1% | +1.6% | pending | pending |
+| **Private Consumption** (C) | +4.8% | +10.5% | pending | pending |
+| **Gross Fixed Capital Formation** (I) | +9.1% | +2.2% | pending | pending |
 | **Government Consumption** (G) | +6.6% | +4.9% | pending | pending |
-| **Exports** (X) | +6.3% | +10.2% | pending | pending |
-| **Imports** (M) | +9.1% | +14.2% | pending | pending |
+| **Exports** (X) | +6.7% | +10.4% | pending | pending |
+| **Imports** (M) | +8.4% | +14.6% | pending | pending |
 
 ## GDP by Economic Sector (YoY %)
 
@@ -34,30 +34,6 @@
 | Construction | `+7.7%` |
 | Services | `+5.6%` |
 | **Overall GDP** | `+5.4%` |
-
-## Model Accuracy (Backtest — GDP YoY)
-
-*8-vintage pseudo-real-time backtest (2023-Q3 to 2025-Q2) with ARC publication lags.*
-
-| Model | MAE (pp) | RMSE (pp) | FDA (%) | N |
-|-------|:--------:|:---------:|:-------:|:-:|
-| DFM | 2.303 | 2.5 | 57.1% | 8 |
-| BVAR | 1.642 | 1.8 | 71.4% | 8 |
-| ENSEMBLE | 1.505 | 1.7 | 57.1% | 8 |
-
-*BVAR uses quarter-block restructuring. Ensemble = median of DFM + BVAR.*
-
-## Component Accuracy (Backtest — YoY)
-
-*2-vintage backtest (2024-Q2, 2024-Q4). Best model per component highlighted.*
-
-| Component | Best Model | MAE (pp) | RMSE (pp) |
-|-----------|------------|:--------:|:---------:|
-| Consumption | BVAR | 0.750 | 0.8 |
-| Investment | BEQ | 1.380 | 1.5 |
-| Government | DFM | 1.405 | 1.6 |
-| Exports | BEQ | 1.100 | 1.2 |
-| Imports | BEQ | 2.595 | 2.8 |
 
 ## Model Accuracy (vintage-frozen, quarter-matched)
 
@@ -71,7 +47,7 @@
 
 *Not enough scored observations per horizon yet.*
 
-## Recent Nowcasts (5 days)
+## Recent Nowcasts (6 days)
 
 | Date | Target Q | DFM | BVAR | BEQ | ENSEMBLE |
 |------|----------|-----|------|-----|----------|
@@ -80,13 +56,14 @@
 | 2026-05-28 | 2026-Q2 | +9.9% | +4.2% | +1.1% | +7.0% |
 | 2026-05-29 | 2026-Q2 | +8.2% | +4.2% | +1.1% | +6.2% |
 | 2026-05-30 | 2026-Q2 | +9.0% | +4.1% | — | +6.6% |
+| 2026-06-01 | 2026-Q2 | +8.5% | +3.9% | — | +6.2% |
 
 ## Data Sources
 
 - **GDP:** DOSM `gdp_qtr_real` (YoY), `gdp_qtr_real_sa` (QoQ)
 - **Expenditure:** DOSM `gdp_qtr_real_demand`; **Sectors:** `gdp_qtr_real_supply`
 - **Vintages:** `docs/actuals_vintage.csv` (first-release frozen, revisions tracked)
-- **Last updated:** 2026-05-30
+- **Last updated:** 2026-06-01
 
 ---
 *Auto-generated daily via GitHub Actions. [Source](https://github.com/pengkodammaya/BM-ECB)*
