@@ -631,7 +631,7 @@ try:
     if 0 <= last_actual_idx < X_bvar.shape[0]:
         X_bvar[last_actual_idx, -1] = np.nan
     bvar = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-5, bvar_max_iter=5, bvar_n_draws=20, bvar_burn_in=5))
-    res_b = bvar.fit(X_bvar, datet[ff:])
+    res_b = bvar.fit(X_bvar)  # Skip datet for speed (no quarter-block restructuring)
     nowcasts["bvar"] = _extract(res_b, current_q_idx, sigma, mu)
     nowcasts["bvar_backcast"] = _extract(res_b, last_actual_idx, sigma, mu)
     nowcasts["bvar_forecast"] = _extract(res_b, next_q_idx, sigma, mu)
@@ -836,7 +836,7 @@ else:
                 for j in range(Xc_filled.shape[1]):
                     Xc_filled[:, j] = interpolate_no_leak(Xc_filled[:, j])
                 bvar_c = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
-                res_bc = bvar_c.fit(Xc_filled, datet[ffc:])
+                res_bc = bvar_c.fit(Xc_filled)  # Skip datet for speed
                 nowcasts[comp_key] = round((float(res_bc.X_sm[comp_q_idx, -1]) * sigmac[-1] + muc[-1]) * 100, 2)
             except Exception as e:
                 logger.warning("Component BVAR %s failed: %s", comp_key, e)
@@ -970,7 +970,7 @@ if not df_gdp_yoy.empty:
                 for j in range(Xy_filled.shape[1]):
                     Xy_filled[:, j] = interpolate_no_leak(Xy_filled[:, j])
                 bvar_y = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
-                res_by = bvar_y.fit(Xy_filled, datet[ff_y:])
+                res_by = bvar_y.fit(Xy_filled)  # Skip datet for speed
                 if 0 <= cqy < res_by.X_sm.shape[0]:
                     nowcasts["bvar_yoy"] = round((float(res_by.X_sm[cqy, -1]) * sigma_y[-1] + mu_y[-1]) * 100, 2)
             except Exception as e:
