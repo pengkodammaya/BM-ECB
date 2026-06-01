@@ -51,13 +51,13 @@
 
 *2-vintage backtest (2024-Q2, 2024-Q4). Best model per component highlighted.*
 
-| Component | Best Model | MAE (pp) |
-|-----------|------------|:--------:|
-| Consumption | BVAR | 0.750 |
-| Investment | BEQ | 1.380 |
-| Government | DFM | 1.405 |
-| Exports | BEQ | 1.100 |
-| Imports | BEQ | 2.595 |
+| Component | Best Model | MAE (pp) | RMSE (pp) |
+|-----------|------------|:--------:|:---------:|
+| Consumption | BVAR | 0.750 | 0.8 |
+| Investment | BEQ | 1.380 | 1.5 |
+| Government | DFM | 1.405 | 1.6 |
+| Exports | BEQ | 1.100 | 1.2 |
+| Imports | BEQ | 2.595 | 2.8 |
 
 ## Model Accuracy (vintage-frozen, quarter-matched)
 
