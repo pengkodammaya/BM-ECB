@@ -67,17 +67,29 @@
 
 ---
 
-## Model Accuracy (Backtest)
+## Model Accuracy (Backtest — GDP YoY)
 
-*8-vintage pseudo-real-time backtest (2023-Q3 to 2025-Q2). YoY GDP.*
+*8-vintage pseudo-real-time backtest (2023-Q3 to 2025-Q2).*
 
-| Model | MAE (pp) | FDA (%) | N |
-|-------|:--------:|:-------:|:-:|
-| DFM | 2.303 | 57.1% | 8 |
-| BVAR | 1.642 | 71.4% | 8 |
-| ENSEMBLE | 1.505 | 57.1% | 8 |
+| Model | MAE (pp) | RMSE (pp) | FDA (%) | N |
+|-------|:--------:|:---------:|:-------:|:-:|
+| DFM | 2.303 | 2.5 | 57.1% | 8 |
+| BVAR | 1.642 | 1.8 | 71.4% | 8 |
+| ENSEMBLE | 1.505 | 1.7 | 57.1% | 8 |
 
 *BVAR uses quarter-block restructuring. Ensemble = median of DFM + BVAR.*
+
+## Component Accuracy (Backtest — YoY)
+
+*2-vintage backtest (2024-Q2, 2024-Q4). Best model per component.*
+
+| Component | Best Model | MAE (pp) |
+|-----------|------------|:--------:|
+| Consumption | BVAR | 0.750 |
+| Investment | BEQ | 1.380 |
+| Government | DFM | 1.405 |
+| Exports | BEQ | 1.100 |
+| Imports | BEQ | 2.595 |
 
 ## Model Accuracy (vintage-frozen, quarter-matched)
 
