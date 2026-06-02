@@ -19,11 +19,16 @@ Diagnostics: a SIGTERM handler + checkpoint heartbeat pinpoint exactly which
 step is running if the runner kills the job (exit 143 = timeout/OOM). Run with
 PYTHONUNBUFFERED=1 (or `python -u`) so checkpoint logs stream in real time.
 
-Perf note: the per-component (5x) and per-sector (5x) model loops, dominated by
-BEQ, are the real runtime cost (~17 min observed), NOT the main BVAR. BVAR fits
-ALWAYS receive `datet` — dropping it breaks the mixed-frequency quarter-block
-alignment (matmul 96-vs-64 dimension mismatch) and silently nulls the nowcast.
-BEQ is now skipped when its target column is all-NaN to avoid wasted work.
+BVAR note: fits ALWAYS receive `datet` — dropping it breaks the mixed-frequency
+quarter-block alignment (matmul 96-vs-64 mismatch) and nulls the nowcast. BVAR
+can HANG (not just run slow) when the input panel is ill-conditioned: a newly
+near-constant or perfectly-collinear column collapses a covariance the Gibbs
+sampler must invert, and a previously-fine config loops forever. Two guards:
+  * log_bvar_conditioning() prints near-constant / highly-collinear columns
+    right before each fit, so a bad column names itself.
+  * fit_with_timeout() caps each fit with SIGALRM; a hang degrades to "BVAR
+    skipped" (nowcast=None) instead of a job-level cancellation. Main thread only.
+BEQ is skipped when its target column is all-NaN to avoid wasted work.
 """
 import sys; sys.path.insert(0, "src")
 
@@ -172,6 +177,71 @@ def beq_target_usable(arr, gdp_col=-1, min_obs=3):
         return int(np.sum(~np.isnan(col))) >= min_obs
     except Exception:
         return False
+
+
+class FitTimeout(Exception):
+    """Raised when a model fit exceeds its wall-clock budget."""
+
+
+def _alarm_handler(signum, frame):
+    raise FitTimeout()
+
+
+def fit_with_timeout(model, *args, seconds=180, label="model", **kwargs):
+    """Run model.fit(*args, **kwargs) with a hard SIGALRM wall-clock cap.
+
+    A hang (e.g. a Gibbs sampler stuck on a singular covariance) is converted
+    into a FitTimeout the caller can catch, so it degrades to "skipped" instead
+    of cancelling the whole job. SIGALRM only fires on the main thread — which
+    is where these models run — so callers must not wrap this in a thread pool.
+    """
+    old = signal.signal(signal.SIGALRM, _alarm_handler)
+    signal.alarm(int(seconds))
+    try:
+        return model.fit(*args, **kwargs)
+    except FitTimeout:
+        logger.warning("%s fit exceeded %ds budget — treating as hang, skipping.",
+                       label, seconds)
+        raise
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old)
+
+
+def log_bvar_conditioning(X, names, label="BVAR"):
+    """Log near-constant and highly-collinear columns of a fit input.
+
+    A previously-fine BVAR that suddenly hangs is almost always ill-conditioned
+    by new data: a column that went (near-)constant over the window, or a pair
+    that became perfectly collinear, makes the covariance singular and stalls
+    the sampler. This names the culprit before the fit runs.
+    """
+    try:
+        arr = np.asarray(X, dtype="float64")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            stds = np.nanstd(arr, axis=0)
+        near_const = [
+            (names[i] if names and i < len(names) else f"col{i}")
+            for i, s in enumerate(stds) if not np.isfinite(s) or s < 1e-6
+        ]
+        # Off-diagonal correlation max (on mean-imputed data, just for diagnosis).
+        filled = np.nan_to_num(arr - np.nanmean(arr, axis=0))
+        max_corr = np.nan
+        try:
+            C = np.corrcoef(filled.T)
+            if C.ndim == 2 and C.shape[0] > 1:
+                off = C - np.eye(C.shape[0])
+                max_corr = float(np.nanmax(np.abs(off)))
+        except Exception:
+            pass
+        logger.info("%s input: shape=%s near_constant=%s max|offdiag_corr|=%.4f",
+                    label, arr.shape, near_const or "none", max_corr)
+        if near_const:
+            logger.warning("%s: %d near-constant column(s) %s — singular-covariance "
+                           "hang risk.", label, len(near_const), near_const)
+    except Exception as e:
+        logger.warning("%s conditioning check failed (non-fatal): %s", label, e)
 
 
 # ---------------------------------------------------------------------------
@@ -697,7 +767,8 @@ try:
     bvar = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-5, bvar_max_iter=5, bvar_n_draws=20, bvar_burn_in=5))
     # datet is REQUIRED for mixed-frequency quarter-block alignment. Dropping it
     # causes a matmul (96-vs-64) dimension mismatch and a null nowcast.
-    res_b = bvar.fit(X_bvar, datet[ff:])
+    log_bvar_conditioning(X_bvar, AN, label="BVAR(main)")
+    res_b = fit_with_timeout(bvar, X_bvar, datet[ff:], seconds=240, label="BVAR(main)")
     nowcasts["bvar"] = _extract(res_b, current_q_idx, sigma, mu)
     nowcasts["bvar_backcast"] = _extract(res_b, last_actual_idx, sigma, mu)
     nowcasts["bvar_forecast"] = _extract(res_b, next_q_idx, sigma, mu)
@@ -909,7 +980,8 @@ else:
                     Xc_filled[:, j] = interpolate_no_leak(Xc_filled[:, j])
                 bvar_c = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
                 # datet REQUIRED (mixed-frequency alignment) — see main BVAR note.
-                res_bc = bvar_c.fit(Xc_filled, datet[ffc:])
+                log_bvar_conditioning(Xc_filled, target_names + ["target"], label=f"BVAR({comp_key})")
+                res_bc = fit_with_timeout(bvar_c, Xc_filled, datet[ffc:], seconds=120, label=f"BVAR({comp_key})")
                 nowcasts[comp_key] = round((float(res_bc.X_sm[comp_q_idx, -1]) * sigmac[-1] + muc[-1]) * 100, 2)
             except Exception as e:
                 logger.warning("Component BVAR %s failed: %s", comp_key, e)
@@ -1052,7 +1124,8 @@ if not df_gdp_yoy.empty:
                     Xy_filled[:, j] = interpolate_no_leak(Xy_filled[:, j])
                 bvar_y = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
                 # datet REQUIRED (mixed-frequency alignment) — see main BVAR note.
-                res_by = bvar_y.fit(Xy_filled, datet[ff_y:])
+                log_bvar_conditioning(Xy_filled, MN + ["gdp"], label="BVAR(yoy)")
+                res_by = fit_with_timeout(bvar_y, Xy_filled, datet[ff_y:], seconds=240, label="BVAR(yoy)")
                 if 0 <= cqy < res_by.X_sm.shape[0]:
                     nowcasts["bvar_yoy"] = round((float(res_by.X_sm[cqy, -1]) * sigma_y[-1] + mu_y[-1]) * 100, 2)
             except Exception as e:
