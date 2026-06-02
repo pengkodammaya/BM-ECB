@@ -163,17 +163,6 @@ def block_bvar(
     phi_opt, fh, gh, H, itct = csminwel(
         obj_func, phi0, crit=thresh, nit=max_iter, verbose=False
     )
-    # csminwel optimizes in UNCLAMPED phi-space, but obj_func clamps phi to
-    # [-10, 10] before exp (line ~153). Because the objective is flat outside
-    # that band (clipping kills the gradient), the optimizer can wander to large
-    # |phi| — especially on near-collinear data where the marginal-likelihood
-    # surface is nearly flat in the hyperparameters. Applying np.exp to the raw
-    # phi_opt then overflows to inf, poisoning the Gibbs sampler. The point that
-    # was actually EVALUATED is the clamped one, so clamp identically here.
-    phi_opt = np.clip(np.asarray(phi_opt, dtype=float), -10.0, 10.0)
-    if not np.all(np.isfinite(phi_opt)):
-        logger.warning("Non-finite phi_opt from optimizer; falling back to phi0.")
-        phi_opt = phi0
     lambda_opt, theta_opt, miu_opt, alpha_opt = np.exp(phi_opt)
 
     # ---------- Gibbs sampler ----------
