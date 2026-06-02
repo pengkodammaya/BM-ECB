@@ -2,7 +2,7 @@
 
 > *Comparable to [OpenDOSM GDP Dashboard](https://open.dosm.gov.my/dashboard/gdp)*
 
-**Last updated:** 2026-06-01 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
+**Last updated:** 2026-06-02 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
 
 ---
 
@@ -18,9 +18,9 @@
 
 | Model | Nowcast | 90% Confidence Band | Description |
 |-------|:-------:|:-------------------:|-------------|
-| **DFM** | `+8.5%` | — | Dynamic Factor Model (r=2, p=4) |
-| **BVAR** | `+3.9%` | `—` | Bayesian VAR with Minnesota prior |
-| **Ensemble** | `+6.2%` | — | Median of DFM + BVAR |
+| **DFM** | `+8.6%` | — | Dynamic Factor Model (r=2, p=4) |
+| **BVAR** | `+nan%` | `—` | Bayesian VAR with Minnesota prior |
+| **Ensemble** | `+nan%` | — | Median of DFM + BVAR |
 
 > *Q2 2026 actual releases the quarter after it ends; scored once published.*
 
@@ -33,8 +33,8 @@
 | Model | Estimate (YoY) | Error | Accuracy |
 |-------|:--------------:|:-----:|----------|
 | **DFM** | +4.8% | 0.6pp | 🟢 Excellent |
-| **BVAR** | +3.4% | 2.0pp | 🔴 Fair |
-| **Ensemble** | +4.1% | 1.3pp | 🟡 Good |
+| **BVAR** | +5.4% | 0.0pp | 🟢 Excellent |
+| **Ensemble** | +5.1% | 0.3pp | 🟢 Excellent |
 
 ---
 
@@ -49,7 +49,7 @@
 | Manufacturing | `+5.9%` | `+4.3%` | `1.6pp` |
 | Construction | `+7.7%` | `+4.2%` | `3.5pp` |
 | Services | `+5.6%` | `+8.5%` | `2.9pp` |
-| **Overall GDP** | **`+5.4%`** | **`+3.4%`** | 2.0pp |
+| **Overall GDP** | **`+5.4%`** | **`+5.4%`** | 0.0pp |
 
 ---
 
@@ -59,11 +59,11 @@
 
 | Component | BVAR | Actual | Error |
 |-----------|:----:|:------:|:-----:|
-| **Consumption (C)** | +4.8% | +4.7% | 0.1pp |
-| **Investment (I)** | +9.1% | +7.3% | 1.8pp |
-| **Government (G)** | +6.6% | +4.1% | 2.5pp |
-| **Exports (X)** | +6.7% | +5.2% | 1.5pp |
-| **Imports (M)** | +8.4% | +4.6% | 3.8pp |
+| **Consumption (C)** | +nan% | +4.7% | nanpp |
+| **Investment (I)** | +nan% | +7.3% | nanpp |
+| **Government (G)** | +5.8% | +4.1% | 1.7pp |
+| **Exports (X)** | +nan% | +5.2% | nanpp |
+| **Imports (M)** | +nan% | +4.6% | nanpp |
 
 ---
 
@@ -97,6 +97,7 @@
 | 2026-05-29 | 2026-Q2 | +8.2% | +4.2% | +1.1% | +6.2% | — |
 | 2026-05-30 | 2026-Q2 | +9.0% | +4.1% | — | +6.6% | — |
 | 2026-06-01 | 2026-Q2 | +8.5% | +3.9% | — | +6.2% | — |
+| 2026-06-02 | 2026-Q2 | +8.6% | — | — | — | — |
 
 ---
 
