@@ -228,11 +228,26 @@ def log_bvar_conditioning(X, names, label="BVAR"):
         # Off-diagonal correlation max (on mean-imputed data, just for diagnosis).
         filled = np.nan_to_num(arr - np.nanmean(arr, axis=0))
         max_corr = np.nan
+        collinear_pairs = []
         try:
             C = np.corrcoef(filled.T)
             if C.ndim == 2 and C.shape[0] > 1:
                 off = C - np.eye(C.shape[0])
                 max_corr = float(np.nanmax(np.abs(off)))
+                # Name every pair above the divergence-risk threshold so the
+                # user can decide which series to drop. 0.99 is empirically the
+                # line where the BVAR hyperparameter optimizer overflows
+                # (np.exp(phi_opt)); government survived at 0.9747, others failed
+                # at 0.98-0.9985.
+                n = C.shape[0]
+                for i in range(n):
+                    for k in range(i + 1, n):
+                        c = abs(C[i, k])
+                        if np.isfinite(c) and c >= 0.99:
+                            ni = names[i] if names and i < len(names) else f"col{i}"
+                            nk = names[k] if names and k < len(names) else f"col{k}"
+                            collinear_pairs.append((ni, nk, round(c, 4)))
+                collinear_pairs.sort(key=lambda t: t[2], reverse=True)
         except Exception:
             pass
         logger.info("%s input: shape=%s near_constant=%s max|offdiag_corr|=%.4f",
@@ -240,6 +255,10 @@ def log_bvar_conditioning(X, names, label="BVAR"):
         if near_const:
             logger.warning("%s: %d near-constant column(s) %s — singular-covariance "
                            "hang risk.", label, len(near_const), near_const)
+        if collinear_pairs:
+            logger.warning("%s: %d collinear pair(s) >=0.99 (BVAR-overflow risk): %s",
+                           label, len(collinear_pairs),
+                           ", ".join(f"{a}~{b}={c}" for a, b, c in collinear_pairs))
     except Exception as e:
         logger.warning("%s conditioning check failed (non-fatal): %s", label, e)
 
@@ -768,7 +787,7 @@ try:
     # datet is REQUIRED for mixed-frequency quarter-block alignment. Dropping it
     # causes a matmul (96-vs-64) dimension mismatch and a null nowcast.
     log_bvar_conditioning(X_bvar, AN, label="BVAR(main)")
-    res_b = fit_with_timeout(bvar, X_bvar, datet[ff:], seconds=240, label="BVAR(main)")
+    res_b = fit_with_timeout(bvar, X_bvar, datet[ff:], seconds=420, label="BVAR(main)")
     nowcasts["bvar"] = _extract(res_b, current_q_idx, sigma, mu)
     nowcasts["bvar_backcast"] = _extract(res_b, last_actual_idx, sigma, mu)
     nowcasts["bvar_forecast"] = _extract(res_b, next_q_idx, sigma, mu)
@@ -981,7 +1000,7 @@ else:
                 bvar_c = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
                 # datet REQUIRED (mixed-frequency alignment) — see main BVAR note.
                 log_bvar_conditioning(Xc_filled, target_names + ["target"], label=f"BVAR({comp_key})")
-                res_bc = fit_with_timeout(bvar_c, Xc_filled, datet[ffc:], seconds=120, label=f"BVAR({comp_key})")
+                res_bc = fit_with_timeout(bvar_c, Xc_filled, datet[ffc:], seconds=300, label=f"BVAR({comp_key})")
                 nowcasts[comp_key] = round((float(res_bc.X_sm[comp_q_idx, -1]) * sigmac[-1] + muc[-1]) * 100, 2)
             except Exception as e:
                 logger.warning("Component BVAR %s failed: %s", comp_key, e)
@@ -1125,7 +1144,7 @@ if not df_gdp_yoy.empty:
                 bvar_y = BVAR(BVARParams(bvar_lags=2, bvar_thresh=1e-3, bvar_max_iter=5))
                 # datet REQUIRED (mixed-frequency alignment) — see main BVAR note.
                 log_bvar_conditioning(Xy_filled, MN + ["gdp"], label="BVAR(yoy)")
-                res_by = fit_with_timeout(bvar_y, Xy_filled, datet[ff_y:], seconds=240, label="BVAR(yoy)")
+                res_by = fit_with_timeout(bvar_y, Xy_filled, datet[ff_y:], seconds=420, label="BVAR(yoy)")
                 if 0 <= cqy < res_by.X_sm.shape[0]:
                     nowcasts["bvar_yoy"] = round((float(res_by.X_sm[cqy, -1]) * sigma_y[-1] + mu_y[-1]) * 100, 2)
             except Exception as e:
