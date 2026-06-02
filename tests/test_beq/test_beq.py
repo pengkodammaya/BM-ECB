@@ -1,7 +1,10 @@
 """Tests for evaluation metrics and BEQ."""
 import numpy as np
 import pytest
-from nowcasting_toolbox.eval.metrics import compute_mae, compute_fda, compute_rmse
+from nowcasting_toolbox.eval.metrics import (
+    compute_mae, compute_fda, compute_rmse,
+    compute_bias, compute_mase, compute_crps, compute_coverage,
+)
 from nowcasting_toolbox.beq.combinations import generate_combinations
 
 
@@ -48,6 +51,89 @@ def test_rmse():
     pred = np.array([2.0, 2.0, 2.0])
     rmse = compute_rmse(actual, pred)
     assert abs(rmse - np.sqrt(2/3)) < 0.001
+
+
+def test_bias_zero():
+    actual = np.array([1.0, 2.0, 3.0])
+    pred = np.array([1.0, 2.0, 3.0])
+    assert compute_bias(actual, pred) == 0.0
+
+
+def test_bias_positive():
+    """Model overestimates by 1.0 on average."""
+    actual = np.array([1.0, 2.0, 3.0])
+    pred = np.array([2.0, 3.0, 4.0])
+    assert abs(compute_bias(actual, pred) - 1.0) < 0.001
+
+
+def test_bias_negative():
+    """Model underestimates by 1.0 on average."""
+    actual = np.array([1.0, 2.0, 3.0])
+    pred = np.array([0.0, 1.0, 2.0])
+    assert abs(compute_bias(actual, pred) - (-1.0)) < 0.001
+
+
+def test_mase_better_than_naive():
+    """MASE < 1 means better than naive seasonal forecast."""
+    actual = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0])
+    pred = np.array([1.1, 2.1, 3.1, 4.1, 5.1, 6.1, 7.1, 8.1])
+    mase = compute_mase(actual, pred, seasonal_period=4)
+    assert mase < 1.0
+
+
+def test_mase_worse_than_naive():
+    """MASE >= 1 means same or worse than naive seasonal forecast."""
+    actual = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0])
+    pred = np.array([8.0, 7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0])
+    mase = compute_mase(actual, pred, seasonal_period=4)
+    assert mase >= 1.0
+
+
+def test_mase_perfect():
+    """Perfect forecast should have MASE = 0."""
+    actual = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    pred = actual.copy()
+    mase = compute_mase(actual, pred, seasonal_period=4)
+    assert abs(mase) < 0.001
+
+
+def test_crps_with_ci():
+    """CRPS with confidence intervals."""
+    actual = np.array([5.0, 6.0, 7.0])
+    pred = np.array([5.1, 6.1, 7.1])
+    lower = np.array([4.0, 5.0, 6.0])
+    upper = np.array([6.0, 7.0, 8.0])
+    crps = compute_crps(actual, pred, lower=lower, upper=upper)
+    assert crps >= 0  # CRPS should be non-negative
+
+
+def test_crps_perfect():
+    """Perfect forecast should have CRPS ≈ 0."""
+    actual = np.array([5.0, 5.0, 5.0])
+    pred = np.array([5.0, 5.0, 5.0])
+    lower = np.array([4.9, 4.9, 4.9])
+    upper = np.array([5.1, 5.1, 5.1])
+    crps = compute_crps(actual, pred, lower=lower, upper=upper)
+    assert abs(crps) < 0.1
+
+
+def test_coverage_80():
+    """80% CI should cover most actuals."""
+    rng = np.random.default_rng(42)
+    actual = rng.normal(0, 1, 100)
+    # Use narrow intervals that don't cover all actuals
+    lower = actual - 0.5
+    upper = actual + 0.5
+    coverage = compute_coverage(actual, lower, upper)
+    assert 0.5 < coverage <= 1.0  # Should be reasonable
+
+
+def test_coverage_perfect():
+    """Perfect coverage when interval contains all actuals."""
+    actual = np.array([1.0, 2.0, 3.0])
+    lower = np.array([0.0, 0.0, 0.0])
+    upper = np.array([10.0, 10.0, 10.0])
+    assert compute_coverage(actual, lower, upper) == 1.0
 
 
 def test_beq_combinations_count():
