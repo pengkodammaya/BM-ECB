@@ -420,7 +420,8 @@ DATASETS = {
     "exports": ("trade_headline", "exports", 1, "external", {"series": "abs"}),
     "imports_capital": ("trade_enduse_bec", "imports", 0, "external", {"bec": "000", "end_use": "capital", "series": "growth_mom"}),
     "imports_consumer": ("trade_enduse_bec", "imports", 0, "external", {"bec": "000", "end_use": "consumption", "series": "growth_mom"}),
-    "wrt": ("iowrt", "sales", 1, "services", {"series": "abs"}),
+    # "wrt" dropped: 0.9905 collinear with wrt_volume (nominal vs real WRT) —
+    # caused BVAR hyperparameter divergence / np.exp overflow. Keep real volume.
     "wrt_volume": ("iowrt", "volume", 1, "consumption", {"series": "abs"}),
     "gdp": ("gdp_qtr_real_sa", "value", 0, "target", {"series": "abs"}),
 }
@@ -564,7 +565,10 @@ checkpoint("fetch:yfinance_done")
 
 # 1.7 FRED — with exponential backoff retry on 429
 FRED_SERIES = {
-    "us_ip": ("INDPRO", "global_demand"), "us_caputil": ("TCU", "global_demand"),
+    # us_caputil (TCU) dropped: 0.9985 collinear with us_ip (INDPRO) — capacity
+    # utilization is output/capacity, mechanically near-identical to IP. This
+    # pair drove the BVAR np.exp(phi_opt) overflow. Keep industrial production.
+    "us_ip": ("INDPRO", "global_demand"),
     "us_sentiment": ("UMCSENT", "global_demand"),
 }
 fred_key_path = Path(".fred_key")
