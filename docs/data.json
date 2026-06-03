@@ -7,10 +7,10 @@
   },
   "nowcast": {
     "quarter": "Q2 2026",
-    "dfm": 6.98,
+    "dfm": 6.95,
     "bvar": 5.1,
     "ar1": 5.4,
-    "ensemble": 6.04,
+    "ensemble": 6.03,
     "bvar_ci_10": null,
     "bvar_ci_90": null
   },
@@ -45,9 +45,9 @@
       "error": 1.7
     },
     "exports": {
-      "bvar": 5.9,
+      "bvar": 6.0,
       "actual": 5.2,
-      "error": 0.7
+      "error": 0.8
     },
     "imports": {
       "bvar": 7.4,

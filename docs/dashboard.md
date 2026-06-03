@@ -18,7 +18,7 @@
 
 | Model | Nowcast | vs AR(1) | Description |
 |-------|:-------:|:--------:|-------------|
-| **DFM** | `+7.0%` | 1.6pp | Dynamic Factor Model |
+| **DFM** | `+7.0%` | 1.5pp | Dynamic Factor Model |
 | **BVAR** | `+5.1%` | -0.3pp | Bayesian VAR |
 | **AR(1)** | `+5.4%` | — | Persistence (baseline) |
 | **Ensemble** | `+6.0%` | 0.6pp | Median of DFM + BVAR |
@@ -78,7 +78,7 @@
 | **Consumption (C)** | +5.6% | +4.7% | 0.9pp |
 | **Investment (I)** | +7.5% | +7.3% | 0.2pp |
 | **Government (G)** | +5.8% | +4.1% | 1.7pp |
-| **Exports (X)** | +5.9% | +5.2% | 0.7pp |
+| **Exports (X)** | +6.0% | +5.2% | 0.8pp |
 | **Imports (M)** | +7.4% | +4.6% | 2.8pp |
 
 ---
