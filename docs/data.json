@@ -45,9 +45,9 @@
       "error": 1.7
     },
     "exports": {
-      "bvar": 6.0,
+      "bvar": 5.9,
       "actual": 5.2,
-      "error": 0.8
+      "error": 0.7
     },
     "imports": {
       "bvar": 7.4,
