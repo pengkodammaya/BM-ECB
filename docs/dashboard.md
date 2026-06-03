@@ -18,10 +18,10 @@
 
 | Model | Nowcast | vs AR(1) | Description |
 |-------|:-------:|:--------:|-------------|
-| **DFM** | `+7.2%` | 1.8pp | Dynamic Factor Model |
+| **DFM** | `+6.2%` | 0.8pp | Dynamic Factor Model |
 | **BVAR** | `+5.1%` | -0.3pp | Bayesian VAR |
 | **AR(1)** | `+5.4%` | — | Persistence (baseline) |
-| **Ensemble** | `+6.1%` | 0.7pp | Median of DFM + BVAR |
+| **Ensemble** | `+5.7%` | 0.3pp | Median of DFM + BVAR |
 
 > *Q2 2026 actuals expected via DOSM ARC*
 
@@ -78,7 +78,7 @@
 | **Consumption (C)** | +5.6% | +4.7% | 0.9pp |
 | **Investment (I)** | +7.5% | +7.3% | 0.2pp |
 | **Government (G)** | +5.8% | +4.1% | 1.7pp |
-| **Exports (X)** | +6.0% | +5.2% | 0.8pp |
+| **Exports (X)** | +5.9% | +5.2% | 0.7pp |
 | **Imports (M)** | +7.4% | +4.6% | 2.8pp |
 
 ---
@@ -106,7 +106,7 @@
 | 2026-05-30 | 2026-Q2 | +9.0% | +4.1% | — | +6.6% | — |
 | 2026-06-01 | 2026-Q2 | +8.5% | +3.9% | — | +6.2% | — |
 | 2026-06-02 | 2026-Q2 | +8.6% | — | — | — | — |
-| 2026-06-03 | 2026-Q2 | +7.2% | +5.1% | — | +6.1% | — |
+| 2026-06-03 | 2026-Q2 | +6.2% | +5.1% | — | +5.7% | — |
 
 ---
 

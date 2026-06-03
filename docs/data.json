@@ -7,25 +7,25 @@
   },
   "nowcast": {
     "quarter": "Q2 2026",
-    "dfm": 7.15,
-    "bvar": 5.09,
+    "dfm": 6.25,
+    "bvar": 5.1,
     "ar1": 5.4,
-    "ensemble": 6.12,
+    "ensemble": 5.67,
     "bvar_ci_10": null,
     "bvar_ci_90": null
   },
   "backcast": {
     "dfm": {
-      "estimate": 5.9,
-      "error": 0.5
+      "estimate": 5.8,
+      "error": 0.4
     },
     "bvar": {
       "estimate": 3.9,
       "error": 1.5
     },
     "ensemble": {
-      "estimate": 4.9,
-      "error": 0.5
+      "estimate": 4.8,
+      "error": 0.6
     }
   },
   "components": {
@@ -45,9 +45,9 @@
       "error": 1.7
     },
     "exports": {
-      "bvar": 6.0,
+      "bvar": 5.9,
       "actual": 5.2,
-      "error": 0.8
+      "error": 0.7
     },
     "imports": {
       "bvar": 7.4,
@@ -138,10 +138,10 @@
     {
       "date": "2026-06-03",
       "target_quarter": "2026-Q2",
-      "dfm": 7.2,
+      "dfm": 6.2,
       "bvar": 5.1,
       "beq": null,
-      "ensemble": 6.1,
+      "ensemble": 5.7,
       "actual": null
     }
   ],
