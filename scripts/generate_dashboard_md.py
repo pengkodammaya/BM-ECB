@@ -60,6 +60,7 @@ def main():
     leaderboard = data.get("leaderboard", []) or []
     by_h = data.get("byHorizon", []) or []
     recent = data.get("recent", []) or []
+    arc_next = data.get("arc_next", []) or []
 
     ci10, ci90 = nc.get("bvar_ci_10"), nc.get("bvar_ci_90")
     band = f"[{fmt_pct(ci10)}, {fmt_pct(ci90)}]" if (ci10 is not None and ci90 is not None) else "—"
@@ -86,6 +87,7 @@ def main():
 |-------|:-------:|:-------------------:|-------------|
 | **DFM** | `{fmt_pct(nc.get('dfm'))}` | — | Dynamic Factor Model (r=2, p=4) |
 | **BVAR** | `{fmt_pct(nc.get('bvar'))}` | `{band}` | Bayesian VAR with Minnesota prior |
+| **AR(1)** | `{fmt_pct(nc.get('ar1'))}` | — | Persistence (last known value) |
 | **Ensemble** | `{fmt_pct(nc.get('ensemble'))}` | — | Median of DFM + BVAR |
 
 > *{nowcast_quarter} actual releases the quarter after it ends; scored once published.*
@@ -187,6 +189,22 @@ def main():
         md += (f"| {r.get('date')} | {r.get('target_quarter', '—')} | {fmt_pct(r.get('dfm'))} "
                f"| {fmt_pct(r.get('bvar'))} | {fmt_pct(r.get('beq'))} "
                f"| {fmt_pct(r.get('ensemble'))} | {fmt_pct(r.get('actual'))} |\n")
+
+    md += f"""
+---
+
+## DOSM ARC (Next Releases)
+
+*GDP-related releases from DOSM Advance Release Calendar.*
+
+| Date | Release | Reference |
+|------|---------|---------|
+"""
+    if arc_next:
+        for r in arc_next[:5]:  # Show next 5 releases
+            md += f"| {r.get('date', '—')} | {r.get('release', '—')} | {r.get('ref', '—')} |\n"
+    else:
+        md += "| — | — | — |\n"
 
     md += f"""
 ---

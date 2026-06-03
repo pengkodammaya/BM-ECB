@@ -643,6 +643,43 @@ if "gdp" not in filtered or filtered["gdp"].empty:
     logger.error("GDP target fetch failed — cannot run nowcasts. Aborting.")
     sys.exit(1)
 
+# ---------------------------------------------------------------------------
+# 1.9 ARC caching (DOSM Advance Release Calendar)
+# ---------------------------------------------------------------------------
+ARC_CATEGORIES = ["Economy", "Labour Market"]
+arc_cache_path = Path("docs/arc_cache.json")
+
+try:
+    from nowcasting_toolbox.data.sources.arc_parser import build_publication_schedule
+    from datetime import date as date_type
+    
+    current_year = date_type.today().year
+    years = [current_year, current_year + 1]
+    schedule = build_publication_schedule(years=years, cache_dir=Path("data/malaysia"))
+    
+    # Filter for GDP-related releases in Economy + Labour Market
+    arc_releases = []
+    if schedule:
+        for entry in schedule:
+            title = entry.get("title", "").lower()
+            # Filter for GDP-related
+            gdp_keywords = ["gdp", "gross domestic", "national accounts", "economic indicators", "leading", "coincident"]
+            if any(kw in title for kw in gdp_keywords):
+                arc_releases.append({
+                    "date": str(entry.get("release_date", "")),
+                    "release": entry.get("title", ""),
+                    "ref": entry.get("reference_period", ""),
+                })
+    
+    # Cache ARC
+    arc_cache_path.parent.mkdir(parents=True, exist_ok=True)
+    arc_cache_path.write_text(json.dumps(arc_releases, indent=2), encoding="utf-8")
+    logger.info("ARC cached: %d GDP-related releases", len(arc_releases))
+except Exception as e:
+    logger.warning("ARC cache failed (non-fatal): %s", e)
+
+checkpoint("fetch:arc_done")
+
 # Component / sector indicator subsets
 COMPONENT_INDICATORS = {
     "consumption": [n for n in DATASETS if n != "gdp"],
@@ -1156,6 +1193,14 @@ if not df_gdp_yoy.empty:
             yv = [v for v in [nowcasts.get("dfm_yoy"), nowcasts.get("bvar_yoy")] if v is not None]
             if yv:
                 nowcasts["ensemble_yoy"] = round(float(np.median(yv)), 2)
+            
+            # AR(1) YoY: last known YoY value (persistence)
+            try:
+                yoy_vals = yoy_rows["value"].dropna().values
+                if len(yoy_vals) >= 2:
+                    nowcasts["ar1_yoy"] = round(float(yoy_vals[-1]), 2)
+            except Exception:
+                pass
     except Exception as e:
         logger.warning("YoY GDP nowcast failed: %s", e)
 checkpoint("model:yoy_done")
@@ -1575,6 +1620,7 @@ dashboard_data = {
     "nowcast": {
         "quarter": nowcast_label,
         "dfm": nowcasts.get("dfm"), "bvar": nowcasts.get("bvar"),
+        "ar1": nowcasts.get("ar1_yoy"),
         "ensemble": nowcasts.get("ensemble"),
         "bvar_ci_10": nowcasts.get("bvar_ci_10"), "bvar_ci_90": nowcasts.get("bvar_ci_90"),
     },
@@ -1585,6 +1631,7 @@ dashboard_data = {
     "leaderboard": lb_for_dash,
     "byHorizon": qoq_by_h,
     "recent": recent_out,
+    "arc_next": arc_releases if 'arc_releases' in dir() else [],
 }
 
 try:
