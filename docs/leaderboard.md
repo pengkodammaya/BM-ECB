@@ -8,7 +8,7 @@
 
 | Model | Nowcast |
 |-------|--------|
-| DFM | `+6.9%` |
+| DFM | `+7.0%` |
 | BVAR | `+5.1%` |
 | ENSEMBLE | `+6.0%` |
 
@@ -21,7 +21,7 @@
 | **Private Consumption** (C) | +5.6% | +9.3% | pending | pending |
 | **Gross Fixed Capital Formation** (I) | +7.5% | +3.4% | pending | pending |
 | **Government Consumption** (G) | +5.8% | +6.7% | pending | pending |
-| **Exports** (X) | +5.9% | +3.5% | pending | pending |
+| **Exports** (X) | +6.0% | +3.6% | pending | pending |
 | **Imports** (M) | +7.4% | +5.9% | pending | pending |
 
 ## GDP by Economic Sector (YoY %)
@@ -58,7 +58,7 @@
 | 2026-05-30 | 2026-Q2 | +9.0% | +4.1% | — | +6.6% |
 | 2026-06-01 | 2026-Q2 | +8.5% | +3.9% | — | +6.2% |
 | 2026-06-02 | 2026-Q2 | +8.6% | — | — | — |
-| 2026-06-03 | 2026-Q2 | +6.9% | +5.1% | — | +6.0% |
+| 2026-06-03 | 2026-Q2 | +7.0% | +5.1% | — | +6.0% |
 
 ## Data Sources
 
