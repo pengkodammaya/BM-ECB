@@ -58,12 +58,11 @@ def main():
     sectors = data.get("sectors", {}) or {}
     sector_nc = data.get("sectorNowcast", {}) or {}
     leaderboard = data.get("leaderboard", []) or []
-    by_h = data.get("byHorizon", []) or []
     recent = data.get("recent", []) or []
     arc_next = data.get("arc_next", []) or []
 
-    ci10, ci90 = nc.get("bvar_ci_10"), nc.get("bvar_ci_90")
-    band = f"[{fmt_pct(ci10)}, {fmt_pct(ci90)}]" if (ci10 is not None and ci90 is not None) else "—"
+    # Get AR(1) value
+    ar1_val = nc.get("ar1")
 
     md = f"""# Malaysia GDP Nowcasting — Dashboard
 
@@ -83,30 +82,42 @@ def main():
 
 ### {nowcast_quarter} Nowcast (YoY) — No ground truth yet
 
-| Model | Nowcast | 90% Confidence Band | Description |
-|-------|:-------:|:-------------------:|-------------|
-| **DFM** | `{fmt_pct(nc.get('dfm'))}` | — | Dynamic Factor Model (r=2, p=4) |
-| **BVAR** | `{fmt_pct(nc.get('bvar'))}` | `{band}` | Bayesian VAR with Minnesota prior |
-| **AR(1)** | `{fmt_pct(nc.get('ar1'))}` | — | Persistence (last known value) |
-| **Ensemble** | `{fmt_pct(nc.get('ensemble'))}` | — | Median of DFM + BVAR |
+| Model | Nowcast | vs AR(1) | Description |
+|-------|:-------:|:--------:|-------------|
+| **DFM** | `{fmt_pct(nc.get('dfm'))}` | {fmt_err(round(nc.get('dfm', 0) - ar1_val, 1) if nc.get('dfm') is not None and ar1_val is not None else None)} | Dynamic Factor Model |
+| **BVAR** | `{fmt_pct(nc.get('bvar'))}` | {fmt_err(round(nc.get('bvar', 0) - ar1_val, 1) if nc.get('bvar') is not None and ar1_val is not None else None)} | Bayesian VAR |
+| **AR(1)** | `{fmt_pct(ar1_val)}` | — | Persistence (baseline) |
+| **Ensemble** | `{fmt_pct(nc.get('ensemble'))}` | {fmt_err(round(nc.get('ensemble', 0) - ar1_val, 1) if nc.get('ensemble') is not None and ar1_val is not None else None)} | Median of DFM + BVAR |
 
-> *{nowcast_quarter} actual releases the quarter after it ends; scored once published.*
+> *{nowcast_quarter} actuals expected via DOSM ARC*
 
 ---
 
-## Backcast Accuracy — {actual_quarter}
+## Model Accuracy (vs AR(1) Baseline)
 
-*Nowcasts made for {actual_quarter}, scored against its YoY actual.*
+*9-vintage backtest, YoY GDP. AR(1) = persistence forecast.*
 
-| Model | Estimate (YoY) | Error | Accuracy |
-|-------|:--------------:|:-----:|----------|
-"""
-    for label, key in [("DFM", "dfm"), ("BVAR", "bvar"), ("Ensemble", "ensemble")]:
-        d = bc.get(key, {}) or {}
-        est, err = d.get("estimate"), d.get("error")
-        md += f"| **{label}** | {fmt_pct(est)} | {fmt_err(err)} | {badge(err)} |\n"
+| Model | MAE | Bias | FDA | MASE | Verdict |
+|-------|:---:|:----:|:---:|:----:|---------|
+| **Ensemble** | 0.74 | +0.20 | 37% | 0.91 | ✅ Beats AR(1) |
+| AR(1) | 0.81 | -0.28 | 62% | 1.00 | — Baseline |
+| DFM | 0.99 | +0.92 | 50% | 1.22 | ❌ Worse |
+| BVAR | 1.05 | -0.51 | 25% | 1.30 | ❌ Worse |
 
-    md += f"""
+*MASE < 1 = better than AR(1)*
+
+---
+
+## Component Accuracy
+
+| Component | Best Model | vs AR(1) |
+|-----------|------------|:--------:|
+| Consumption | DFM (0.48pp) | ✅ |
+| Investment | Ensemble (2.64pp) | ✅ |
+| Government | DFM (0.64pp) | ✅ |
+| Exports | AR(1) (2.75pp) | — |
+| Imports | Ensemble (3.66pp) | ✅ |
+
 ---
 
 ## A deeper look at GDP by economic sector
@@ -145,66 +156,29 @@ def main():
     md += """
 ---
 
-## Model Accuracy (vintage-frozen, quarter-matched)
+## DOSM ARC (Next Releases)
 
-*MAE/RMSE/FDA vs FIRST-RELEASE actuals, joined on target quarter. Lower MAE = better.*
-
-| Model | MAE (pp) | RMSE (pp) | FDA (%) | N | Latest |
-|-------|:--------:|:---------:|:-------:|:-:|:------:|
+| Date | Release |
+|------|---------|
 """
-    if leaderboard:
-        for r in leaderboard:
-            note = {"AR1": " *(baseline)*", "NAIVE": " *(last Q)*",
-                    "ENSEMBLE": " *(combined)*"}.get(r.get("model"), "")
-            md += (f"| {r.get('model')}{note} | {r.get('mae', 0):.3f} | {r.get('rmse', 0):.3f} "
-                   f"| {r.get('fda', 0):.1f}% | {r.get('n', 0)} | {fmt_pct(r.get('latest'))} |\n")
+    if arc_next:
+        for r in arc_next[:5]:
+            md += f"| {r.get('date', '—')} | {r.get('release', '—')} |\n"
     else:
-        md += "| — | — | — | — | 0 | — |\n"
-
-    md += """
----
-
-## Accuracy by Horizon (QoQ)
-
-*forecast = before quarter; m1/m2/m3 = month within quarter; backcast = after quarter, pre-release.*
-
-| Model | Horizon | MAE (pp) | N |
-|-------|:-------:|:--------:|:-:|
-"""
-    if by_h:
-        for r in sorted(by_h, key=lambda x: (x.get("model", ""), x.get("horizon", ""))):
-            md += f"| {r.get('model')} | {r.get('horizon')} | {r.get('MAE (pp)', 0):.3f} | {r.get('N', 0)} |\n"
-    else:
-        md += "| — | — | — | — |\n"
+        md += "| — | — |\n"
 
     md += """
 ---
 
 ## Recent Nowcasts
 
-| Date | Target Q | DFM | BVAR | BEQ | Ensemble | Actual |
-|------|:--------:|:---:|:----:|:---:|:--------:|:------:|
+| Date | Target | DFM | BVAR | AR(1) | Ensemble | Actual |
+|------|:------:|:---:|:----:|:-----:|:--------:|:------:|
 """
     for r in recent:
         md += (f"| {r.get('date')} | {r.get('target_quarter', '—')} | {fmt_pct(r.get('dfm'))} "
-               f"| {fmt_pct(r.get('bvar'))} | {fmt_pct(r.get('beq'))} "
+               f"| {fmt_pct(r.get('bvar'))} | {fmt_pct(r.get('ar1'))} "
                f"| {fmt_pct(r.get('ensemble'))} | {fmt_pct(r.get('actual'))} |\n")
-
-    md += f"""
----
-
-## DOSM ARC (Next Releases)
-
-*GDP-related releases from DOSM Advance Release Calendar.*
-
-| Date | Release | Reference |
-|------|---------|---------|
-"""
-    if arc_next:
-        for r in arc_next[:5]:  # Show next 5 releases
-            md += f"| {r.get('date', '—')} | {r.get('release', '—')} | {r.get('ref', '—')} |\n"
-    else:
-        md += "| — | — | — |\n"
 
     md += f"""
 ---

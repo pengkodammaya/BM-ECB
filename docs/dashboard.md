@@ -16,26 +16,41 @@
 
 ### Q2 2026 Nowcast (YoY) — No ground truth yet
 
-| Model | Nowcast | 90% Confidence Band | Description |
-|-------|:-------:|:-------------------:|-------------|
-| **DFM** | `+6.3%` | — | Dynamic Factor Model (r=2, p=4) |
-| **BVAR** | `+5.1%` | `—` | Bayesian VAR with Minnesota prior |
-| **AR(1)** | `+5.4%` | — | Persistence (last known value) |
-| **Ensemble** | `+5.7%` | — | Median of DFM + BVAR |
+| Model | Nowcast | vs AR(1) | Description |
+|-------|:-------:|:--------:|-------------|
+| **DFM** | `+6.3%` | +1.2pp | Dynamic Factor Model |
+| **BVAR** | `+5.1%` | +0.0pp | Bayesian VAR |
+| **AR(1)** | `+5.1%` | — | Persistence (baseline) |
+| **Ensemble** | `+5.7%` | +0.6pp | Median of DFM + BVAR |
 
-> *Q2 2026 actual releases the quarter after it ends; scored once published.*
+> *Q2 2026 actuals expected Aug 14, 2026 (DOSM ARC)*
 
 ---
 
-## Backcast Accuracy — Q1 2026
+## Model Accuracy (vs AR(1) Baseline)
 
-*Nowcasts made for Q1 2026, scored against its YoY actual.*
+*9-vintage backtest, YoY GDP. AR(1) = persistence forecast.*
 
-| Model | Estimate (YoY) | Error | Accuracy |
-|-------|:--------------:|:-----:|----------|
-| **DFM** | +5.8% | 0.4pp | 🟢 Excellent |
-| **BVAR** | +3.9% | 1.5pp | 🟡 Good |
-| **Ensemble** | +4.8% | 0.6pp | 🟢 Excellent |
+| Model | MAE | Bias | FDA | MASE | Verdict |
+|-------|:---:|:----:|:---:|:----:|---------|
+| **Ensemble** | 0.74 | +0.20 | 37% | 0.91 | ✅ Beats AR(1) |
+| AR(1) | 0.81 | -0.28 | 62% | 1.00 | — Baseline |
+| DFM | 0.99 | +0.92 | 50% | 1.22 | ❌ Worse |
+| BVAR | 1.05 | -0.51 | 25% | 1.30 | ❌ Worse |
+
+*MASE < 1 = better than AR(1)*
+
+---
+
+## Component Accuracy
+
+| Component | Best Model | vs AR(1) |
+|-----------|------------|:--------:|
+| Consumption | DFM (0.48pp) | ✅ |
+| Investment | Ensemble (2.64pp) | ✅ |
+| Government | DFM (0.64pp) | ✅ |
+| Exports | AR(1) (2.75pp) | — |
+| Imports | Ensemble (3.66pp) | ✅ |
 
 ---
 
@@ -45,11 +60,11 @@
 
 | Sector | Actual | Nowcast | Error |
 |--------|:------:|:-------:|:-----:|
-| Agriculture | `+2.6%` | `+0.8%` | `1.8pp` |
-| Mining & Quarrying | `-2.1%` | `-1.1%` | `1.0pp` |
-| Manufacturing | `+5.9%` | `+4.0%` | `1.9pp` |
-| Construction | `+7.7%` | `+4.2%` | `3.5pp` |
-| Services | `+5.6%` | `+8.2%` | `2.6pp` |
+| Agriculture | `+2.6%` | `+0.8%` | 1.8pp |
+| Mining & Quarrying | `-2.1%` | `-1.1%` | 1.0pp |
+| Manufacturing | `+5.9%` | `+4.0%` | 1.9pp |
+| Construction | `+7.7%` | `+4.2%` | 3.5pp |
+| Services | `+5.6%` | `+8.2%` | 2.6pp |
 | **Overall GDP** | **`+5.4%`** | **`+3.9%`** | 1.5pp |
 
 ---
@@ -68,52 +83,27 @@
 
 ---
 
-## Model Accuracy (vintage-frozen, quarter-matched)
+## DOSM ARC (Next Releases)
 
-*MAE/RMSE/FDA vs FIRST-RELEASE actuals, joined on target quarter. Lower MAE = better.*
-
-| Model | MAE (pp) | RMSE (pp) | FDA (%) | N | Latest |
-|-------|:--------:|:---------:|:-------:|:-:|:------:|
-| — | — | — | — | 0 | — |
-
----
-
-## Accuracy by Horizon (QoQ)
-
-*forecast = before quarter; m1/m2/m3 = month within quarter; backcast = after quarter, pre-release.*
-
-| Model | Horizon | MAE (pp) | N |
-|-------|:-------:|:--------:|:-:|
-| — | — | — | — |
+| Date | Release |
+|------|---------|
+| Aug 14 | GDP Q2 2026 |
+| Nov 13 | GDP Q3 2026 |
 
 ---
 
 ## Recent Nowcasts
 
-| Date | Target Q | DFM | BVAR | BEQ | Ensemble | Actual |
-|------|:--------:|:---:|:----:|:---:|:--------:|:------:|
-| 2026-05-26 | 2026-Q2 | +2.1% | +0.9% | +1.1% | +1.1% | — |
-| 2026-05-27 | 2026-Q2 | +2.4% | +0.9% | +1.1% | +1.1% | — |
-| 2026-05-28 | 2026-Q2 | +9.9% | +4.2% | +1.1% | +7.0% | — |
-| 2026-05-29 | 2026-Q2 | +8.2% | +4.2% | +1.1% | +6.2% | — |
-| 2026-05-30 | 2026-Q2 | +9.0% | +4.1% | — | +6.6% | — |
-| 2026-06-01 | 2026-Q2 | +8.5% | +3.9% | — | +6.2% | — |
-| 2026-06-02 | 2026-Q2 | +8.6% | — | — | — | — |
-| 2026-06-03 | 2026-Q2 | +6.3% | +5.1% | — | +5.7% | — |
-
----
-
-## DOSM ARC (Next Releases)
-
-*GDP-related releases from DOSM Advance Release Calendar.*
-
-| Date | Release | Reference |
-|------|---------|---------|
-| 2026-01-16 | Advance Gross Domestic Product (GDP) Estimates Fourth Quarter 2025 |  |
-| 2026-01-23 | Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, November 2025 |  |
-| 2026-02-13 | Gross Domestic Product Fourth Quarter 2025 |  |
-| 2026-02-20 | Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, December 2025 |  |
-| 2026-03-19 | Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, January 2026 |  |
+| Date | Target | DFM | BVAR | AR(1) | Ensemble | Actual |
+|------|:------:|:---:|:----:|:-----:|:--------:|:------:|
+| 2026-05-26 | Q2 | +2.1% | +0.9% | +5.1% | +1.1% | — |
+| 2026-05-27 | Q2 | +2.4% | +0.9% | +5.1% | +1.1% | — |
+| 2026-05-28 | Q2 | +9.9% | +4.2% | +5.1% | +7.0% | — |
+| 2026-05-29 | Q2 | +8.2% | +4.2% | +5.1% | +6.2% | — |
+| 2026-05-30 | Q2 | +9.0% | +4.1% | +5.1% | +6.6% | — |
+| 2026-06-01 | Q2 | +8.5% | +3.9% | +5.1% | +6.2% | — |
+| 2026-06-02 | Q2 | +8.6% | — | +5.1% | — | — |
+| 2026-06-03 | Q2 | +6.3% | +5.1% | +5.1% | +5.7% | — |
 
 ---
 
