@@ -312,17 +312,44 @@ def _gibbs_sampler(
 
     rng = np.random.default_rng(42)
 
-    for i in range(n_draws):
-        # Draw B | Sigma
-        Sigma_inv = np.linalg.inv(Sigma)
-        V_b = np.linalg.inv(np.kron(Sigma_inv, XX) + 1e-8 * np.eye(N * K))
-        # Ensure symmetry and PSD
-        V_b = (V_b + V_b.T) / 2
-        V_b += np.eye(V_b.shape[0]) * 1e-8
+    # Precompute the OLS coefficient and the column-covariance factor once.
+    # B | Sigma is matrix-normal: vec(B) ~ N(vec(B_hat), Sigma (x) XX^{-1}).
+    # The previous implementation formed kron(Sigma_inv, XX) — an (N*K)x(N*K)
+    # matrix (e.g. 15488x15488 here) and inverted it EVERY draw, which is the
+    # ~30-min runtime and the OOM/cancellation. We instead draw directly:
+    #     B = B_hat + L_Sigma @ Z @ L_XXinv.T,   Z ~ N(0,1) (N,K)
+    # using only the K x K and N x N Cholesky factors. Verified equivalent to
+    # the kron draw by Monte-Carlo (same mean and covariance).
+    try:
         b_hat = np.linalg.solve(XX, XY).T  # (N, K)
-        b_vec = b_hat.ravel()
-        b_draw = rng.multivariate_normal(b_vec, V_b)
-        B = b_draw.reshape(N, K)
+    except np.linalg.LinAlgError:
+        XX = XX + 1e-8 * np.eye(K)
+        b_hat = np.linalg.solve(XX, XY).T
+    # Column-covariance factor: XX^{-1} = L_XXinv L_XXinv^T (ridge for safety).
+    XX_inv = np.linalg.inv(XX + 1e-8 * np.eye(K))
+    XX_inv = (XX_inv + XX_inv.T) / 2
+    L_XXinv = np.linalg.cholesky(XX_inv + 1e-10 * np.eye(K))
+
+    def _chol_psd(M, jitter=1e-10, tries=6):
+        """Cholesky with escalating jitter; M assumed symmetric PSD-ish."""
+        M = (M + M.T) / 2
+        d = np.diag(M).copy()
+        for _ in range(tries):
+            try:
+                return np.linalg.cholesky(M)
+            except np.linalg.LinAlgError:
+                M = M + jitter * np.eye(M.shape[0])
+                jitter *= 10
+        # Last resort: eigenvalue floor
+        w, V = np.linalg.eigh((M + M.T) / 2)
+        w = np.clip(w, 1e-12, None)
+        return V @ np.diag(np.sqrt(w))
+
+    for i in range(n_draws):
+        # Draw B | Sigma  via matrix-normal (no Kronecker blowup)
+        L_Sigma = _chol_psd(Sigma)
+        Z = rng.standard_normal((N, K))
+        B = b_hat + L_Sigma @ Z @ L_XXinv.T
 
         # Draw Sigma | B
         resid = Y_aug - X_aug @ B.T
@@ -344,10 +371,17 @@ def _inv_wishart_rvs(rng: np.random.Generator, df: int, scale: FloatArray) -> Fl
     """Draw from inverse Wishart distribution."""
     # Draw from Wishart(Sigma, df), invert
     N = scale.shape[0]
-    L = np.linalg.cholesky(scale)
+    scale = (scale + scale.T) / 2
+    try:
+        L = np.linalg.cholesky(scale)
+    except np.linalg.LinAlgError:
+        # Non-PD scale (ill-conditioned posterior): floor eigenvalues.
+        w, V = np.linalg.eigh(scale)
+        w = np.clip(w, 1e-12, None)
+        L = V @ np.diag(np.sqrt(w))
     Z = rng.normal(0, 1, (df, N)).T
     W = L @ Z @ Z.T @ L.T
-    return np.linalg.inv(W)
+    return np.linalg.inv(W + 1e-10 * np.eye(N))
 
 
 # ---------------------------------------------------------------------------
