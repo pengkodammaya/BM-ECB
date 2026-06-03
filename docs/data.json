@@ -7,25 +7,25 @@
   },
   "nowcast": {
     "quarter": "Q2 2026",
-    "dfm": 7.0,
+    "dfm": 7.17,
     "bvar": 5.09,
     "ar1": 5.4,
-    "ensemble": 6.04,
+    "ensemble": 6.13,
     "bvar_ci_10": null,
     "bvar_ci_90": null
   },
   "backcast": {
     "dfm": {
-      "estimate": 5.8,
-      "error": 0.4
+      "estimate": 5.9,
+      "error": 0.5
     },
     "bvar": {
       "estimate": 3.9,
       "error": 1.5
     },
     "ensemble": {
-      "estimate": 4.8,
-      "error": 0.6
+      "estimate": 4.9,
+      "error": 0.5
     }
   },
   "components": {
@@ -45,9 +45,9 @@
       "error": 1.7
     },
     "exports": {
-      "bvar": 5.9,
+      "bvar": 6.0,
       "actual": 5.2,
-      "error": 0.7
+      "error": 0.8
     },
     "imports": {
       "bvar": 7.4,
@@ -66,7 +66,7 @@
     "agriculture": 0.8,
     "mining": -1.1,
     "manufacturing": 4.0,
-    "construction": 8.6,
+    "construction": 9.6,
     "services": 8.2
   },
   "leaderboard": [],
@@ -138,10 +138,10 @@
     {
       "date": "2026-06-03",
       "target_quarter": "2026-Q2",
-      "dfm": 7.0,
+      "dfm": 7.2,
       "bvar": 5.1,
       "beq": null,
-      "ensemble": 6.0,
+      "ensemble": 6.1,
       "actual": null
     }
   ],
