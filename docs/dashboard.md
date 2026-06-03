@@ -20,6 +20,7 @@
 |-------|:-------:|:-------------------:|-------------|
 | **DFM** | `+6.3%` | — | Dynamic Factor Model (r=2, p=4) |
 | **BVAR** | `+5.1%` | `—` | Bayesian VAR with Minnesota prior |
+| **AR(1)** | `+5.4%` | — | Persistence (last known value) |
 | **Ensemble** | `+5.7%` | — | Median of DFM + BVAR |
 
 > *Q2 2026 actual releases the quarter after it ends; scored once published.*
@@ -99,6 +100,20 @@
 | 2026-06-01 | 2026-Q2 | +8.5% | +3.9% | — | +6.2% | — |
 | 2026-06-02 | 2026-Q2 | +8.6% | — | — | — | — |
 | 2026-06-03 | 2026-Q2 | +6.3% | +5.1% | — | +5.7% | — |
+
+---
+
+## DOSM ARC (Next Releases)
+
+*GDP-related releases from DOSM Advance Release Calendar.*
+
+| Date | Release | Reference |
+|------|---------|---------|
+| 2026-01-16 | Advance Gross Domestic Product (GDP) Estimates Fourth Quarter 2025 |  |
+| 2026-01-23 | Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, November 2025 |  |
+| 2026-02-13 | Gross Domestic Product Fourth Quarter 2025 |  |
+| 2026-02-20 | Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, December 2025 |  |
+| 2026-03-19 | Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, January 2026 |  |
 
 ---
 
