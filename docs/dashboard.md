@@ -2,7 +2,7 @@
 
 > *Comparable to [OpenDOSM GDP Dashboard](https://open.dosm.gov.my/dashboard/gdp)*
 
-**Last updated:** 2026-06-02 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
+**Last updated:** 2026-06-03 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
 
 ---
 
@@ -18,9 +18,9 @@
 
 | Model | Nowcast | 90% Confidence Band | Description |
 |-------|:-------:|:-------------------:|-------------|
-| **DFM** | `+8.6%` | — | Dynamic Factor Model (r=2, p=4) |
-| **BVAR** | `+nan%` | `—` | Bayesian VAR with Minnesota prior |
-| **Ensemble** | `+nan%` | — | Median of DFM + BVAR |
+| **DFM** | `+6.2%` | — | Dynamic Factor Model (r=2, p=4) |
+| **BVAR** | `+5.1%` | `—` | Bayesian VAR with Minnesota prior |
+| **Ensemble** | `+5.6%` | — | Median of DFM + BVAR |
 
 > *Q2 2026 actual releases the quarter after it ends; scored once published.*
 
@@ -32,9 +32,9 @@
 
 | Model | Estimate (YoY) | Error | Accuracy |
 |-------|:--------------:|:-----:|----------|
-| **DFM** | +4.8% | 0.6pp | 🟢 Excellent |
-| **BVAR** | +5.4% | 0.0pp | 🟢 Excellent |
-| **Ensemble** | +5.1% | 0.3pp | 🟢 Excellent |
+| **DFM** | +5.8% | 0.4pp | 🟢 Excellent |
+| **BVAR** | +3.9% | 1.5pp | 🟡 Good |
+| **Ensemble** | +4.8% | 0.6pp | 🟢 Excellent |
 
 ---
 
@@ -46,10 +46,10 @@
 |--------|:------:|:-------:|:-----:|
 | Agriculture | `+2.6%` | `+0.8%` | `1.8pp` |
 | Mining & Quarrying | `-2.1%` | `-1.1%` | `1.0pp` |
-| Manufacturing | `+5.9%` | `+4.3%` | `1.6pp` |
-| Construction | `+7.7%` | `+4.2%` | `3.5pp` |
-| Services | `+5.6%` | `+8.5%` | `2.9pp` |
-| **Overall GDP** | **`+5.4%`** | **`+5.4%`** | 0.0pp |
+| Manufacturing | `+5.9%` | `+4.0%` | `1.9pp` |
+| Construction | `+7.7%` | `+4.1%` | `3.6pp` |
+| Services | `+5.6%` | `+8.2%` | `2.6pp` |
+| **Overall GDP** | **`+5.4%`** | **`+3.9%`** | 1.5pp |
 
 ---
 
@@ -59,11 +59,11 @@
 
 | Component | BVAR | Actual | Error |
 |-----------|:----:|:------:|:-----:|
-| **Consumption (C)** | +nan% | +4.7% | nanpp |
-| **Investment (I)** | +nan% | +7.3% | nanpp |
+| **Consumption (C)** | +5.6% | +4.7% | 0.9pp |
+| **Investment (I)** | +7.5% | +7.3% | 0.2pp |
 | **Government (G)** | +5.8% | +4.1% | 1.7pp |
-| **Exports (X)** | +nan% | +5.2% | nanpp |
-| **Imports (M)** | +nan% | +4.6% | nanpp |
+| **Exports (X)** | +6.0% | +5.2% | 0.8pp |
+| **Imports (M)** | +7.4% | +4.6% | 2.8pp |
 
 ---
 
@@ -98,6 +98,7 @@
 | 2026-05-30 | 2026-Q2 | +9.0% | +4.1% | — | +6.6% | — |
 | 2026-06-01 | 2026-Q2 | +8.5% | +3.9% | — | +6.2% | — |
 | 2026-06-02 | 2026-Q2 | +8.6% | — | — | — | — |
+| 2026-06-03 | 2026-Q2 | +6.2% | +5.1% | — | +5.6% | — |
 
 ---
 
