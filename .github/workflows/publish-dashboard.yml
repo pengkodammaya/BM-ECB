@@ -1,0 +1,55 @@
+name: Publish Dashboard
+
+on:
+  workflow_run:
+    workflows: ["Daily Nowcast Update"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install numpy scipy pandas openpyxl pyarrow scikit-learn statsmodels pydantic click httpx rich yfinance
+
+      - name: Generate standalone dashboard
+        run: |
+          export PYTHONPATH="$GITHUB_WORKSPACE/src"
+          python scripts/generate_standalone_dashboard.py
+
+      - name: Publish to public repo
+        env:
+          SITE_DEPLOY_TOKEN: ${{ secrets.SITE_DEPLOY_TOKEN }}
+        run: |
+          # Clone the public repo
+          git clone https://x-access-token:${SITE_DEPLOY_TOKEN}@github.com/kodam-my/gdp-nowcast-ECBport.git /tmp/site
+          
+          # Copy files
+          cp docs/report.html /tmp/site/index.html
+          cp docs/data.json /tmp/site/data.json
+          cp docs/leaderboard.csv /tmp/site/leaderboard.csv 2>/dev/null || true
+          
+          # Commit and push
+          cd /tmp/site
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes to publish"
+          else
+            git commit -m "Update dashboard: $(date +%Y-%m-%d)"
+            git push origin main
+            echo "Published to https://kodam-my.github.io/gdp-nowcast-ECBport/"
+          fi
