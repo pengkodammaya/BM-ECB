@@ -21,8 +21,8 @@
 | **Private Consumption** (C) | +5.6% | +8.6% | pending | pending |
 | **Gross Fixed Capital Formation** (I) | +7.5% | +1.6% | pending | pending |
 | **Government Consumption** (G) | +5.8% | +5.5% | pending | pending |
-| **Exports** (X) | +6.0% | +1.6% | pending | pending |
-| **Imports** (M) | +7.4% | +3.3% | pending | pending |
+| **Exports** (X) | +6.0% | +1.5% | pending | pending |
+| **Imports** (M) | +7.5% | +3.3% | pending | pending |
 
 ## GDP by Economic Sector (YoY %)
 
