@@ -1,0 +1,77 @@
+site_name: Nowcasting Toolbox — API Reference
+site_description: Python port of the ECB Nowcasting Toolbox with Malaysian data pipeline
+site_url: https://pengkodammaya.github.io/BM-ECB/
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - search.suggest
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: installation.md
+    - Quick Start: quickstart.md
+    - Configuration: configuration.md
+  - Models:
+    - DFM (Dynamic Factor Model): models/dfm.md
+    - BVAR (Bayesian VAR): models/bvar.md
+    - BEQ (Bridge Equations): models/beq.md
+    - Ensemble: models/ensemble.md
+  - Data:
+    - Data Sources: data/sources.md
+    - Transforms: data/transforms.md
+    - Registry: data/registry.md
+  - Evaluation:
+    - Metrics: eval/metrics.md
+    - Backtesting: eval/backtest.md
+    - Vintage Builder: eval/vintage.md
+  - CLI Reference:
+    - Commands: cli/commands.md
+  - API Reference:
+    - Full API: api/full.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+            show_root_heading: true
+            heading_level: 3
+            members_order: source
+            docstring_style: numpy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/kodam-my/gdp-nowcast-ECBport

@@ -747,34 +747,27 @@ function renderSectors() {
 function renderLeaderboard() {
   const lb = DATA.leaderboard || [];
   const nc = DATA.nowcast || {};
-  const ar1 = nc.ar1;
   const container = document.getElementById('leaderboard-container');
   
-  const models = [
-    { key: 'dfm', name: 'DFM' },
-    { key: 'bvar', name: 'BVAR' },
-    { key: 'beq', name: 'BEQ' },
-    { key: 'ensemble', name: 'Ensemble' },
-    { key: 'ar1', name: 'AR(1)' },
-  ];
-  
   if (lb.length === 0) {
-    // Show current nowcast comparison table
-    let html = '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">Backtest scoring requires 3+ published quarters. Showing current nowcast vs AR(1) for Q2 2026:</div>';
-    html += `<table class="model-table">
-      <thead>
-        <tr>
-          <th style="text-align:left">Model</th>
-          <th class="num">Nowcast (YoY)</th>
-          <th class="num">vs AR(1)</th>
-        </tr>
-      </thead><tbody>`;
+    // Show placeholder
+    let html = '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">';
+    html += 'Backtest scoring requires 3+ published quarters with actuals. Leaderboard will populate as quarters are scored.</div>';
     
-    for (const m of models) {
-      const val = nc[m.key];
-      const diff = (val !== null && ar1 !== null && m.key !== 'ar1') ? (val - ar1) : null;
-      html += `<tr ${m.key === 'ar1' ? 'style="background:#F9FAFB"' : ''}>
-        <td style="text-align:left;font-weight:600">${m.name}</td>
+    // Show current nowcast vs AR(1)
+    const ar1 = nc.ar1;
+    html += `<table class="model-table">
+      <thead><tr>
+        <th style="text-align:left">Model</th>
+        <th class="num">Nowcast (YoY)</th>
+        <th class="num">vs AR(1)</th>
+      </tr></thead><tbody>`;
+    
+    for (const [key, name] of [['dfm','DFM'],['bvar','BVAR'],['beq','BEQ'],['ensemble','Ensemble'],['ar1','AR(1)']]) {
+      const val = nc[key];
+      const diff = (val !== null && ar1 !== null && key !== 'ar1') ? (val - ar1) : null;
+      html += `<tr ${key === 'ar1' ? 'style="background:#F9FAFB"' : ''}>
+        <td style="text-align:left;font-weight:600">${name}</td>
         <td class="num ${cls(val)}">${fmt(val)}</td>
         <td class="num ${diff !== null ? (diff >= 0 ? 'ok' : 'good') : 'na'}">${diff !== null ? fmt(diff) : '—'}</td>
       </tr>`;
@@ -784,57 +777,78 @@ function renderLeaderboard() {
     return;
   }
   
-  // Group leaderboard by target
+  // Group by target, find best model per target
   const targets = [...new Set(lb.map(r => r.target || 'GDP'))];
   
-  let html = '';
-  
+  // Build flat table rows like kodam-my.github.io/gdp-nowcast
+  let rows = [];
   for (const target of targets) {
     const targetRows = lb.filter(r => (r.target || 'GDP') === target);
     const ar1Row = targetRows.find(r => r.model === 'AR1');
-    const bestRow = targetRows.filter(r => r.model !== 'AR1').sort((a, b) => (a.mae || 999) - (b.mae || 999))[0];
+    const ar1Rmse = ar1Row?.rmse || null;
     
-    html += `<div style="margin-bottom:20px">
-      <div style="font-weight:600;font-size:14px;margin-bottom:8px;color:var(--text)">${target}</div>
-      <table class="model-table">
-        <thead>
-          <tr>
-            <th style="text-align:left">Model</th>
-            <th class="num">Nowcast</th>
-            <th class="num">vs AR(1)</th>
-            <th class="num">MAE</th>
-            <th class="num">RMSE</th>
-            <th class="num">FDA</th>
-            <th class="num">MASE</th>
-          </tr>
-        </thead><tbody>`;
+    // Find best model (lowest RMSE, excluding AR1)
+    const bestRow = targetRows
+      .filter(r => r.model !== 'AR1' && r.rmse !== null)
+      .sort((a, b) => a.rmse - b.rmse)[0];
     
-    for (const m of models) {
-      const lbRow = targetRows.find(r => r.model.toLowerCase() === m.key || r.model === m.name);
-      if (!lbRow && m.key !== 'ar1') continue;
-      
-      const val = lbRow?.latest || nc[m.key];
-      const ar1Mae = ar1Row?.mae || null;
-      const diff = (lbRow?.mae !== null && ar1Mae !== null && m.key !== 'ar1') ? 
-                   (lbRow.mae - ar1Mae) : null;
-      const mase = (lbRow?.mae !== null && ar1Mae !== null && ar1Mae > 0) ? 
-                   (lbRow.mae / ar1Mae).toFixed(2) : null;
-      const isBest = bestRow && lbRow && lbRow.model === bestRow.model;
-      
-      html += `<tr ${isBest ? 'class="best-row"' : ''} ${m.key === 'ar1' ? 'style="background:#F9FAFB"' : ''}>
-        <td style="text-align:left;font-weight:600">${m.name}</td>
-        <td class="num ${cls(val)}">${val !== null && val !== 0 ? fmt(val) : '—'}</td>
-        <td class="num ${diff !== null ? (diff <= 0 ? 'good' : 'bad') : 'na'}">${diff !== null ? (diff <= 0 ? '✓' : '✗') + ' ' + Math.abs(diff).toFixed(3) : '—'}</td>
-        <td class="num">${lbRow?.mae?.toFixed(3) ?? '—'}</td>
-        <td class="num">${lbRow?.rmse?.toFixed(3) ?? '—'}</td>
-        <td class="num">${lbRow?.fda !== null && lbRow?.fda !== undefined ? lbRow.fda.toFixed(0) + '%' : '—'}</td>
-        <td class="num">${mase ?? '—'}</td>
-      </tr>`;
+    if (bestRow) {
+      const vsAr1 = ar1Rmse ? (bestRow.rmse / ar1Rmse) : null;
+      const mase = ar1Rmse ? (bestRow.mae / ar1Row.mae) : null;
+      rows.push({
+        target: target,
+        bestModel: bestRow.model,
+        rmse: bestRow.rmse,
+        vsAr1: vsAr1,
+        mase: mase,
+        fda: bestRow.fda,
+      });
+    } else if (ar1Row) {
+      // Only AR(1) available
+      rows.push({
+        target: target,
+        bestModel: 'AR(1)',
+        rmse: ar1Row.rmse,
+        vsAr1: 1.0,
+        mase: 1.0,
+        fda: ar1Row.fda,
+      });
     }
-    html += '</tbody></table></div>';
   }
   
-  html += '<div class="sub" style="margin-top:10px">MAE/RMSE in pp (YoY). ✓ = beats AR(1). MASE < 1 = better than persistence. FDA = directional hit-rate.</div>';
+  // Sort: GDP first, then by RMSE
+  rows.sort((a, b) => {
+    if (a.target === 'GDP' && b.target !== 'GDP') return -1;
+    if (a.target !== 'GDP' && b.target === 'GDP') return 1;
+    return (a.rmse || 999) - (b.rmse || 999);
+  });
+  
+  let html = `<table class="model-table">
+    <thead><tr>
+      <th style="text-align:left">Target</th>
+      <th style="text-align:left">Best model</th>
+      <th class="num">RMSE (h=1)</th>
+      <th class="num">vs AR(1)</th>
+      <th class="num">MASE</th>
+      <th class="num">FDA</th>
+    </tr></thead><tbody>`;
+  
+  for (const r of rows) {
+    const vsAr1Class = r.vsAr1 !== null ? (r.vsAr1 < 1 ? 'good' : (r.vsAr1 === 1 ? 'na' : 'bad')) : 'na';
+    const maseClass = r.mase !== null ? (r.mase < 1 ? 'good' : (r.mase === 1 ? 'na' : 'bad')) : 'na';
+    
+    html += `<tr>
+      <td style="text-align:left;font-weight:600">${r.target}</td>
+      <td style="text-align:left">${r.bestModel}</td>
+      <td class="num">${r.rmse?.toFixed(2) ?? '—'}</td>
+      <td class="num ${vsAr1Class}">${r.vsAr1 !== null ? r.vsAr1.toFixed(3) : '—'}</td>
+      <td class="num ${maseClass}">${r.mase !== null ? r.mase.toFixed(2) : '—'}</td>
+      <td class="num">${r.fda !== null ? r.fda.toFixed(0) + '%' : '—'}</td>
+    </tr>`;
+  }
+  
+  html += '</tbody></table>';
+  html += '<div class="sub" style="margin-top:10px">RMSE in pp (YoY, h=1 nowcast). vs AR(1) < 1 = beats persistence. MASE < 1 = better than random walk. FDA = directional hit-rate.</div>';
   container.innerHTML = html;
 }
 

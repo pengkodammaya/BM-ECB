@@ -1,0 +1,250 @@
+{
+  "lastUpdated": "2026-06-03",
+  "targetQuarter": "2026-Q2",
+  "latestActual": {
+    "quarter": "Q1 2026",
+    "yoy": 5.4
+  },
+  "nowcast": {
+    "quarter": "Q2 2026",
+    "dfm": 6.31,
+    "bvar": 5.09,
+    "ar1": 5.4,
+    "ensemble": 5.7,
+    "bvar_ci_10": null,
+    "bvar_ci_90": null
+  },
+  "backcast": {
+    "dfm": {
+      "estimate": 5.8,
+      "error": 0.4
+    },
+    "bvar": {
+      "estimate": 3.9,
+      "error": 1.5
+    },
+    "ensemble": {
+      "estimate": 4.8,
+      "error": 0.6
+    }
+  },
+  "components": {
+    "consumption": {
+      "bvar": 5.6,
+      "actual": 4.7,
+      "error": 0.9
+    },
+    "investment": {
+      "bvar": 7.5,
+      "actual": 7.3,
+      "error": 0.2
+    },
+    "government": {
+      "bvar": 5.8,
+      "actual": 4.1,
+      "error": 1.7
+    },
+    "exports": {
+      "bvar": 6.0,
+      "actual": 5.2,
+      "error": 0.8
+    },
+    "imports": {
+      "bvar": 7.4,
+      "actual": 4.6,
+      "error": 2.8
+    }
+  },
+  "sectors": {
+    "agriculture": 2.6,
+    "mining": -2.1,
+    "manufacturing": 5.9,
+    "construction": 7.7,
+    "services": 5.6
+  },
+  "sectorNowcast": {
+    "agriculture": 0.8,
+    "mining": -1.1,
+    "manufacturing": 4.0,
+    "construction": 4.2,
+    "services": 8.2
+  },
+  "leaderboard": [],
+  "byHorizon": [],
+  "recent": [
+    {
+      "date": "2026-05-26",
+      "target_quarter": "2026-Q2",
+      "dfm": 2.1,
+      "bvar": 0.9,
+      "beq": 1.1,
+      "ensemble": 1.1,
+      "actual": null
+    },
+    {
+      "date": "2026-05-27",
+      "target_quarter": "2026-Q2",
+      "dfm": 2.4,
+      "bvar": 0.9,
+      "beq": 1.1,
+      "ensemble": 1.1,
+      "actual": null
+    },
+    {
+      "date": "2026-05-28",
+      "target_quarter": "2026-Q2",
+      "dfm": 9.9,
+      "bvar": 4.2,
+      "beq": 1.1,
+      "ensemble": 7.0,
+      "actual": null
+    },
+    {
+      "date": "2026-05-29",
+      "target_quarter": "2026-Q2",
+      "dfm": 8.2,
+      "bvar": 4.2,
+      "beq": 1.1,
+      "ensemble": 6.2,
+      "actual": null
+    },
+    {
+      "date": "2026-05-30",
+      "target_quarter": "2026-Q2",
+      "dfm": 9.0,
+      "bvar": 4.1,
+      "beq": null,
+      "ensemble": 6.6,
+      "actual": null
+    },
+    {
+      "date": "2026-06-01",
+      "target_quarter": "2026-Q2",
+      "dfm": 8.5,
+      "bvar": 3.9,
+      "beq": null,
+      "ensemble": 6.2,
+      "actual": null
+    },
+    {
+      "date": "2026-06-02",
+      "target_quarter": "2026-Q2",
+      "dfm": 8.6,
+      "bvar": null,
+      "beq": null,
+      "ensemble": null,
+      "actual": null
+    },
+    {
+      "date": "2026-06-03",
+      "target_quarter": "2026-Q2",
+      "dfm": 6.3,
+      "bvar": 5.1,
+      "beq": null,
+      "ensemble": 5.7,
+      "actual": null
+    }
+  ],
+  "arc_next": [
+    {
+      "date": "2026-01-16",
+      "release": "Advance Gross Domestic Product (GDP) Estimates Fourth Quarter 2025",
+      "ref": ""
+    },
+    {
+      "date": "2026-01-23",
+      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, November 2025",
+      "ref": ""
+    },
+    {
+      "date": "2026-02-13",
+      "release": "Gross Domestic Product Fourth Quarter 2025",
+      "ref": ""
+    },
+    {
+      "date": "2026-02-20",
+      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, December 2025",
+      "ref": ""
+    },
+    {
+      "date": "2026-03-19",
+      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, January 2026",
+      "ref": ""
+    },
+    {
+      "date": "2026-04-17",
+      "release": "Advance Gross Domestic Product (GDP) Estimates First Quarter 2026",
+      "ref": ""
+    },
+    {
+      "date": "2026-04-24",
+      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, February 2026",
+      "ref": ""
+    },
+    {
+      "date": "2026-05-15",
+      "release": "Gross Domestic Product First Quarter 2026",
+      "ref": ""
+    },
+    {
+      "date": "2026-05-25",
+      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, March 2026",
+      "ref": ""
+    },
+    {
+      "date": "2026-06-25",
+      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, April 2026",
+      "ref": ""
+    },
+    {
+      "date": "2026-07-17",
+      "release": "Advance Gross Domestic Product (GDP) Estimates Second Quarter 2026",
+      "ref": ""
+    },
+    {
+      "date": "2026-07-24",
+      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, May 2026",
+      "ref": ""
+    },
+    {
+      "date": "2026-08-14",
+      "release": "Gross Domestic Product Second Quarter 2026",
+      "ref": ""
+    },
+    {
+      "date": "2026-08-24",
+      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, June 2026",
+      "ref": ""
+    },
+    {
+      "date": "2026-09-25",
+      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, July 2026",
+      "ref": ""
+    },
+    {
+      "date": "2026-10-16",
+      "release": "Advance Gross Domestic Product (GDP) Estimates Third Quarter 2026",
+      "ref": ""
+    },
+    {
+      "date": "2026-10-23",
+      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, August 2026",
+      "ref": ""
+    },
+    {
+      "date": "2026-11-18",
+      "release": "Gross Domestic Product Third Quarter 2026",
+      "ref": ""
+    },
+    {
+      "date": "2026-11-25",
+      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, September 2026",
+      "ref": ""
+    },
+    {
+      "date": "2026-12-24",
+      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, October 2026",
+      "ref": ""
+    }
+  ]
+}
