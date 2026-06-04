@@ -7,10 +7,10 @@
   },
   "nowcast": {
     "quarter": "Q2 2026",
-    "dfm": 5.91,
+    "dfm": 5.94,
     "bvar": 5.11,
     "ar1": 5.4,
-    "ensemble": 5.51,
+    "ensemble": 5.53,
     "bvar_ci_10": null,
     "bvar_ci_90": null
   },
@@ -50,9 +50,9 @@
       "error": 0.8
     },
     "imports": {
-      "bvar": 7.5,
+      "bvar": 7.4,
       "actual": 4.6,
-      "error": 2.9
+      "error": 2.8
     }
   },
   "sectors": {
@@ -154,106 +154,5 @@
       "actual": null
     }
   ],
-  "arc_next": [
-    {
-      "date": "2026-01-16",
-      "release": "Advance Gross Domestic Product (GDP) Estimates Fourth Quarter 2025",
-      "ref": ""
-    },
-    {
-      "date": "2026-01-23",
-      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, November 2025",
-      "ref": ""
-    },
-    {
-      "date": "2026-02-13",
-      "release": "Gross Domestic Product Fourth Quarter 2025",
-      "ref": ""
-    },
-    {
-      "date": "2026-02-20",
-      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, December 2025",
-      "ref": ""
-    },
-    {
-      "date": "2026-03-19",
-      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, January 2026",
-      "ref": ""
-    },
-    {
-      "date": "2026-04-17",
-      "release": "Advance Gross Domestic Product (GDP) Estimates First Quarter 2026",
-      "ref": ""
-    },
-    {
-      "date": "2026-04-24",
-      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, February 2026",
-      "ref": ""
-    },
-    {
-      "date": "2026-05-15",
-      "release": "Gross Domestic Product First Quarter 2026",
-      "ref": ""
-    },
-    {
-      "date": "2026-05-25",
-      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, March 2026",
-      "ref": ""
-    },
-    {
-      "date": "2026-06-25",
-      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, April 2026",
-      "ref": ""
-    },
-    {
-      "date": "2026-07-17",
-      "release": "Advance Gross Domestic Product (GDP) Estimates Second Quarter 2026",
-      "ref": ""
-    },
-    {
-      "date": "2026-07-24",
-      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, May 2026",
-      "ref": ""
-    },
-    {
-      "date": "2026-08-14",
-      "release": "Gross Domestic Product Second Quarter 2026",
-      "ref": ""
-    },
-    {
-      "date": "2026-08-24",
-      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, June 2026",
-      "ref": ""
-    },
-    {
-      "date": "2026-09-25",
-      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, July 2026",
-      "ref": ""
-    },
-    {
-      "date": "2026-10-16",
-      "release": "Advance Gross Domestic Product (GDP) Estimates Third Quarter 2026",
-      "ref": ""
-    },
-    {
-      "date": "2026-10-23",
-      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, August 2026",
-      "ref": ""
-    },
-    {
-      "date": "2026-11-18",
-      "release": "Gross Domestic Product Third Quarter 2026",
-      "ref": ""
-    },
-    {
-      "date": "2026-11-25",
-      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, September 2026",
-      "ref": ""
-    },
-    {
-      "date": "2026-12-24",
-      "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, October 2026",
-      "ref": ""
-    }
-  ]
+  "arc_next": []
 }

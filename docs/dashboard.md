@@ -79,7 +79,7 @@
 | **Investment (I)** | +7.5% | +7.3% | 0.2pp |
 | **Government (G)** | +5.8% | +4.1% | 1.7pp |
 | **Exports (X)** | +6.0% | +5.2% | 0.8pp |
-| **Imports (M)** | +7.5% | +4.6% | 2.9pp |
+| **Imports (M)** | +7.4% | +4.6% | 2.8pp |
 
 ---
 
@@ -87,11 +87,7 @@
 
 | Date | Release |
 |------|---------|
-| 2026-01-16 | Advance Gross Domestic Product (GDP) Estimates Fourth Quarter 2025 |
-| 2026-01-23 | Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, November 2025 |
-| 2026-02-13 | Gross Domestic Product Fourth Quarter 2025 |
-| 2026-02-20 | Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, December 2025 |
-| 2026-03-19 | Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, January 2026 |
+| — | — |
 
 ---
 
