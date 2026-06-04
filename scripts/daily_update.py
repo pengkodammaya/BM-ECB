@@ -1239,7 +1239,8 @@ try:
 except Exception:
     pass
 
-nowcasts["sector_actuals"] = json.dumps(sector_actuals)
+# Store sector_actuals separately (not in CSV to avoid comma corruption)
+nowcasts["sector_actuals_json"] = json.dumps(sector_actuals)
 
 # 3d. GDP identity (all YoY)
 try:
@@ -1390,13 +1391,55 @@ logger.info("Daily log written (%d rows).", len(log))
 
 # Vintage-frozen, quarter-matched, horizon-stratified scoring (YoY)
 qoq_overall, qoq_by_h = [], []
+all_leaderboard = []
 try:
+    # Score GDP
     qoq_overall, qoq_by_h = score_log(
         log, vintage, "gdp_yoy", ["dfm", "bvar", "beq", "ar1", "naive", "ensemble"])
     if qoq_overall:
+        for row in qoq_overall:
+            row["target"] = "GDP (Real, Aggregate)"
+        all_leaderboard.extend(qoq_overall)
         atomic_write_csv(pd.DataFrame(qoq_overall), Path("docs/leaderboard.csv"))
     if qoq_by_h:
         atomic_write_csv(pd.DataFrame(qoq_by_h), Path("docs/leaderboard_by_horizon.csv"))
+    
+    # Score components
+    component_map = {
+        "consumption": "Private Consumption",
+        "investment": "Investment (GFCF)",
+        "government": "Government Consumption",
+        "exports_comp": "Exports (G&S)",
+        "imports_comp": "Imports (G&S)",
+    }
+    for comp_key, comp_label in component_map.items():
+        comp_metric = f"{comp_key}_yoy"
+        # Component models in log: consumption (BVAR), consumption_dfm, consumption_ar1
+        comp_models = [comp_key, f"{comp_key}_dfm", f"{comp_key}_ar1"]
+        try:
+            comp_overall, _ = score_log(log, vintage, comp_metric, comp_models)
+            if comp_overall:
+                for row in comp_overall:
+                    row["target"] = comp_label
+                    # Normalize model names
+                    model = row["model"]
+                    if model.endswith("_DFM"):
+                        row["model"] = "DFM"
+                    elif model.endswith("_AR1"):
+                        row["model"] = "AR1"
+                    elif model == comp_key.upper():
+                        row["model"] = "BVAR"  # Primary component model is BVAR
+                all_leaderboard.extend(comp_overall)
+                logger.info("Component %s: %d scored models", comp_key, len(comp_overall))
+        except Exception as e:
+            logger.debug("Scoring %s failed: %s", comp_key, e)
+    
+    # Write combined leaderboard
+    if all_leaderboard:
+        atomic_write_csv(pd.DataFrame(all_leaderboard), Path("docs/leaderboard_full.csv"))
+        logger.info("Full leaderboard: %d entries across %d targets", 
+                   len(all_leaderboard), len(set(r.get("target","") for r in all_leaderboard)))
+    
 except Exception as e:
     logger.warning("Scoring failed (non-fatal): %s", e)
 checkpoint("scoring:done")
@@ -1659,4 +1702,4 @@ except Exception as e:
 checkpoint("complete")
 logger.info("Daily update complete. Target quarter: %s (total %.1fs)", target_q, time.monotonic() - _T0)
 logger.info("Nowcasts: %s",
-            json.dumps({k: v for k, v in nowcasts.items() if k != "sector_actuals"}, indent=2))
+            json.dumps({k: v for k, v in nowcasts.items() if k not in ("sector_actuals", "sector_actuals_json")}, indent=2))

@@ -7,7 +7,8 @@ import csv
 from pathlib import Path
 
 DATA_PATH = Path("docs/data.json")
-LEADERBOARD_PATH = Path("docs/leaderboard.csv")
+LEADERBOARD_PATH = Path("docs/leaderboard_full.csv")
+LEADERBOARD_FALLBACK = Path("docs/leaderboard.csv")
 DASHBOARD_TEMPLATE = Path("docs/dashboard.html")
 REPORT_TEMPLATE = Path("docs/report_template.html")
 OUT_DASHBOARD = Path("docs/dashboard_standalone.html")
@@ -15,16 +16,17 @@ OUT_REPORT = Path("docs/report.html")
 
 
 def load_leaderboard_csv():
-    """Load leaderboard.csv and convert to list of dicts."""
-    if not LEADERBOARD_PATH.exists():
+    """Load leaderboard_full.csv (with components) and convert to list of dicts."""
+    path = LEADERBOARD_PATH if LEADERBOARD_PATH.exists() else LEADERBOARD_FALLBACK
+    if not path.exists():
         return []
     try:
         rows = []
-        with open(LEADERBOARD_PATH, 'r') as f:
+        with open(path, 'r') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 rows.append({
-                    "target": "GDP",
+                    "target": row.get("target", "GDP"),
                     "model": row.get("model", ""),
                     "mae": float(row.get("MAE (pp)", 0) or 0),
                     "rmse": float(row.get("RMSE (pp)", 0) or 0),
