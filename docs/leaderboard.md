@@ -1,6 +1,6 @@
 # Malaysia GDP Nowcasting — Live Leaderboard
 
-**Updated:** 2026-06-03 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
+**Updated:** 2026-06-04 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
 
 ## GDP Nowcast (YoY %)
 
@@ -21,7 +21,7 @@
 | **Private Consumption** (C) | +5.6% | +8.8% | pending | pending |
 | **Gross Fixed Capital Formation** (I) | +7.5% | +1.6% | pending | pending |
 | **Government Consumption** (G) | +5.8% | +5.5% | pending | pending |
-| **Exports** (X) | +5.9% | +1.9% | pending | pending |
+| **Exports** (X) | +6.0% | +1.9% | pending | pending |
 | **Imports** (M) | +7.4% | +5.9% | pending | pending |
 
 ## GDP by Economic Sector (YoY %)
@@ -47,7 +47,7 @@
 
 *Not enough scored observations per horizon yet.*
 
-## Recent Nowcasts (8 days)
+## Recent Nowcasts (9 days)
 
 | Date | Target Q | DFM | BVAR | BEQ | ENSEMBLE |
 |------|----------|-----|------|-----|----------|
@@ -59,13 +59,14 @@
 | 2026-06-01 | 2026-Q2 | +8.5% | +3.9% | — | +6.2% |
 | 2026-06-02 | 2026-Q2 | +8.6% | — | — | — |
 | 2026-06-03 | 2026-Q2 | +6.2% | +5.1% | — | +5.7% |
+| 2026-06-04 | 2026-Q2 | +6.2% | +5.1% | — | +5.7% |
 
 ## Data Sources
 
 - **GDP:** DOSM `gdp_qtr_real` (YoY), `gdp_qtr_real_sa` (QoQ)
 - **Expenditure:** DOSM `gdp_qtr_real_demand`; **Sectors:** `gdp_qtr_real_supply`
 - **Vintages:** `docs/actuals_vintage.csv` (first-release frozen, revisions tracked)
-- **Last updated:** 2026-06-03
+- **Last updated:** 2026-06-04
 
 ---
 *Auto-generated daily via GitHub Actions. [Source](https://github.com/pengkodammaya/BM-ECB)*

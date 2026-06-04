@@ -2,7 +2,7 @@
 
 > *Comparable to [OpenDOSM GDP Dashboard](https://open.dosm.gov.my/dashboard/gdp)*
 
-**Last updated:** 2026-06-03 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
+**Last updated:** 2026-06-04 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
 
 ---
 
@@ -78,7 +78,7 @@
 | **Consumption (C)** | +5.6% | +4.7% | 0.9pp |
 | **Investment (I)** | +7.5% | +7.3% | 0.2pp |
 | **Government (G)** | +5.8% | +4.1% | 1.7pp |
-| **Exports (X)** | +5.9% | +5.2% | 0.7pp |
+| **Exports (X)** | +6.0% | +5.2% | 0.8pp |
 | **Imports (M)** | +7.4% | +4.6% | 2.8pp |
 
 ---
@@ -107,6 +107,7 @@
 | 2026-06-01 | 2026-Q2 | +8.5% | +3.9% | — | +6.2% | — |
 | 2026-06-02 | 2026-Q2 | +8.6% | — | — | — | — |
 | 2026-06-03 | 2026-Q2 | +6.2% | +5.1% | — | +5.7% | — |
+| 2026-06-04 | 2026-Q2 | +6.2% | +5.1% | — | +5.7% | — |
 
 ---
 
