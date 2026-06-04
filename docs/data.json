@@ -7,10 +7,10 @@
   },
   "nowcast": {
     "quarter": "Q2 2026",
-    "dfm": 6.09,
+    "dfm": 5.98,
     "bvar": 5.11,
     "ar1": 5.4,
-    "ensemble": 5.6,
+    "ensemble": 5.54,
     "bvar_ci_10": null,
     "bvar_ci_90": null
   },
@@ -147,10 +147,10 @@
     {
       "date": "2026-06-04",
       "target_quarter": "2026-Q2",
-      "dfm": 6.1,
+      "dfm": 6.0,
       "bvar": 5.1,
       "beq": null,
-      "ensemble": 5.6,
+      "ensemble": 5.5,
       "actual": null
     }
   ],
