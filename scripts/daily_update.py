@@ -1656,6 +1656,15 @@ for _, row in log.tail(30).iterrows():
     rr["actual"] = round(float(a), 1) if (a is not None and not (isinstance(a, float) and np.isnan(a))) else None
     recent_out.append(rr)
 
+# Fetch consensus forecasts
+consensus_data = {"gdp_yoy": {}, "gdp_qoq": {}, "source": "Trading Economics"}
+try:
+    from nowcasting_toolbox.data.sources.consensus_client import fetch_consensus_forecasts
+    consensus_data = fetch_consensus_forecasts()
+    logger.info("Consensus forecasts fetched: %s", consensus_data.get("gdp_yoy", {}))
+except Exception as e:
+    logger.warning("Consensus fetch failed (non-fatal): %s", e)
+
 dashboard_data = {
     "lastUpdated": today_str,
     "targetQuarter": target_q,
@@ -1675,6 +1684,7 @@ dashboard_data = {
     "byHorizon": qoq_by_h,
     "recent": recent_out,
     "arc_next": arc_releases if 'arc_releases' in dir() else [],
+    "consensus": consensus_data,
 }
 
 try:

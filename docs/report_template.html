@@ -216,25 +216,29 @@ function renderCallouts() {
   const la = DATA.latestActual || {};
   const bc = DATA.backcast || {};
   const lb = DATA.leaderboard || [];
+  const consensus = DATA.consensus || {};
+  const consensusYoy = consensus.gdp_yoy || {};
   
   const ens = nc.ensemble;
   const ar1 = nc.ar1;
   const vsAr1 = (ens !== null && ar1 !== null) ? (ens - ar1) : null;
+  
+  // Get consensus for current quarter
+  const currentQuarter = nc.quarter || '';
+  const consensusVal = consensusYoy[currentQuarter] || null;
   
   const ar1Row = lb.find(r => r.model === 'AR1');
   const bestRow = lb.filter(r => r.model !== 'AR1').sort((a, b) => (a.mae || 999) - (b.mae || 999))[0];
   
   const callouts = [
     { label: 'GDP Nowcast', value: fmt(ens), detail: `Ensemble · ${nc.quarter || '—'}` },
+    { label: 'Consensus', value: consensusVal !== null ? fmt(consensusVal) : '—', detail: `Trading Economics · ${currentQuarter}` },
     { label: 'vs AR(1)', value: vsAr1 !== null ? fmt(vsAr1) : '—', detail: 'Ensemble vs persistence' },
     { label: 'Latest Actual', value: fmt(la.yoy), detail: la.quarter || '—' },
   ];
   
   if (bestRow) {
     callouts.push({ label: 'Best Model', value: bestRow.model, detail: `MAE: ${bestRow.mae?.toFixed(2)}pp` });
-  }
-  if (bestRow?.fda) {
-    callouts.push({ label: 'Best FDA', value: bestRow.fda.toFixed(0) + '%', detail: bestRow.model });
   }
   
   document.getElementById('callouts').innerHTML = callouts.map(c => `
