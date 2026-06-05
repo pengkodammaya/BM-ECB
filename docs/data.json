@@ -7,52 +7,52 @@
   },
   "nowcast": {
     "quarter": "Q2 2026",
-    "dfm": 6.07,
-    "bvar": null,
+    "dfm": 9.11,
+    "bvar": 5.14,
     "ar1": 5.4,
-    "ensemble": 6.07,
+    "ensemble": 7.12,
     "bvar_ci_10": null,
     "bvar_ci_90": null
   },
   "backcast": {
     "dfm": {
-      "estimate": 5.8,
-      "error": 0.4
+      "estimate": 6.6,
+      "error": 1.2
     },
     "bvar": {
-      "estimate": null,
-      "error": null
+      "estimate": 3.9,
+      "error": 1.5
     },
     "ensemble": {
-      "estimate": 5.8,
-      "error": 0.4
+      "estimate": 5.2,
+      "error": 0.2
     }
   },
   "components": {
     "consumption": {
-      "bvar": 8.9,
+      "bvar": 5.6,
       "actual": 4.7,
-      "error": 4.2
+      "error": 0.9
     },
     "investment": {
-      "bvar": 1.0,
+      "bvar": 7.5,
       "actual": 7.3,
-      "error": 6.3
+      "error": 0.2
     },
     "government": {
-      "bvar": 6.5,
+      "bvar": 5.8,
       "actual": 4.1,
-      "error": 2.4
+      "error": 1.7
     },
     "exports": {
-      "bvar": 1.4,
+      "bvar": 6.1,
       "actual": 5.2,
-      "error": 3.8
+      "error": 0.9
     },
     "imports": {
-      "bvar": 5.8,
+      "bvar": 7.4,
       "actual": 4.6,
-      "error": 1.2
+      "error": 2.8
     }
   },
   "sectors": {
@@ -156,10 +156,10 @@
     {
       "date": "2026-06-05",
       "target_quarter": "2026-Q2",
-      "dfm": 6.1,
-      "bvar": null,
+      "dfm": 9.1,
+      "bvar": 5.1,
       "beq": null,
-      "ensemble": 6.1,
+      "ensemble": 7.1,
       "actual": null
     }
   ],
@@ -266,56 +266,9 @@
     }
   ],
   "consensus": {
-    "gdp_yoy": {
-      "Q2 2026": 5.2,
-      "Q3 2026": 4.9,
-      "Q4 2026": 4.7,
-      "Q1 2027": 5.1
-    },
-    "gdp_qoq": {
-      "Q2 2026": 2.0,
-      "Q3 2026": 1.5,
-      "Q4 2026": -0.4,
-      "Q1 2027": 0.7
-    },
-    "components": {
-      "investment": {
-        "levels": {
-          "Q2 2026": 104933.0,
-          "Q3 2026": 101149.0,
-          "Q4 2026": 101212.0,
-          "Q1 2027": 105497.0
-        },
-        "unit": "MYR Million"
-      },
-      "imports": {
-        "levels": {
-          "Q2 2026": 128000.0,
-          "Q3 2026": 130000.0,
-          "Q4 2026": 131000.0,
-          "Q1 2027": 122000.0
-        },
-        "unit": "MYR Million"
-      },
-      "exports": {
-        "levels": {
-          "Q2 2026": 136000.0,
-          "Q3 2026": 139000.0,
-          "Q4 2026": 141000.0,
-          "Q1 2027": 140000.0
-        },
-        "unit": "MYR Million"
-      },
-      "consumption": {
-        "levels": {
-          "Q2 2026": 270230.0,
-          "Q3 2026": 285011.0,
-          "Q4 2026": 277160.0,
-          "Q1 2027": 283231.0
-        },
-        "unit": "MYR Million"
-      }
-    },
+    "gdp_yoy": {},
+    "gdp_qoq": {},
+    "components": {},
     "source": "Trading Economics",
     "url": "https://tradingeconomics.com/malaysia/forecast"
   }
