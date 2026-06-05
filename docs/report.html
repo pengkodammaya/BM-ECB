@@ -138,8 +138,8 @@
     </div>
     <div class="section">
       <h2>Expenditure components</h2>
-      <div class="section-meta">Q1 2026 nowcast vs actual (YoY %)</div>
-      <div id="chart-components" style="height:300px; width:100%;"></div>
+      <div class="section-meta">Q1 2026 nowcast vs actual vs consensus (YoY %)</div>
+      <div id="chart-components" style="height:350px; width:100%;"></div>
     </div>
   </div>
 
@@ -186,7 +186,7 @@
 
 <script>
 const DATA = {
-  "lastUpdated": "2026-06-04",
+  "lastUpdated": "2026-06-05",
   "targetQuarter": "2026-Q2",
   "latestActual": {
     "quarter": "Q1 2026",
@@ -194,53 +194,52 @@ const DATA = {
   },
   "nowcast": {
     "quarter": "Q2 2026",
-    "dfm": 5.7,
-    "bvar": 4.87,
-    "beq": 4.14,
+    "dfm": 6.28,
+    "bvar": null,
     "ar1": 5.4,
-    "ensemble": 4.87,
-    "bvar_ci_10": NaN,
-    "bvar_ci_90": NaN
+    "ensemble": 6.28,
+    "bvar_ci_10": null,
+    "bvar_ci_90": null
   },
   "backcast": {
     "dfm": {
-      "estimate": 5.8,
-      "error": 0.4
+      "estimate": 5.9,
+      "error": 0.5
     },
     "bvar": {
-      "estimate": 5.6,
-      "error": 0.2
+      "estimate": null,
+      "error": null
     },
     "ensemble": {
-      "estimate": 5.7,
-      "error": 0.3
+      "estimate": 5.9,
+      "error": 0.5
     }
   },
   "components": {
     "consumption": {
-      "bvar": 5.6,
+      "bvar": 9.0,
       "actual": 4.7,
-      "error": 0.9
+      "error": 4.3
     },
     "investment": {
-      "bvar": 7.5,
+      "bvar": 1.0,
       "actual": 7.3,
-      "error": 0.2
+      "error": 6.3
     },
     "government": {
-      "bvar": 5.8,
+      "bvar": 6.5,
       "actual": 4.1,
-      "error": 1.7
+      "error": 2.4
     },
     "exports": {
-      "bvar": 6.1,
+      "bvar": 1.4,
       "actual": 5.2,
-      "error": 0.9
+      "error": 3.8
     },
     "imports": {
-      "bvar": 7.4,
+      "bvar": 5.8,
       "actual": 4.6,
-      "error": 2.8
+      "error": 1.2
     }
   },
   "sectors": {
@@ -254,7 +253,7 @@ const DATA = {
     "agriculture": 0.8,
     "mining": -1.1,
     "manufacturing": 4.1,
-    "construction": 9.4,
+    "construction": 9.3,
     "services": 8.2
   },
   "leaderboard": [
@@ -381,7 +380,7 @@ const DATA = {
     {
       "date": "2026-06-03",
       "target_quarter": "2026-Q2",
-      "dfm": 6.3,
+      "dfm": 6.2,
       "bvar": 5.1,
       "beq": null,
       "ensemble": 5.7,
@@ -390,10 +389,19 @@ const DATA = {
     {
       "date": "2026-06-04",
       "target_quarter": "2026-Q2",
-      "dfm": 5.7,
-      "bvar": 4.9,
-      "beq": 4.1,
-      "ensemble": 4.9,
+      "dfm": 5.6,
+      "bvar": null,
+      "beq": null,
+      "ensemble": 5.6,
+      "actual": null
+    },
+    {
+      "date": "2026-06-05",
+      "target_quarter": "2026-Q2",
+      "dfm": 6.3,
+      "bvar": null,
+      "beq": null,
+      "ensemble": 6.3,
       "actual": null
     }
   ],
@@ -498,7 +506,73 @@ const DATA = {
       "release": "Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, October 2026",
       "ref": ""
     }
-  ]
+  ],
+  "consensus": {
+    "gdp_yoy": {
+      "Q2 2026": 5.2,
+      "Q3 2026": 4.9,
+      "Q4 2026": 4.7,
+      "Q1 2027": 5.1
+    },
+    "gdp_qoq": {
+      "Q2 2026": 2.0,
+      "Q3 2026": 1.5,
+      "Q4 2026": -0.4,
+      "Q1 2027": 0.7
+    },
+    "components": {
+      "investment": {
+        "levels": {
+          "Q2 2026": 104933.0,
+          "Q3 2026": 101149.0,
+          "Q4 2026": 101212.0,
+          "Q1 2027": 105497.0
+        },
+        "unit": "MYR Million",
+        "yoy": {
+          "Q2 2026": 5.2,
+          "Q3 2026": 4.9,
+          "Q4 2026": 4.7,
+          "Q1 2027": 5.1
+        }
+      },
+      "imports": {
+        "levels": {
+          "Q2 2026": 128000.0,
+          "Q3 2026": 130000.0,
+          "Q4 2026": 131000.0,
+          "Q1 2027": 122000.0
+        },
+        "unit": "MYR Million"
+      },
+      "exports": {
+        "levels": {
+          "Q2 2026": 136000.0,
+          "Q3 2026": 139000.0,
+          "Q4 2026": 141000.0,
+          "Q1 2027": 140000.0
+        },
+        "unit": "MYR Million"
+      },
+      "consumption": {
+        "levels": {
+          "Q2 2026": 270230.0,
+          "Q3 2026": 285011.0,
+          "Q4 2026": 277160.0,
+          "Q1 2027": 283231.0
+        },
+        "unit": "MYR Million",
+        "yoy": {
+          "Q2 2026": 5.2,
+          "Q3 2026": 4.9,
+          "Q4 2026": 4.7,
+          "Q1 2027": 5.1
+        }
+      }
+    },
+    "source": "Trading Economics",
+    "url": "https://tradingeconomics.com/malaysia/forecast"
+  }
 };
 
 function fmt(v, suffix='%') {
@@ -530,25 +604,29 @@ function renderCallouts() {
   const la = DATA.latestActual || {};
   const bc = DATA.backcast || {};
   const lb = DATA.leaderboard || [];
+  const consensus = DATA.consensus || {};
+  const consensusYoy = consensus.gdp_yoy || {};
   
   const ens = nc.ensemble;
   const ar1 = nc.ar1;
   const vsAr1 = (ens !== null && ar1 !== null) ? (ens - ar1) : null;
+  
+  // Get consensus for current quarter
+  const currentQuarter = nc.quarter || '';
+  const consensusVal = consensusYoy[currentQuarter] || null;
   
   const ar1Row = lb.find(r => r.model === 'AR1');
   const bestRow = lb.filter(r => r.model !== 'AR1').sort((a, b) => (a.mae || 999) - (b.mae || 999))[0];
   
   const callouts = [
     { label: 'GDP Nowcast', value: fmt(ens), detail: `Ensemble · ${nc.quarter || '—'}` },
+    { label: 'Consensus', value: consensusVal !== null ? fmt(consensusVal) : '—', detail: `Trading Economics · ${currentQuarter}` },
     { label: 'vs AR(1)', value: vsAr1 !== null ? fmt(vsAr1) : '—', detail: 'Ensemble vs persistence' },
     { label: 'Latest Actual', value: fmt(la.yoy), detail: la.quarter || '—' },
   ];
   
   if (bestRow) {
     callouts.push({ label: 'Best Model', value: bestRow.model, detail: `MAE: ${bestRow.mae?.toFixed(2)}pp` });
-  }
-  if (bestRow?.fda) {
-    callouts.push({ label: 'Best FDA', value: bestRow.fda.toFixed(0) + '%', detail: bestRow.model });
   }
   
   document.getElementById('callouts').innerHTML = callouts.map(c => `
@@ -660,24 +738,35 @@ function renderEvolution() {
 
 function renderComponents() {
   const comps = DATA.components || {};
+  const consensus = DATA.consensus || {};
+  const consensusComps = consensus.components || {};
+  const nc = DATA.nowcast || {};
+  const currentQuarter = nc.quarter || '';
+  
   const keys = ['consumption', 'investment', 'government', 'exports', 'imports'];
   const labels = ['Consumption\n(C)', 'Investment\n(I)', 'Govt\n(G)', 'Exports\n(X)', 'Imports\n(M)'];
   
   const nowcast = keys.map(k => comps[k]?.bvar ?? null);
   const actual = keys.map(k => comps[k]?.actual ?? null);
-  const errors = keys.map(k => comps[k]?.error ?? null);
   
-  // Build hover text with error info
+  // Get consensus YoY for current quarter
+  const consensusYoy = keys.map(k => {
+    const comp = consensusComps[k];
+    if (!comp || !comp.yoy) return null;
+    return comp.yoy[currentQuarter] ?? null;
+  });
+  
+  // Build hover text
   const hoverNowcast = keys.map((k, i) => {
     const v = nowcast[i];
     const a = actual[i];
-    const e = errors[i];
-    return `Nowcast: ${v !== null ? v.toFixed(1) + '%' : '—'}<br>Actual: ${a !== null ? a.toFixed(1) + '%' : '—'}<br>Error: ${e !== null ? e.toFixed(1) + 'pp' : '—'}`;
+    const c = consensusYoy[i];
+    return `Nowcast: ${v !== null ? v.toFixed(1) + '%' : '—'}<br>Actual: ${a !== null ? a.toFixed(1) + '%' : '—'}<br>Consensus: ${c !== null ? c.toFixed(1) + '%' : '—'}`;
   });
   
-  Plotly.newPlot('chart-components', [
+  const traces = [
     { 
-      x: labels, y: nowcast, type: 'bar', name: 'Nowcast', 
+      x: labels, y: nowcast, type: 'bar', name: 'Our Nowcast', 
       marker: { color: '#2563EB' }, 
       text: nowcast.map(v => v !== null ? v.toFixed(1) + '%' : '—'), 
       textposition: 'outside', 
@@ -694,7 +783,21 @@ function renderComponents() {
       textfont: { size: 11 },
       cliponaxis: false,
     },
-  ], {
+  ];
+  
+  // Add consensus if available
+  if (consensusYoy.some(v => v !== null)) {
+    traces.push({
+      x: labels, y: consensusYoy, type: 'bar', name: 'Consensus (TE)',
+      marker: { color: '#F59E0B' },
+      text: consensusYoy.map(v => v !== null ? v.toFixed(1) + '%' : '—'),
+      textposition: 'outside',
+      textfont: { size: 11 },
+      cliponaxis: false,
+    });
+  }
+  
+  Plotly.newPlot('chart-components', traces, {
     font: { family: 'Inter, system-ui, sans-serif', size: 13 },
     paper_bgcolor: '#FFFFFF', plot_bgcolor: '#FFFFFF',
     barmode: 'group',

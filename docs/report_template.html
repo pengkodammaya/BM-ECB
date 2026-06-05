@@ -138,8 +138,8 @@
     </div>
     <div class="section">
       <h2>Expenditure components</h2>
-      <div class="section-meta">Q1 2026 nowcast vs actual (YoY %)</div>
-      <div id="chart-components" style="height:300px; width:100%;"></div>
+      <div class="section-meta">Q1 2026 nowcast vs actual vs consensus (YoY %)</div>
+      <div id="chart-components" style="height:350px; width:100%;"></div>
     </div>
   </div>
 
@@ -350,24 +350,35 @@ function renderEvolution() {
 
 function renderComponents() {
   const comps = DATA.components || {};
+  const consensus = DATA.consensus || {};
+  const consensusComps = consensus.components || {};
+  const nc = DATA.nowcast || {};
+  const currentQuarter = nc.quarter || '';
+  
   const keys = ['consumption', 'investment', 'government', 'exports', 'imports'];
   const labels = ['Consumption\n(C)', 'Investment\n(I)', 'Govt\n(G)', 'Exports\n(X)', 'Imports\n(M)'];
   
   const nowcast = keys.map(k => comps[k]?.bvar ?? null);
   const actual = keys.map(k => comps[k]?.actual ?? null);
-  const errors = keys.map(k => comps[k]?.error ?? null);
   
-  // Build hover text with error info
+  // Get consensus YoY for current quarter
+  const consensusYoy = keys.map(k => {
+    const comp = consensusComps[k];
+    if (!comp || !comp.yoy) return null;
+    return comp.yoy[currentQuarter] ?? null;
+  });
+  
+  // Build hover text
   const hoverNowcast = keys.map((k, i) => {
     const v = nowcast[i];
     const a = actual[i];
-    const e = errors[i];
-    return `Nowcast: ${v !== null ? v.toFixed(1) + '%' : '—'}<br>Actual: ${a !== null ? a.toFixed(1) + '%' : '—'}<br>Error: ${e !== null ? e.toFixed(1) + 'pp' : '—'}`;
+    const c = consensusYoy[i];
+    return `Nowcast: ${v !== null ? v.toFixed(1) + '%' : '—'}<br>Actual: ${a !== null ? a.toFixed(1) + '%' : '—'}<br>Consensus: ${c !== null ? c.toFixed(1) + '%' : '—'}`;
   });
   
-  Plotly.newPlot('chart-components', [
+  const traces = [
     { 
-      x: labels, y: nowcast, type: 'bar', name: 'Nowcast', 
+      x: labels, y: nowcast, type: 'bar', name: 'Our Nowcast', 
       marker: { color: '#2563EB' }, 
       text: nowcast.map(v => v !== null ? v.toFixed(1) + '%' : '—'), 
       textposition: 'outside', 
@@ -384,7 +395,21 @@ function renderComponents() {
       textfont: { size: 11 },
       cliponaxis: false,
     },
-  ], {
+  ];
+  
+  // Add consensus if available
+  if (consensusYoy.some(v => v !== null)) {
+    traces.push({
+      x: labels, y: consensusYoy, type: 'bar', name: 'Consensus (TE)',
+      marker: { color: '#F59E0B' },
+      text: consensusYoy.map(v => v !== null ? v.toFixed(1) + '%' : '—'),
+      textposition: 'outside',
+      textfont: { size: 11 },
+      cliponaxis: false,
+    });
+  }
+  
+  Plotly.newPlot('chart-components', traces, {
     font: { family: 'Inter, system-ui, sans-serif', size: 13 },
     paper_bgcolor: '#FFFFFF', plot_bgcolor: '#FFFFFF',
     barmode: 'group',

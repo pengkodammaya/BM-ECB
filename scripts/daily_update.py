@@ -1657,11 +1657,71 @@ for _, row in log.tail(30).iterrows():
     recent_out.append(rr)
 
 # Fetch consensus forecasts
-consensus_data = {"gdp_yoy": {}, "gdp_qoq": {}, "source": "Trading Economics"}
+consensus_data = {"gdp_yoy": {}, "gdp_qoq": {}, "components": {}, "source": "Trading Economics"}
 try:
     from nowcasting_toolbox.data.sources.consensus_client import fetch_consensus_forecasts
     consensus_data = fetch_consensus_forecasts()
-    logger.info("Consensus forecasts fetched: %s", consensus_data.get("gdp_yoy", {}))
+    
+    # Compute YoY growth for components using DOSM actuals
+    # Only for domestic components (consumption, investment, government)
+    # Skip trade components (exports, imports) due to unit mismatch (TE=USD, DOSM=MYR)
+    if not df_demand.empty and consensus_data.get("components"):
+        comp_type_map = {
+            "consumption": "e1", "investment": "e3", "government": "e2",
+        }
+        
+        for comp_key, comp_info in consensus_data["components"].items():
+            levels = comp_info.get("levels", {})
+            if not levels:
+                continue
+            
+            comp_type = comp_type_map.get(comp_key)
+            if comp_type is None:
+                continue
+            
+            actual_data = df_demand[(df_demand["type"] == comp_type) & (df_demand["series"] == "abs")]
+            if actual_data.empty:
+                continue
+            
+            actual_data = actual_data.copy()
+            actual_data["date"] = pd.to_datetime(actual_data["date"])
+            actual_data = actual_data.sort_values("date")
+            
+            # Get actual levels by quarter
+            actual_by_q = {}
+            for _, row in actual_data.iterrows():
+                q = date_to_quarter(row["date"])
+                actual_by_q[q] = row["value"]
+            
+            # Compute YoY growth for each forecast quarter
+            yoy_forecasts = {}
+            for q_label, forecast_level in levels.items():
+                # Parse "Q2 2026" -> get "2025-Q2" for YoY comparison
+                try:
+                    parts = q_label.split()
+                    q_num = parts[0].replace("Q", "")
+                    year = int(parts[1])
+                    prev_q = f"{year-1}-Q{q_num}"
+                    
+                    # Find actual level for previous year quarter
+                    prev_actual = None
+                    for _, arow in actual_data.iterrows():
+                        aq = date_to_quarter(arow["date"])
+                        if aq == prev_q:
+                            prev_actual = arow["value"]
+                            break
+                    
+                    if prev_actual and prev_actual > 0:
+                        yoy = (forecast_level - prev_actual) / prev_actual * 100
+                        yoy_forecasts[q_label] = round(yoy, 1)
+                except Exception:
+                    pass
+            
+            consensus_data["components"][comp_key]["yoy"] = yoy_forecasts
+    
+    logger.info("Consensus forecasts: GDP=%s, Components=%s", 
+                consensus_data.get("gdp_yoy", {}), 
+                list(consensus_data.get("components", {}).keys()))
 except Exception as e:
     logger.warning("Consensus fetch failed (non-fatal): %s", e)
 
