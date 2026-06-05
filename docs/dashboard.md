@@ -18,10 +18,10 @@
 
 | Model | Nowcast | vs AR(1) | Description |
 |-------|:-------:|:--------:|-------------|
-| **DFM** | `+9.1%` | 3.7pp | Dynamic Factor Model |
+| **DFM** | `+9.2%` | 3.8pp | Dynamic Factor Model |
 | **BVAR** | `+5.1%` | -0.3pp | Bayesian VAR |
 | **AR(1)** | `+5.4%` | — | Persistence (baseline) |
-| **Ensemble** | `+7.1%` | 1.7pp | Median of DFM + BVAR |
+| **Ensemble** | `+7.2%` | 1.8pp | Median of DFM + BVAR |
 
 > *Q2 2026 actuals expected via DOSM ARC*
 
@@ -108,7 +108,7 @@
 | 2026-06-02 | 2026-Q2 | +8.6% | — | — | — | — |
 | 2026-06-03 | 2026-Q2 | +6.2% | +5.1% | — | +5.7% | — |
 | 2026-06-04 | 2026-Q2 | +5.6% | — | — | +5.6% | — |
-| 2026-06-05 | 2026-Q2 | +9.1% | +5.1% | — | +7.1% | — |
+| 2026-06-05 | 2026-Q2 | +9.2% | +5.1% | — | +7.2% | — |
 
 ---
 
