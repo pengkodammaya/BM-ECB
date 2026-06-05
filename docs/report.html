@@ -6,106 +6,42 @@
 <title>Malaysia GDP Nowcast Report</title>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <style>
-  :root {
-    --blue: #2563EB;
-    --teal: #0D9488;
-    --grey: #6B7280;
-    --light-grey: #F9FAFB;
-    --border: #E5E7EB;
-    --text: #111827;
-    --text-secondary: #6B7280;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: Inter, system-ui, -apple-system, sans-serif;
-    background: #F9FAFB;
-    color: var(--text);
-    line-height: 1.5;
-  }
-  .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-
-  /* Hero */
-  .hero {
-    background: linear-gradient(135deg, #1E40AF 0%, #2563EB 100%);
-    color: white;
-    padding: 48px 0 36px;
-    margin-bottom: 32px;
-  }
-  .hero h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-  .hero .subtitle { font-size: 15px; opacity: 0.85; margin-bottom: 16px; }
-  .hero .meta { display: flex; gap: 24px; flex-wrap: wrap; font-size: 13px; opacity: 0.7; }
-  .hero .meta span { white-space: nowrap; }
-
-  /* Callout cards */
-  .callout-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px;
-    margin-bottom: 32px;
-  }
-  .callout-card {
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-  }
-  .callout-card .label {
-    font-size: 12px;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 4px;
-  }
-  .callout-card .value { font-size: 28px; font-weight: 700; }
-  .callout-card .value.blue { color: var(--blue); }
-  .callout-card .value.teal { color: var(--teal); }
-  .callout-card .value.good { color: #059669; }
-  .callout-card .value.bad { color: #DC2626; }
-  .callout-card .detail { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
-
-  /* Sections */
-  .section {
-    background: white;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 24px;
-  }
-  .section h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
-  .section .section-meta { font-size: 12px; color: var(--text-secondary); margin-bottom: 16px; }
-
-  /* Chart grid */
-  .chart-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  @media (max-width: 900px) { .chart-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 600px) { .chart-grid { grid-template-columns: 1fr; } }
-  .chart-cell { border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
-
-  /* Model table */
-  .model-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .model-table th {
-    text-align: left; padding: 10px 12px; border-bottom: 2px solid var(--border);
-    font-weight: 600; color: var(--text-secondary); font-size: 11px;
-    text-transform: uppercase; letter-spacing: 0.05em;
-  }
-  .model-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
-  .model-table .num { text-align: right; font-variant-numeric: tabular-nums; }
-  .model-table .good { color: #059669; font-weight: 600; }
-  .model-table .ok { color: #CA8A04; font-weight: 500; }
-  .model-table .bad { color: #DC2626; font-weight: 500; }
-  .model-table .na { color: #D1D5DB; }
-  .model-table .best-row { background: #F0F9FF; }
-
-  /* Two-col */
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
-
-  /* Footer */
-  .footer {
-    text-align: center; padding: 24px;
-    color: var(--text-secondary); font-size: 12px;
-  }
-  .footer a { color: var(--blue); text-decoration: none; }
+  :root { --blue:#2563EB; --teal:#0D9488; --grey:#6B7280; --border:#E5E7EB; --text:#111827; --text2:#6B7280; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,system-ui,-apple-system,sans-serif;background:#F9FAFB;color:var(--text);line-height:1.5}
+  .container{max-width:1200px;margin:0 auto;padding:0 24px}
+  .hero{background:linear-gradient(135deg,#1E40AF 0%,#2563EB 100%);color:#fff;padding:48px 0 36px;margin-bottom:32px}
+  .hero h1{font-size:28px;font-weight:700;margin-bottom:8px}
+  .hero .sub{font-size:15px;opacity:.85;margin-bottom:16px}
+  .hero .meta{display:flex;gap:24px;flex-wrap:wrap;font-size:13px;opacity:.7}
+  .hero .meta span{white-space:nowrap}
+  .callout-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:32px}
+  .callout{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center}
+  .callout .label{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+  .callout .value{font-size:28px;font-weight:700}
+  .callout .value.blue{color:var(--blue)}
+  .callout .value.teal{color:var(--teal)}
+  .callout .detail{font-size:12px;color:var(--text2);margin-top:4px}
+  .section{background:#fff;border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:24px}
+  .section h2{font-size:18px;font-weight:600;margin-bottom:4px}
+  .section .meta{font-size:12px;color:var(--text2);margin-bottom:16px}
+  .chart-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media(max-width:900px){.chart-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:600px){.chart-grid{grid-template-columns:1fr}}
+  .chart-cell{border:1px solid var(--border);border-radius:8px;padding:8px}
+  .model-table{width:100%;border-collapse:collapse;font-size:13px}
+  .model-table th{text-align:left;padding:10px 12px;border-bottom:2px solid var(--border);font-weight:600;color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+  .model-table td{padding:8px 12px;border-bottom:1px solid var(--border)}
+  .model-table .num{text-align:right;font-variant-numeric:tabular-nums}
+  .model-table .good{color:#059669;font-weight:600}
+  .model-table .ok{color:#CA8A04;font-weight:500}
+  .model-table .bad{color:#DC2626;font-weight:500}
+  .model-table .na{color:#D1D5DB}
+  .model-table .best{background:#F0F9FF}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  @media(max-width:900px){.two-col{grid-template-columns:1fr}}
+  .footer{text-align:center;padding:24px;color:var(--text2);font-size:12px}
+  .footer a{color:var(--blue);text-decoration:none}
 </style>
 </head>
 <body>
@@ -113,74 +49,70 @@
 <div class="hero">
   <div class="container">
     <h1 id="hero-title">Malaysia GDP Nowcast Report</h1>
-    <div class="subtitle" id="hero-subtitle">Real-time GDP growth nowcast using mixed-frequency indicators</div>
+    <div class="sub" id="hero-sub">Real-time GDP growth nowcast using mixed-frequency indicators</div>
     <div class="meta" id="hero-meta"></div>
   </div>
 </div>
 
 <div class="container">
-  <!-- Callout cards -->
   <div class="callout-row" id="callouts"></div>
 
-  <!-- Headline GDP -->
   <div class="section">
     <h2>How is GDP trending?</h2>
-    <div class="section-meta">Q2 2026 nowcast (YoY %) — daily model estimates</div>
-    <div id="chart-headline" style="height:350px; width:100%;"></div>
+    <div class="meta" id="headline-meta">YoY real growth (%) with nowcast</div>
+    <div id="chart-headline" style="height:350px;width:100%"></div>
   </div>
 
-  <!-- Convergence + Components -->
   <div class="two-col">
     <div class="section">
       <h2>Nowcast convergence</h2>
-      <div class="section-meta">How the estimate evolves as data arrives</div>
-      <div id="chart-evolution" style="height:300px; width:100%;"></div>
+      <div class="meta">How the nowcast evolves as data arrives through the quarter</div>
+      <div id="chart-evolution" style="height:350px;width:100%"></div>
     </div>
     <div class="section">
-      <h2>Expenditure components</h2>
-      <div class="section-meta">Q1 2026 nowcast vs actual vs consensus (YoY %)</div>
-      <div id="chart-components" style="height:350px; width:100%;"></div>
+      <h2>What moved the nowcast?</h2>
+      <div class="meta">Per-indicator contributions to the latest revision</div>
+      <div id="chart-news" style="height:250px;width:100%"></div>
     </div>
   </div>
 
-  <!-- Sector grid -->
   <div class="section">
     <h2>GDP by economic sector</h2>
-    <div class="section-meta">Q1 2026 actual vs Q2 2026 nowcast (YoY %)</div>
+    <div class="meta">Production-side breakdown. Best model per sector.</div>
     <div id="sector-grid" class="chart-grid"></div>
   </div>
 
-  <!-- Model leaderboard -->
   <div class="section">
-    <h2>Model leaderboard</h2>
-    <div class="section-meta">Backtest accuracy vs AR(1) baseline (requires 3+ scored quarters)</div>
+    <h2>Expenditure components</h2>
+    <div class="meta">YoY growth — our nowcast vs consensus (Trading Economics)</div>
+    <div id="chart-components" style="height:350px;width:100%"></div>
+  </div>
+
+  <div class="section">
+    <h2>Backtest leaderboard <span style="display:inline-block;background:#eef4ff;color:#2563EB;border-radius:999px;padding:1px 9px;font-size:11px">YoY · vs AR(1)</span></h2>
+    <div class="meta">Out-of-sample accuracy metrics</div>
     <div id="leaderboard-container"></div>
   </div>
 
-  <!-- Recent nowcasts -->
   <div class="section">
-    <h2>Recent nowcasts — Q2 2026 (YoY %)</h2>
-    <div class="section-meta">Daily model estimates for current quarter vs AR(1) baseline (5.4%)</div>
+    <h2>Recent nowcasts</h2>
+    <div class="meta">Daily evolution of model estimates for current quarter</div>
     <table class="model-table" id="recent-table">
-      <thead>
-        <tr>
-          <th style="text-align:left">Date</th>
-          <th class="num">DFM</th>
-          <th class="num">BVAR</th>
-          <th class="num">BEQ</th>
-          <th class="num">Ensemble</th>
-          <th class="num">vs AR(1)</th>
-        </tr>
-      </thead>
+      <thead><tr>
+        <th style="text-align:left">Date</th>
+        <th class="num">DFM</th>
+        <th class="num">BVAR</th>
+        <th class="num">BEQ</th>
+        <th class="num">Ensemble</th>
+        <th class="num">vs AR(1)</th>
+      </tr></thead>
       <tbody id="recent-body"></tbody>
     </table>
   </div>
 
   <div class="footer">
     Auto-generated daily via GitHub Actions · data: OpenDOSM, Bank Negara Malaysia, Yahoo Finance, FRED<br>
-    <a href="https://github.com/kodam-my/gdp-nowcast-ECBport">Source code</a> ·
-    <a href="dashboard.html">Dashboard</a> ·
-    <a href="leaderboard.md">Detailed leaderboard</a>
+    <a href="https://github.com/kodam-my/gdp-nowcast-ECBport">Source code</a>
   </div>
 </div>
 
@@ -194,52 +126,52 @@ const DATA = {
   },
   "nowcast": {
     "quarter": "Q2 2026",
-    "dfm": 5.41,
-    "bvar": null,
+    "dfm": 9.23,
+    "bvar": 5.14,
     "ar1": 5.4,
-    "ensemble": 5.41,
+    "ensemble": 7.19,
     "bvar_ci_10": null,
     "bvar_ci_90": null
   },
   "backcast": {
     "dfm": {
-      "estimate": 5.8,
-      "error": 0.4
+      "estimate": 6.6,
+      "error": 1.2
     },
     "bvar": {
-      "estimate": null,
-      "error": null
+      "estimate": 3.9,
+      "error": 1.5
     },
     "ensemble": {
-      "estimate": 5.8,
-      "error": 0.4
+      "estimate": 5.2,
+      "error": 0.2
     }
   },
   "components": {
     "consumption": {
-      "bvar": 8.4,
+      "bvar": 5.6,
       "actual": 4.7,
-      "error": 3.7
+      "error": 0.9
     },
     "investment": {
-      "bvar": 1.0,
+      "bvar": 7.5,
       "actual": 7.3,
-      "error": 6.3
+      "error": 0.2
     },
     "government": {
-      "bvar": 6.5,
+      "bvar": 5.8,
       "actual": 4.1,
-      "error": 2.4
+      "error": 1.7
     },
     "exports": {
-      "bvar": 1.3,
+      "bvar": 6.1,
       "actual": 5.2,
-      "error": 3.9
+      "error": 0.9
     },
     "imports": {
-      "bvar": 5.8,
+      "bvar": 7.4,
       "actual": 4.6,
-      "error": 1.2
+      "error": 2.8
     }
   },
   "sectors": {
@@ -398,10 +330,10 @@ const DATA = {
     {
       "date": "2026-06-05",
       "target_quarter": "2026-Q2",
-      "dfm": 5.4,
-      "bvar": null,
+      "dfm": 9.2,
+      "bvar": 5.1,
       "beq": null,
-      "ensemble": 5.4,
+      "ensemble": 7.2,
       "actual": null
     }
   ],
@@ -575,9 +507,9 @@ const DATA = {
   }
 };
 
-function fmt(v, suffix='%') {
+function fmt(v, s='%') {
   if (v === null || v === undefined) return '—';
-  return (v >= 0 ? '+' : '') + v.toFixed(1) + suffix;
+  return (v >= 0 ? '+' : '') + v.toFixed(1) + s;
 }
 function cls(v) {
   if (v === null || v === undefined) return 'na';
@@ -586,406 +518,225 @@ function cls(v) {
 
 function renderHero() {
   const nc = DATA.nowcast || {};
-  const la = DATA.latestActual || {};
-  document.getElementById('hero-title').textContent = `Malaysia GDP Nowcast: ${nc.quarter || DATA.targetQuarter || ''}`;
-  document.getElementById('hero-subtitle').textContent = `Real-time GDP growth nowcast using mixed-frequency indicators`;
-  
-  const models = Object.keys(DATA.nowcast || {}).filter(k => !k.includes('ci_')).length;
-  const meta = [
-    `Target: ${nc.quarter || '—'}`,
+  const q = nc.quarter || DATA.targetQuarter || '';
+  document.getElementById('hero-title').textContent = `Malaysia GDP Nowcast: ${q}`;
+  document.getElementById('hero-sub').textContent = 'Real-time GDP growth nowcast using mixed-frequency indicators';
+  document.getElementById('hero-meta').innerHTML = [
+    `Target: ${q}`,
     `Generated: ${DATA.lastUpdated || '—'}`,
-    `Models: DFM, BVAR, BEQ, AR(1), Ensemble`,
-  ];
-  document.getElementById('hero-meta').innerHTML = meta.map(m => `<span>${m}</span>`).join('');
+    'Models: DFM, BVAR, BEQ, AR(1), Ensemble'
+  ].map(s => `<span>${s}</span>`).join('');
 }
 
 function renderCallouts() {
   const nc = DATA.nowcast || {};
   const la = DATA.latestActual || {};
   const lb = DATA.leaderboard || [];
-  const consensus = DATA.consensus || {};
-  const consensusYoy = consensus.gdp_yoy || {};
-  
+  const cons = (DATA.consensus || {}).gdp_yoy || {};
+  const q = nc.quarter || '';
   const ens = nc.ensemble;
   const ar1 = nc.ar1;
-  const currentQuarter = nc.quarter || '';
-  const consensusVal = consensusYoy[currentQuarter] || null;
-  
-  // Find best model from leaderboard
-  const ar1Row = lb.find(r => r.model === 'AR1');
-  const bestRow = lb.filter(r => r.model !== 'AR1' && r.rmse).sort((a, b) => a.rmse - b.rmse)[0];
-  
-  const callouts = [
-    { label: 'GDP Nowcast', value: fmt(ens), detail: `Ensemble | ${currentQuarter}` },
-    { label: 'vs AR(1)', value: (ens !== null && ar1 !== null) ? ((ens - ar1) / ar1 * 100).toFixed(0) + '%' : '—', detail: 'Relative to persistence' },
-    { label: 'Consensus', value: consensusVal !== null ? fmt(consensusVal) : '—', detail: `Trading Economics | ${currentQuarter}` },
+  const consVal = cons[q] || null;
+  const best = lb.filter(r => r.model !== 'AR1' && r.rmse).sort((a,b) => a.rmse - b.rmse)[0];
+
+  const cards = [
+    { label: 'GDP Nowcast', value: fmt(ens), detail: `Ensemble | ${q}` },
+    { label: 'vs AR(1)', value: (ens!==null && ar1!==null) ? ((ens-ar1)/ar1*100).toFixed(0)+'%' : '—', detail: 'Relative to persistence' },
+    { label: 'Consensus', value: consVal !== null ? fmt(consVal) : '—', detail: `Trading Economics | ${q}` },
     { label: 'Latest Actual', value: fmt(la.yoy), detail: la.quarter || '—' },
   ];
-  
-  if (bestRow) {
-    callouts.push({ label: 'Best Model', value: bestRow.model, detail: `RMSE: ${bestRow.rmse?.toFixed(2)}pp` });
-  }
-  
-  document.getElementById('callouts').innerHTML = callouts.map(c => `
-    <div class="callout-card">
+  if (best) cards.push({ label: 'Best Model', value: best.model, detail: `RMSE: ${best.rmse?.toFixed(2)}pp` });
+
+  document.getElementById('callouts').innerHTML = cards.map(c => `
+    <div class="callout">
       <div class="label">${c.label}</div>
       <div class="value blue">${c.value}</div>
       <div class="detail">${c.detail}</div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
 function renderHeadline() {
   const recent = DATA.recent || [];
-  if (recent.length === 0) return;
-  
-  // Filter out null values for each model to avoid breaks
-  const dfmPoints = recent.filter(r => r.dfm !== null);
-  const bvarPoints = recent.filter(r => r.bvar !== null);
-  const ensemblePoints = recent.filter(r => r.ensemble !== null);
-  
-  const traces = [
-    { 
-      x: dfmPoints.map(r => r.date), 
-      y: dfmPoints.map(r => r.dfm), 
-      mode: 'lines+markers', name: 'DFM', 
-      line: { color: '#2563EB', width: 2 }, 
-      marker: { size: 5 } 
-    },
-    { 
-      x: bvarPoints.map(r => r.date), 
-      y: bvarPoints.map(r => r.bvar), 
-      mode: 'lines+markers', name: 'BVAR', 
-      line: { color: '#F59E0B', width: 2 }, 
-      marker: { size: 5 } 
-    },
-    { 
-      x: ensemblePoints.map(r => r.date), 
-      y: ensemblePoints.map(r => r.ensemble), 
-      mode: 'lines+markers', name: 'Ensemble', 
-      line: { color: '#059669', width: 2 }, 
-      marker: { size: 6, symbol: 'diamond' } 
-    },
-  ];
-  
-  const actualPoints = recent.filter(r => r.actual !== null);
-  if (actualPoints.length > 0) {
-    traces.push({ 
-      x: actualPoints.map(r => r.date), 
-      y: actualPoints.map(r => r.actual), 
-      mode: 'lines', name: 'Actual', 
-      line: { color: '#DC2626', width: 2, dash: 'dash' } 
-    });
-  }
-  
-  Plotly.newPlot('chart-headline', traces, {
-    font: { family: 'Inter, system-ui, sans-serif', size: 13 },
-    paper_bgcolor: '#FFFFFF', plot_bgcolor: '#FFFFFF',
-    xaxis: { gridcolor: '#F3F4F6', linecolor: '#E5E7EB', zeroline: false },
-    yaxis: { gridcolor: '#F3F4F6', linecolor: '#E5E7EB', zeroline: true, zerolinecolor: '#D1D5DB', title: { text: 'YoY %' } },
-    hovermode: 'x unified',
-    legend: { orientation: 'h', y: 1.08, x: 0 },
-    margin: { l: 50, r: 20, t: 40, b: 40 },
-    height: 350,
-  }, { responsive: true });
+  if (!recent.length) return;
+  const fp = r => r.dfm !== null;
+  const bp = r => r.bvar !== null;
+  const ep = r => r.ensemble !== null;
+  Plotly.newPlot('chart-headline', [
+    { x: recent.filter(fp).map(r=>r.date), y: recent.filter(fp).map(r=>r.dfm), mode:'lines+markers', name:'DFM', line:{color:'#2563EB',width:2}, marker:{size:5} },
+    { x: recent.filter(bp).map(r=>r.date), y: recent.filter(bp).map(r=>r.bvar), mode:'lines+markers', name:'BVAR', line:{color:'#F59E0B',width:2}, marker:{size:5} },
+    { x: recent.filter(ep).map(r=>r.date), y: recent.filter(ep).map(r=>r.ensemble), mode:'lines+markers', name:'Ensemble', line:{color:'#059669',width:2}, marker:{size:6,symbol:'diamond'} },
+  ], {
+    font:{family:'Inter,system-ui,sans-serif',size:13}, paper_bgcolor:'#fff', plot_bgcolor:'#fff',
+    xaxis:{gridcolor:'#F3F4F6',linecolor:'#E5E7EB',zeroline:false},
+    yaxis:{gridcolor:'#F3F4F6',linecolor:'#E5E7EB',zeroline:true,zerolinecolor:'#D1D5DB',title:{text:'YoY %'}},
+    hovermode:'x unified', legend:{orientation:'h',y:1.08,x:0}, margin:{l:50,r:20,t:40,b:40}, height:350,
+  },{responsive:true});
 }
 
 function renderEvolution() {
   const recent = DATA.recent || [];
-  if (recent.length === 0) return;
-  
-  // Filter out null values for each model to avoid breaks
-  const dfmPoints = recent.filter(r => r.dfm !== null);
-  const bvarPoints = recent.filter(r => r.bvar !== null);
-  const ensemblePoints = recent.filter(r => r.ensemble !== null);
-  
+  if (!recent.length) return;
+  const fp = r => r.dfm !== null;
+  const bp = r => r.bvar !== null;
+  const ep = r => r.ensemble !== null;
   Plotly.newPlot('chart-evolution', [
-    { 
-      x: dfmPoints.map(r => r.date), 
-      y: dfmPoints.map(r => r.dfm), 
-      mode: 'lines+markers', name: 'DFM', 
-      line: { color: '#2563EB', width: 2 }, 
-      marker: { color: '#2563EB', size: 7 } 
-    },
-    { 
-      x: bvarPoints.map(r => r.date), 
-      y: bvarPoints.map(r => r.bvar), 
-      mode: 'lines+markers', name: 'BVAR', 
-      line: { color: '#F59E0B', width: 2 }, 
-      marker: { color: '#F59E0B', size: 7 } 
-    },
-    { 
-      x: ensemblePoints.map(r => r.date), 
-      y: ensemblePoints.map(r => r.ensemble), 
-      mode: 'lines+markers', name: 'Ensemble', 
-      line: { color: '#059669', width: 2 }, 
-      marker: { color: '#059669', size: 9, symbol: 'diamond' } 
-    },
+    { x: recent.filter(fp).map(r=>r.date), y: recent.filter(fp).map(r=>r.dfm), mode:'lines+markers', name:'DFM', line:{color:'#2563EB',width:2}, marker:{size:4} },
+    { x: recent.filter(bp).map(r=>r.date), y: recent.filter(bp).map(r=>r.bvar), mode:'lines+markers', name:'BVAR', line:{color:'#F59E0B',width:2}, marker:{size:4} },
+    { x: recent.filter(ep).map(r=>r.date), y: recent.filter(ep).map(r=>r.ensemble), mode:'lines+markers', name:'Ensemble', line:{color:'#059669',width:2}, marker:{size:5,symbol:'diamond'} },
   ], {
-    font: { family: 'Inter, system-ui, sans-serif', size: 13 },
-    paper_bgcolor: '#FFFFFF', plot_bgcolor: '#FFFFFF',
-    xaxis: { gridcolor: '#F3F4F6', linecolor: '#E5E7EB' },
-    yaxis: { gridcolor: '#F3F4F6', linecolor: '#E5E7EB', title: { text: 'YoY %' } },
-    hovermode: 'x unified',
-    legend: { orientation: 'h', y: 1.08, x: 0 },
-    margin: { l: 50, r: 20, t: 20, b: 40 },
-    height: 300,
-  }, { responsive: true });
+    font:{family:'Inter,system-ui,sans-serif',size:13}, paper_bgcolor:'#fff', plot_bgcolor:'#fff',
+    xaxis:{gridcolor:'#F3F4F6',linecolor:'#E5E7EB',title:{text:'Date'}},
+    yaxis:{gridcolor:'#F3F4F6',linecolor:'#E5E7EB',zeroline:true,zerolinecolor:'#D1D5DB',title:{text:'Nowcast (%)'}},
+    hovermode:'x unified', legend:{orientation:'h',y:1.08,x:0}, margin:{l:50,r:20,t:20,b:40}, height:350,
+  },{responsive:true});
 }
 
-function renderComponents() {
-  const comps = DATA.components || {};
-  const consensus = DATA.consensus || {};
-  const consensusComps = consensus.components || {};
-  const nc = DATA.nowcast || {};
-  const currentQuarter = nc.quarter || '';
-  
-  const keys = ['consumption', 'investment', 'government', 'exports', 'imports'];
-  const labels = ['Consumption\n(C)', 'Investment\n(I)', 'Govt\n(G)', 'Exports\n(X)', 'Imports\n(M)'];
-  
-  const nowcast = keys.map(k => comps[k]?.bvar ?? null);
-  const actual = keys.map(k => comps[k]?.actual ?? null);
-  
-  // Get consensus YoY for current quarter
-  const consensusYoy = keys.map(k => {
-    const comp = consensusComps[k];
-    if (!comp || !comp.yoy) return null;
-    return comp.yoy[currentQuarter] ?? null;
-  });
-  
-  // Build hover text
-  const hoverNowcast = keys.map((k, i) => {
-    const v = nowcast[i];
-    const a = actual[i];
-    const c = consensusYoy[i];
-    return `Nowcast: ${v !== null ? v.toFixed(1) + '%' : '—'}<br>Actual: ${a !== null ? a.toFixed(1) + '%' : '—'}<br>Consensus: ${c !== null ? c.toFixed(1) + '%' : '—'}`;
-  });
-  
-  const traces = [
-    { 
-      x: labels, y: nowcast, type: 'bar', name: 'Our Nowcast', 
-      marker: { color: '#2563EB' }, 
-      text: nowcast.map(v => v !== null ? v.toFixed(1) + '%' : '—'), 
-      textposition: 'outside', 
-      textfont: { size: 11 },
-      hovertext: hoverNowcast,
-      hoverinfo: 'text',
-      cliponaxis: false,
-    },
-    { 
-      x: labels, y: actual, type: 'bar', name: 'Actual', 
-      marker: { color: '#93C5FD' }, 
-      text: actual.map(v => v !== null ? v.toFixed(1) + '%' : '—'), 
-      textposition: 'outside', 
-      textfont: { size: 11 },
-      cliponaxis: false,
-    },
-  ];
-  
-  // Add consensus if available
-  if (consensusYoy.some(v => v !== null)) {
-    traces.push({
-      x: labels, y: consensusYoy, type: 'bar', name: 'Consensus (TE)',
-      marker: { color: '#F59E0B' },
-      text: consensusYoy.map(v => v !== null ? v.toFixed(1) + '%' : '—'),
-      textposition: 'outside',
-      textfont: { size: 11 },
-      cliponaxis: false,
-    });
+function renderNews() {
+  // News decomposition placeholder — shows last revision
+  const recent = DATA.recent || [];
+  if (recent.length < 2) {
+    document.getElementById('chart-news').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2)">Not enough data for news decomposition</div>';
+    return;
   }
-  
-  Plotly.newPlot('chart-components', traces, {
-    font: { family: 'Inter, system-ui, sans-serif', size: 13 },
-    paper_bgcolor: '#FFFFFF', plot_bgcolor: '#FFFFFF',
-    barmode: 'group',
-    yaxis: { gridcolor: '#F3F4F6', linecolor: '#E5E7EB', title: { text: 'YoY %' }, rangemode: 'tozero' },
-    xaxis: { automargin: true },
-    legend: { orientation: 'h', y: 1.12, x: 0 },
-    margin: { l: 60, r: 30, t: 40, b: 80 },
-    height: 350,
-  }, { responsive: true });
+  const last = recent[recent.length - 1];
+  const prev = recent[recent.length - 2];
+  const diff = (last.ensemble || 0) - (prev.ensemble || 0);
+
+  Plotly.newPlot('chart-news', [{
+    type: 'bar', orientation: 'h',
+    x: [diff],
+    y: ['Ensemble revision'],
+    marker: { color: diff >= 0 ? '#059669' : '#DC2626' },
+    text: [`${diff >= 0 ? '+' : ''}${diff.toFixed(1)}pp`],
+    textposition: 'outside',
+    textfont: { size: 11 },
+  }], {
+    font:{family:'Inter,system-ui,sans-serif',size:13}, paper_bgcolor:'#fff', plot_bgcolor:'#fff',
+    xaxis:{gridcolor:'#F3F4F6',linecolor:'#E5E7EB',title:{text:'Contribution (pp)'}},
+    yaxis:{autorange:'reversed'},
+    margin:{l:120,r:20,t:20,b:40}, height:200, showlegend:false,
+    annotations:[{font:{color:'#6B7280',size:11},showarrow:false,text:`Total revision: ${diff>=0?'+':''}${diff.toFixed(1)}pp (${prev.ensemble?.toFixed(1)}% → ${last.ensemble?.toFixed(1)}%)`,x:1,xref:'paper',y:-0.3,yref:'paper'}],
+  },{responsive:true});
 }
 
 function renderSectors() {
   const sectors = DATA.sectors || {};
-  const sectorNc = DATA.sectorNowcast || {};
-  const sectorNames = { agriculture: 'Agriculture', mining: 'Mining', manufacturing: 'Manufacturing', construction: 'Construction', services: 'Services' };
-  
+  const nc = DATA.sectorNowcast || {};
+  const names = {agriculture:'Agriculture',mining:'Mining',manufacturing:'Manufacturing',construction:'Construction',services:'Services'};
   const grid = document.getElementById('sector-grid');
   grid.innerHTML = '';
-  
-  // Historical sector data (would need to be in data.json for full implementation)
-  // For now, show bar chart with actual vs nowcast
-  for (const [key, name] of Object.entries(sectorNames)) {
-    const actual = sectors[key];
-    const nowcast = sectorNc[key];
-    
+  for (const [k, name] of Object.entries(names)) {
+    const a = sectors[k], n = nc[k];
     const cell = document.createElement('div');
     cell.className = 'chart-cell';
-    const chartId = `sector-${key}`;
-    cell.innerHTML = `<div id="${chartId}" style="height:220px;"></div>`;
+    const id = `sector-${k}`;
+    cell.innerHTML = `<div id="${id}" style="height:220px"></div>`;
     grid.appendChild(cell);
-    
-    // Use bar chart with actual and nowcast
-    Plotly.newPlot(chartId, [
-      {
-        x: ['Actual', 'Nowcast'],
-        y: [actual, nowcast],
-        type: 'bar',
-        marker: { color: ['#2563EB', '#93C5FD'] },
-        text: [fmt(actual), fmt(nowcast)],
-        textposition: 'outside',
-        textfont: { size: 11 },
-        cliponaxis: false,
-      }
-    ], {
-      font: { family: 'Inter, system-ui, sans-serif', size: 12 },
-      paper_bgcolor: '#FFFFFF', plot_bgcolor: '#FFFFFF',
-      yaxis: { gridcolor: '#F3F4F6', linecolor: '#E5E7EB', zeroline: true, zerolinecolor: '#D1D5DB', rangemode: 'tozero' },
-      title: { font: { size: 13, weight: 'bold' }, text: `<b>${name}</b>` },
-      margin: { l: 50, r: 20, t: 45, b: 35 },
-      height: 220,
-      showlegend: false,
-    }, { responsive: true });
+    Plotly.newPlot(id, [{
+      x:['Actual','Nowcast'], y:[a,n], type:'bar',
+      marker:{color:['#2563EB','#93C5FD']},
+      text:[fmt(a),fmt(n)], textposition:'outside', textfont:{size:11}, cliponaxis:false,
+    }], {
+      font:{family:'Inter,system-ui,sans-serif',size:12}, paper_bgcolor:'#fff', plot_bgcolor:'#fff',
+      yaxis:{gridcolor:'#F3F4F6',linecolor:'#E5E7EB',zeroline:true,zerolinecolor:'#D1D5DB',rangemode:'tozero'},
+      title:{font:{size:13,weight:'bold'},text:`<b>${name}</b>`},
+      margin:{l:50,r:20,t:45,b:35}, height:220, showlegend:false,
+    },{responsive:true});
   }
+}
+
+function renderComponents() {
+  const comps = DATA.components || {};
+  const cons = (DATA.consensus || {}).components || {};
+  const nc = DATA.nowcast || {};
+  const q = nc.quarter || '';
+  const keys = ['consumption','investment','government','exports','imports'];
+  const labels = ['Consumption\n(C)','Investment\n(I)','Govt\n(G)','Exports\n(X)','Imports\n(M)'];
+  const nowcast = keys.map(k => comps[k]?.bvar ?? null);
+  const actual = keys.map(k => comps[k]?.actual ?? null);
+  const consYoy = keys.map(k => { const c = cons[k]; return c?.yoy?.[q] ?? null; });
+
+  const traces = [
+    {x:labels, y:nowcast, type:'bar', name:'Our Nowcast', marker:{color:'#2563EB'}, text:nowcast.map(v=>v!==null?v.toFixed(1)+'%':'—'), textposition:'outside', textfont:{size:11}, cliponaxis:false},
+    {x:labels, y:actual, type:'bar', name:'Actual', marker:{color:'#93C5FD'}, text:actual.map(v=>v!==null?v.toFixed(1)+'%':'—'), textposition:'outside', textfont:{size:11}, cliponaxis:false},
+  ];
+  if (consYoy.some(v=>v!==null)) {
+    traces.push({x:labels, y:consYoy, type:'bar', name:'Consensus (TE)', marker:{color:'#F59E0B'}, text:consYoy.map(v=>v!==null?v.toFixed(1)+'%':'—'), textposition:'outside', textfont:{size:11}, cliponaxis:false});
+  }
+
+  Plotly.newPlot('chart-components', traces, {
+    font:{family:'Inter,system-ui,sans-serif',size:13}, paper_bgcolor:'#fff', plot_bgcolor:'#fff',
+    barmode:'group',
+    yaxis:{gridcolor:'#F3F4F6',linecolor:'#E5E7EB',title:{text:'YoY %'},rangemode:'tozero'},
+    xaxis:{automargin:true},
+    legend:{orientation:'h',y:1.12,x:0},
+    margin:{l:60,r:30,t:40,b:80}, height:350,
+  },{responsive:true});
 }
 
 function renderLeaderboard() {
   const lb = DATA.leaderboard || [];
   const nc = DATA.nowcast || {};
-  const container = document.getElementById('leaderboard-container');
-  
-  if (lb.length === 0) {
-    // Show placeholder
-    let html = '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">';
-    html += 'Backtest scoring requires 3+ published quarters with actuals. Leaderboard will populate as quarters are scored.</div>';
-    
-    // Show current nowcast vs AR(1)
+  const el = document.getElementById('leaderboard-container');
+
+  if (!lb.length) {
     const ar1 = nc.ar1;
-    html += `<table class="model-table">
-      <thead><tr>
-        <th style="text-align:left">Model</th>
-        <th class="num">Nowcast (YoY)</th>
-        <th class="num">vs AR(1)</th>
-      </tr></thead><tbody>`;
-    
-    for (const [key, name] of [['dfm','DFM'],['bvar','BVAR'],['beq','BEQ'],['ensemble','Ensemble'],['ar1','AR(1)']]) {
-      const val = nc[key];
-      const diff = (val !== null && ar1 !== null && key !== 'ar1') ? (val - ar1) : null;
-      html += `<tr ${key === 'ar1' ? 'style="background:#F9FAFB"' : ''}>
-        <td style="text-align:left;font-weight:600">${name}</td>
-        <td class="num ${cls(val)}">${fmt(val)}</td>
-        <td class="num ${diff !== null ? (diff >= 0 ? 'ok' : 'good') : 'na'}">${diff !== null ? fmt(diff) : '—'}</td>
-      </tr>`;
+    let html = '<div style="font-size:13px;color:var(--text2);margin-bottom:12px">Backtest scoring requires 3+ published quarters. Showing current nowcast vs AR(1):</div>';
+    html += '<table class="model-table"><thead><tr><th style="text-align:left">Model</th><th class="num">Nowcast</th><th class="num">vs AR(1)</th></tr></thead><tbody>';
+    for (const [k,n] of [['dfm','DFM'],['bvar','BVAR'],['beq','BEQ'],['ensemble','Ensemble'],['ar1','AR(1)']]) {
+      const v = nc[k];
+      const d = (v!==null && ar1!==null && k!=='ar1') ? v-ar1 : null;
+      html += `<tr ${k==='ar1'?'style="background:#F9FAFB"':''}><td style="text-align:left;font-weight:600">${n}</td><td class="num ${cls(v)}">${fmt(v)}</td><td class="num ${d!==null?(d>=0?'ok':'good'):'na'}">${d!==null?fmt(d):'—'}</td></tr>`;
     }
     html += '</tbody></table>';
-    container.innerHTML = html;
+    el.innerHTML = html;
     return;
   }
-  
-  // Group by target, find best model per target
-  const targets = [...new Set(lb.map(r => r.target || 'GDP'))];
-  
-  // Build flat table rows like kodam-my.github.io/gdp-nowcast
-  let rows = [];
+
+  const targets = [...new Set(lb.map(r=>r.target||'GDP'))];
+  let html = '';
   for (const target of targets) {
-    const targetRows = lb.filter(r => (r.target || 'GDP') === target);
-    const ar1Row = targetRows.find(r => r.model === 'AR1');
-    const ar1Rmse = ar1Row?.rmse || null;
-    
-    // Find best model (lowest RMSE, excluding AR1)
-    const bestRow = targetRows
-      .filter(r => r.model !== 'AR1' && r.rmse !== null)
-      .sort((a, b) => a.rmse - b.rmse)[0];
-    
-    if (bestRow) {
-      const vsAr1 = ar1Rmse ? (bestRow.rmse / ar1Rmse) : null;
-      const mase = ar1Rmse ? (bestRow.mae / ar1Row.mae) : null;
-      rows.push({
-        target: target,
-        bestModel: bestRow.model,
-        rmse: bestRow.rmse,
-        vsAr1: vsAr1,
-        mase: mase,
-        fda: bestRow.fda,
-      });
-    } else if (ar1Row) {
-      // Only AR(1) available
-      rows.push({
-        target: target,
-        bestModel: 'AR(1)',
-        rmse: ar1Row.rmse,
-        vsAr1: 1.0,
-        mase: 1.0,
-        fda: ar1Row.fda,
-      });
+    const rows = lb.filter(r=>(r.target||'GDP')===target);
+    const ar1 = rows.find(r=>r.model==='AR1');
+    const best = rows.filter(r=>r.model!=='AR1'&&r.rmse).sort((a,b)=>a.rmse-b.rmse)[0];
+    html += `<div style="margin-bottom:20px"><div style="font-weight:600;font-size:14px;margin-bottom:8px">${target}</div>`;
+    html += '<table class="model-table"><thead><tr><th style="text-align:left">Model</th><th class="num">RMSE</th><th class="num">vs AR(1)</th><th class="num">MASE</th><th class="num">FDA</th></tr></thead><tbody>';
+    for (const r of rows) {
+      const vs = ar1?.rmse ? (r.rmse/ar1.rmse) : null;
+      const mase = ar1?.mae ? (r.mae/ar1.mae) : null;
+      html += `<tr ${r.model===best?.model?'class="best"':''} ${r.model==='AR1'?'style="background:#F9FAFB"':''}>`;
+      html += `<td style="text-align:left;font-weight:600">${r.model}</td>`;
+      html += `<td class="num">${r.rmse?.toFixed(2)??'—'}</td>`;
+      html += `<td class="num ${vs!==null?(vs<1?'good':vs===1?'na':'bad'):'na'}">${vs!==null?vs.toFixed(3):'—'}</td>`;
+      html += `<td class="num">${mase!==null?mase.toFixed(2):'—'}</td>`;
+      html += `<td class="num">${r.fda!==null?r.fda.toFixed(0)+'%':'—'}</td></tr>`;
     }
+    html += '</tbody></table></div>';
   }
-  
-  // Sort: GDP first, then by RMSE
-  rows.sort((a, b) => {
-    if (a.target === 'GDP' && b.target !== 'GDP') return -1;
-    if (a.target !== 'GDP' && b.target === 'GDP') return 1;
-    return (a.rmse || 999) - (b.rmse || 999);
-  });
-  
-  let html = `<table class="model-table">
-    <thead><tr>
-      <th style="text-align:left">Target</th>
-      <th style="text-align:left">Best model</th>
-      <th class="num">RMSE (h=1)</th>
-      <th class="num">vs AR(1)</th>
-      <th class="num">MASE</th>
-      <th class="num">FDA</th>
-    </tr></thead><tbody>`;
-  
-  for (const r of rows) {
-    const vsAr1Class = r.vsAr1 !== null ? (r.vsAr1 < 1 ? 'good' : (r.vsAr1 === 1 ? 'na' : 'bad')) : 'na';
-    const maseClass = r.mase !== null ? (r.mase < 1 ? 'good' : (r.mase === 1 ? 'na' : 'bad')) : 'na';
-    
-    html += `<tr>
-      <td style="text-align:left;font-weight:600">${r.target}</td>
-      <td style="text-align:left">${r.bestModel}</td>
-      <td class="num">${r.rmse?.toFixed(2) ?? '—'}</td>
-      <td class="num ${vsAr1Class}">${r.vsAr1 !== null ? r.vsAr1.toFixed(3) : '—'}</td>
-      <td class="num ${maseClass}">${r.mase !== null ? r.mase.toFixed(2) : '—'}</td>
-      <td class="num">${r.fda !== null ? r.fda.toFixed(0) + '%' : '—'}</td>
-    </tr>`;
-  }
-  
-  html += '</tbody></table>';
-  html += '<div class="sub" style="margin-top:10px">RMSE in pp (YoY, h=1 nowcast). vs AR(1) < 1 = beats persistence. MASE < 1 = better than random walk. FDA = directional hit-rate.</div>';
-  container.innerHTML = html;
+  html += '<div class="meta" style="margin-top:10px">RMSE in pp (YoY). vs AR(1) < 1 = beats persistence. MASE < 1 = better than random walk. FDA = directional hit-rate.</div>';
+  el.innerHTML = html;
 }
 
 function renderRecent() {
   const recent = DATA.recent || [];
   const ar1 = DATA.nowcast?.ar1;
   const body = document.getElementById('recent-body');
-  
   let html = '';
   for (const r of recent.slice(-10).reverse()) {
     const ens = r.ensemble;
-    const diff = (ens !== null && ar1 !== null) ? (ens - ar1) : null;
-    html += `<tr>
-      <td style="text-align:left">${r.date}</td>
-      <td class="num ${cls(r.dfm)}">${fmt(r.dfm)}</td>
-      <td class="num ${cls(r.bvar)}">${fmt(r.bvar)}</td>
-      <td class="num ${cls(r.beq)}">${fmt(r.beq)}</td>
-      <td class="num ${cls(r.ensemble)}" style="font-weight:600">${fmt(r.ensemble)}</td>
-      <td class="num ${diff !== null ? (diff >= 0 ? 'ok' : 'good') : 'na'}">${diff !== null ? fmt(diff) : '—'}</td>
-    </tr>`;
+    const d = (ens!==null && ar1!==null) ? ens-ar1 : null;
+    html += `<tr><td style="text-align:left">${r.date}</td><td class="num ${cls(r.dfm)}">${fmt(r.dfm)}</td><td class="num ${cls(r.bvar)}">${fmt(r.bvar)}</td><td class="num ${cls(r.beq)}">${fmt(r.beq)}</td><td class="num ${cls(ens)}" style="font-weight:600">${fmt(ens)}</td><td class="num ${d!==null?(d>=0?'ok':'good'):'na'}">${d!==null?fmt(d):'—'}</td></tr>`;
   }
   body.innerHTML = html;
 }
 
-// Render all
 renderHero();
 renderCallouts();
 renderHeadline();
 renderEvolution();
-renderComponents();
+renderNews();
 renderSectors();
+renderComponents();
 renderLeaderboard();
 renderRecent();
 </script>
