@@ -26,10 +26,9 @@ jobs:
       - name: Ensure data directories exist
         run: mkdir -p data/malaysia output/malaysia
 
-      - name: Setup FRED API key
-        run: echo "${{ secrets.FRED_API_KEY }}" > .fred_key
-
       - name: Run daily update
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: |
           export PYTHONPATH="$GITHUB_WORKSPACE/src"
           echo "Git HEAD: $(git rev-parse --short HEAD)"
@@ -57,3 +56,16 @@ jobs:
             git commit -m "Daily update: $(date +%Y-%m-%d)"
           fi
           git push
+
+      - name: Trigger dashboard publish
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'publish-dashboard.yml',
+              ref: 'master'
+            });
+            console.log('Dashboard publish triggered.');
