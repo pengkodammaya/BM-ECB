@@ -18,7 +18,7 @@
 
 | Component | BVAR | DFM | Actual (target Q) | Error |
 |-----------|------|-----|-------------------|-------|
-| **Private Consumption** (C) | +5.6% | +13.2% | pending | pending |
+| **Private Consumption** (C) | +5.6% | +13.3% | pending | pending |
 | **Gross Fixed Capital Formation** (I) | +7.5% | +1.0% | pending | pending |
 | **Government Consumption** (G) | +5.8% | +6.5% | pending | pending |
 | **Exports** (X) | +6.1% | -0.4% | pending | pending |
