@@ -1656,11 +1656,27 @@ for _, row in log.tail(30).iterrows():
     rr["actual"] = round(float(a), 1) if (a is not None and not (isinstance(a, float) and np.isnan(a))) else None
     recent_out.append(rr)
 
-# Fetch consensus forecasts
+# Fetch consensus forecasts (with cache fallback)
+consensus_cache_path = Path("docs/consensus_cache.json")
 consensus_data = {"gdp_yoy": {}, "gdp_qoq": {}, "components": {}, "source": "Trading Economics"}
 try:
     from nowcasting_toolbox.data.sources.consensus_client import fetch_consensus_forecasts
     consensus_data = fetch_consensus_forecasts()
+    
+    # Cache successful fetch
+    if consensus_data.get("gdp_yoy"):
+        consensus_cache_path.parent.mkdir(parents=True, exist_ok=True)
+        consensus_cache_path.write_text(json.dumps(consensus_data, indent=2), encoding="utf-8")
+        logger.info("Consensus cached to %s", consensus_cache_path)
+except Exception as e:
+    logger.warning("Consensus fetch failed (non-fatal): %s", e)
+    # Fall back to cached data
+    if consensus_cache_path.exists():
+        try:
+            consensus_data = json.loads(consensus_cache_path.read_text(encoding="utf-8"))
+            logger.info("Using cached consensus from %s", consensus_cache_path)
+        except Exception:
+            pass
     
     # Compute YoY growth for components using DOSM actuals
     # Only for domestic components (consumption, investment, government)
