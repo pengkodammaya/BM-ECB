@@ -7,52 +7,52 @@
   },
   "nowcast": {
     "quarter": "Q2 2026",
-    "dfm": 9.14,
-    "bvar": 5.14,
+    "dfm": 6.07,
+    "bvar": null,
     "ar1": 5.4,
-    "ensemble": 7.14,
+    "ensemble": 6.07,
     "bvar_ci_10": null,
     "bvar_ci_90": null
   },
   "backcast": {
     "dfm": {
-      "estimate": 6.6,
-      "error": 1.2
+      "estimate": 5.8,
+      "error": 0.4
     },
     "bvar": {
-      "estimate": 3.9,
-      "error": 1.5
+      "estimate": null,
+      "error": null
     },
     "ensemble": {
-      "estimate": 5.2,
-      "error": 0.2
+      "estimate": 5.8,
+      "error": 0.4
     }
   },
   "components": {
     "consumption": {
-      "bvar": 5.6,
+      "bvar": 8.9,
       "actual": 4.7,
-      "error": 0.9
+      "error": 4.2
     },
     "investment": {
-      "bvar": 7.5,
+      "bvar": 1.0,
       "actual": 7.3,
-      "error": 0.2
+      "error": 6.3
     },
     "government": {
-      "bvar": 5.8,
+      "bvar": 6.5,
       "actual": 4.1,
-      "error": 1.7
+      "error": 2.4
     },
     "exports": {
-      "bvar": 6.1,
+      "bvar": 1.4,
       "actual": 5.2,
-      "error": 0.9
+      "error": 3.8
     },
     "imports": {
-      "bvar": 7.4,
+      "bvar": 5.8,
       "actual": 4.6,
-      "error": 2.8
+      "error": 1.2
     }
   },
   "sectors": {
@@ -156,10 +156,10 @@
     {
       "date": "2026-06-05",
       "target_quarter": "2026-Q2",
-      "dfm": 9.1,
-      "bvar": 5.1,
+      "dfm": 6.1,
+      "bvar": null,
       "beq": null,
-      "ensemble": 7.1,
+      "ensemble": 6.1,
       "actual": null
     }
   ],

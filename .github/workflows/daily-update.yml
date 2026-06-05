@@ -45,7 +45,7 @@ jobs:
           git status --short
           git diff --stat
           # Stage and commit (files may not exist yet)
-          for f in docs/leaderboard.csv docs/daily_log.csv docs/leaderboard.md docs/dashboard.md docs/dashboard.html docs/data.json docs/actuals_vintage.csv; do
+          for f in docs/leaderboard.csv docs/daily_log.csv docs/leaderboard.md docs/dashboard.md docs/dashboard.html docs/data.json docs/actuals_vintage.csv docs/consensus_cache.json; do
             [ -f "$f" ] && git add "$f" || true
           done
           if git diff --staged --quiet; then
@@ -56,16 +56,3 @@ jobs:
             git commit -m "Daily update: $(date +%Y-%m-%d)"
           fi
           git push
-
-      - name: Trigger dashboard publish
-        if: success()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'publish-dashboard.yml',
-              ref: 'master'
-            });
-            console.log('Dashboard publish triggered.');
