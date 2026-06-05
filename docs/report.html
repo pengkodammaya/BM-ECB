@@ -602,31 +602,28 @@ function renderHero() {
 function renderCallouts() {
   const nc = DATA.nowcast || {};
   const la = DATA.latestActual || {};
-  const bc = DATA.backcast || {};
   const lb = DATA.leaderboard || [];
   const consensus = DATA.consensus || {};
   const consensusYoy = consensus.gdp_yoy || {};
   
   const ens = nc.ensemble;
   const ar1 = nc.ar1;
-  const vsAr1 = (ens !== null && ar1 !== null) ? (ens - ar1) : null;
-  
-  // Get consensus for current quarter
   const currentQuarter = nc.quarter || '';
   const consensusVal = consensusYoy[currentQuarter] || null;
   
+  // Find best model from leaderboard
   const ar1Row = lb.find(r => r.model === 'AR1');
-  const bestRow = lb.filter(r => r.model !== 'AR1').sort((a, b) => (a.mae || 999) - (b.mae || 999))[0];
+  const bestRow = lb.filter(r => r.model !== 'AR1' && r.rmse).sort((a, b) => a.rmse - b.rmse)[0];
   
   const callouts = [
-    { label: 'GDP Nowcast', value: fmt(ens), detail: `Ensemble · ${nc.quarter || '—'}` },
-    { label: 'Consensus', value: consensusVal !== null ? fmt(consensusVal) : '—', detail: `Trading Economics · ${currentQuarter}` },
-    { label: 'vs AR(1)', value: vsAr1 !== null ? fmt(vsAr1) : '—', detail: 'Ensemble vs persistence' },
+    { label: 'GDP Nowcast', value: fmt(ens), detail: `Ensemble | ${currentQuarter}` },
+    { label: 'vs AR(1)', value: (ens !== null && ar1 !== null) ? ((ens - ar1) / ar1 * 100).toFixed(0) + '%' : '—', detail: 'Relative to persistence' },
+    { label: 'Consensus', value: consensusVal !== null ? fmt(consensusVal) : '—', detail: `Trading Economics | ${currentQuarter}` },
     { label: 'Latest Actual', value: fmt(la.yoy), detail: la.quarter || '—' },
   ];
   
   if (bestRow) {
-    callouts.push({ label: 'Best Model', value: bestRow.model, detail: `MAE: ${bestRow.mae?.toFixed(2)}pp` });
+    callouts.push({ label: 'Best Model', value: bestRow.model, detail: `RMSE: ${bestRow.rmse?.toFixed(2)}pp` });
   }
   
   document.getElementById('callouts').innerHTML = callouts.map(c => `
@@ -817,6 +814,8 @@ function renderSectors() {
   const grid = document.getElementById('sector-grid');
   grid.innerHTML = '';
   
+  // Historical sector data (would need to be in data.json for full implementation)
+  // For now, show bar chart with actual vs nowcast
   for (const [key, name] of Object.entries(sectorNames)) {
     const actual = sectors[key];
     const nowcast = sectorNc[key];
@@ -824,23 +823,26 @@ function renderSectors() {
     const cell = document.createElement('div');
     cell.className = 'chart-cell';
     const chartId = `sector-${key}`;
-    cell.innerHTML = `<div id="${chartId}" style="height:200px;"></div>`;
+    cell.innerHTML = `<div id="${chartId}" style="height:220px;"></div>`;
     grid.appendChild(cell);
     
-    Plotly.newPlot(chartId, [{
-      x: ['Actual', 'Nowcast'],
-      y: [actual, nowcast],
-      type: 'bar',
-      marker: { color: ['#2563EB', '#93C5FD'] },
-      text: [fmt(actual), fmt(nowcast)],
-      textposition: 'outside',
-      textfont: { size: 11 },
-      cliponaxis: false,
-    }], {
+    // Use bar chart with actual and nowcast
+    Plotly.newPlot(chartId, [
+      {
+        x: ['Actual', 'Nowcast'],
+        y: [actual, nowcast],
+        type: 'bar',
+        marker: { color: ['#2563EB', '#93C5FD'] },
+        text: [fmt(actual), fmt(nowcast)],
+        textposition: 'outside',
+        textfont: { size: 11 },
+        cliponaxis: false,
+      }
+    ], {
       font: { family: 'Inter, system-ui, sans-serif', size: 12 },
       paper_bgcolor: '#FFFFFF', plot_bgcolor: '#FFFFFF',
       yaxis: { gridcolor: '#F3F4F6', linecolor: '#E5E7EB', zeroline: true, zerolinecolor: '#D1D5DB', rangemode: 'tozero' },
-      title: { font: { size: 13, weight: 'bold' }, text: name },
+      title: { font: { size: 13, weight: 'bold' }, text: `<b>${name}</b>` },
       margin: { l: 50, r: 20, t: 45, b: 35 },
       height: 220,
       showlegend: false,

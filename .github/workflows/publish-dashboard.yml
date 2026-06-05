@@ -40,8 +40,9 @@ jobs:
           # Switch to gh-pages branch (where Pages serves from)
           git checkout gh-pages 2>/dev/null || git checkout -b gh-pages
           
-          # Copy files
+          # Copy files - report.html as both index.html and report.html
           cp "$GITHUB_WORKSPACE/docs/report.html" ./index.html
+          cp "$GITHUB_WORKSPACE/docs/report.html" ./report.html
           cp "$GITHUB_WORKSPACE/docs/data.json" ./data.json
           cp "$GITHUB_WORKSPACE/docs/leaderboard.csv" ./leaderboard.csv 2>/dev/null || true
           
