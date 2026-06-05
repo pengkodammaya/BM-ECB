@@ -79,7 +79,7 @@
   .chart-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
   @media (max-width: 900px) { .chart-grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 600px) { .chart-grid { grid-template-columns: 1fr; } }
-  .chart-cell { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .chart-cell { border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
 
   /* Model table */
   .model-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -446,14 +446,15 @@ function renderSectors() {
       marker: { color: ['#2563EB', '#93C5FD'] },
       text: [fmt(actual), fmt(nowcast)],
       textposition: 'outside',
-      textfont: { size: 12 },
+      textfont: { size: 11 },
+      cliponaxis: false,
     }], {
       font: { family: 'Inter, system-ui, sans-serif', size: 12 },
       paper_bgcolor: '#FFFFFF', plot_bgcolor: '#FFFFFF',
-      yaxis: { gridcolor: '#F3F4F6', linecolor: '#E5E7EB', zeroline: true, zerolinecolor: '#D1D5DB' },
+      yaxis: { gridcolor: '#F3F4F6', linecolor: '#E5E7EB', zeroline: true, zerolinecolor: '#D1D5DB', rangemode: 'tozero' },
       title: { font: { size: 13, weight: 'bold' }, text: name },
-      margin: { l: 40, r: 15, t: 40, b: 30 },
-      height: 200,
+      margin: { l: 50, r: 20, t: 45, b: 35 },
+      height: 220,
       showlegend: false,
     }, { responsive: true });
   }
