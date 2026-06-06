@@ -7,17 +7,17 @@
   },
   "nowcast": {
     "quarter": "Q2 2026",
-    "dfm": 10.55,
+    "dfm": 10.64,
     "bvar": 5.13,
     "ar1": 5.4,
-    "ensemble": 7.84,
+    "ensemble": 7.88,
     "bvar_ci_10": null,
     "bvar_ci_90": null
   },
   "backcast": {
     "dfm": {
-      "estimate": 6.5,
-      "error": 1.1
+      "estimate": 6.6,
+      "error": 1.2
     },
     "bvar": {
       "estimate": 3.9,
@@ -168,7 +168,7 @@
       "dfm": 10.6,
       "bvar": 5.1,
       "beq": null,
-      "ensemble": 7.8,
+      "ensemble": 7.9,
       "actual": null
     }
   ],
