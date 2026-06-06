@@ -526,4 +526,17 @@
 
 ---
 
-*Last updated: 2026-06-05 — All 42 items fixed. Added 12 future improvements.*
+---
+
+## 10. Todo — 2026-06-06
+
+| ID | Area | Description | Effort | Status |
+|----|------|-------------|--------|--------|
+| Q9 | Error handling | Better error handling in remaining bare `except` blocks | Small | todo |
+| F7 | Consensus sources | Add IMF WEO and World Bank consensus forecasts | Medium | todo |
+| P7 | Parallel backtest | Parallelize backtest across vintages | Medium | todo |
+| D9 | API docs | Set up auto-generated API docs (MkDocs/Sphinx) | Medium | todo |
+
+---
+
+*Last updated: 2026-06-06 — Added Q9, F7, P7, D9 to todo list.*
