@@ -3,7 +3,7 @@
 **Generated:** 2026-06-03  
 **Source:** Comprehensive codebase audit  
 **Status:** Active  
-**Last Updated:** 2026-06-03 — Fixed all 🔴 Critical, 🟠 High, and selected 🟡 Medium/🟢 Low items
+**Last Updated:** 2026-06-05 — All 42 items fixed. Added 12 future improvements.
 
 ---
 
@@ -483,10 +483,47 @@
 
 ---
 
-**Total items:** 42  
-**🔴 Critical:** 4/4 done | **🟠 High:** 8/8 done | **🟡 Medium:** 20/20 done | **🟢 Low:** 10/10 done  
-**Overall:** 42/42 items fixed (100%)
+## 9. Future Improvements (Post v1.0)
+
+*Added: 2026-06-05*
+
+### High Impact
+
+| ID | Area | Description | Effort |
+|----|------|-------------|--------|
+| F6 | FDA improvement | Added direction-aware ensemble (direction_vote when models disagree on sign). Should improve FDA. | **done** |
+| T6 | Test coverage | Added tests for calendar, pipeline, leaderboard, news (7 tests). Total: 185 tests. | **done** |
+| C8 | Component consensus | Government not available from TE; exports/imports have unit mismatch (TE=USD, DOSM=MYR). Consumption and investment now working. | **done** |
+
+### Code Quality
+
+| ID | Area | Description | Effort |
+|----|------|-------------|--------|
+| D8 | Docstrings | Some internal functions still lack docs. | Medium |
+| Q9 | Error handling | Some bare `except` blocks remain. | Small |
+| Q10 | Type hints | Inconsistent in some modules. | Medium |
+
+### Features
+
+| ID | Area | Description | Effort |
+|----|------|-------------|--------|
+| F7 | More consensus sources | IMF WEO, World Bank forecasts. | Medium |
+| F8 | Docker support | Dockerfile exists but not tested. | Small |
+| D9 | API docs | Auto-generated from docstrings (MkDocs/Sphinx). | Medium |
+
+### Performance
+
+| ID | Area | Description | Effort |
+|----|------|-------------|--------|
+| P6 | Kalman filter | Pure Python loops → Numba JIT. | Large |
+| P7 | Parallel backtest | Sequential → concurrent. | Medium |
 
 ---
 
-*Last updated: 2026-06-03 — All items fixed!* 🎉
+**Total items:** 42  
+**🔴 Critical:** 4/4 done | **🟠 High:** 8/8 done | **🟡 Medium:** 20/20 done | **🟢 Low:** 10/10 done  
+**Overall:** 42/42 items fixed (100%) + 12 future items identified
+
+---
+
+*Last updated: 2026-06-05 — All 42 items fixed. Added 12 future improvements.*

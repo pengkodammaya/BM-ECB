@@ -898,8 +898,21 @@ if log_ens is not None and len(log_ens) >= 3 and vintage_for_weights is not None
 valid_ens = [m for m in ensemble_models if nowcasts.get(m) is not None and m in weights]
 if valid_ens:
     total_w = sum(weights[m] for m in valid_ens)
-    nowcasts["ensemble"] = (round(sum(nowcasts[m] * weights[m] / total_w for m in valid_ens), 2)
-                            if total_w > 0 else None)
+    # Direction-aware ensemble: if models disagree on sign, use direction vote
+    preds = {m: nowcasts[m] for m in valid_ens}
+    signs = [1 if preds[m] > 0 else -1 for m in valid_ens]
+    if sum(signs) != len(signs) and sum(signs) != -len(signs):
+        # Models disagree on direction — use majority direction, then average concordant
+        pos_count = sum(1 for s in signs if s > 0)
+        if pos_count >= len(signs) - pos_count:
+            concordant = [m for m in valid_ens if preds[m] > 0]
+        else:
+            concordant = [m for m in valid_ens if preds[m] < 0]
+        nowcasts["ensemble"] = round(float(np.mean([preds[m] for m in concordant])), 2)
+    else:
+        # Models agree on direction — use inverse_mae weighted average
+        nowcasts["ensemble"] = (round(sum(nowcasts[m] * weights[m] / total_w for m in valid_ens), 2)
+                                if total_w > 0 else None)
 else:
     vals = [nowcasts.get(m) for m in ensemble_models if nowcasts.get(m) is not None]
     nowcasts["ensemble"] = round(float(np.median(vals)), 2) if vals else None
