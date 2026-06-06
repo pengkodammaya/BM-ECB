@@ -2,7 +2,7 @@
 
 > *Comparable to [OpenDOSM GDP Dashboard](https://open.dosm.gov.my/dashboard/gdp)*
 
-**Last updated:** 2026-06-05 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
+**Last updated:** 2026-06-06 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
 
 ---
 
@@ -18,10 +18,10 @@
 
 | Model | Nowcast | vs AR(1) | Description |
 |-------|:-------:|:--------:|-------------|
-| **DFM** | `+5.4%` | 0.0pp | Dynamic Factor Model |
-| **BVAR** | `—` | — | Bayesian VAR |
+| **DFM** | `+10.6%` | 5.2pp | Dynamic Factor Model |
+| **BVAR** | `+5.1%` | -0.3pp | Bayesian VAR |
 | **AR(1)** | `+5.4%` | — | Persistence (baseline) |
-| **Ensemble** | `+5.4%` | 0.0pp | Median of DFM + BVAR |
+| **Ensemble** | `+7.8%` | 2.4pp | Median of DFM + BVAR |
 
 > *Q2 2026 actuals expected via DOSM ARC*
 
@@ -62,10 +62,10 @@
 |--------|:------:|:-------:|:-----:|
 | Agriculture | `+2.6%` | `+0.8%` | `1.8pp` |
 | Mining & Quarrying | `-2.1%` | `-1.1%` | `1.0pp` |
-| Manufacturing | `+5.9%` | `+4.1%` | `1.8pp` |
+| Manufacturing | `+5.9%` | `+4.7%` | `1.2pp` |
 | Construction | `+7.7%` | `+9.3%` | `1.6pp` |
 | Services | `+5.6%` | `+8.2%` | `2.6pp` |
-| **Overall GDP** | **`+5.4%`** | **`—`** | — |
+| **Overall GDP** | **`+5.4%`** | **`+3.9%`** | 1.5pp |
 
 ---
 
@@ -75,11 +75,11 @@
 
 | Component | BVAR | Actual | Error |
 |-----------|:----:|:------:|:-----:|
-| **Consumption (C)** | +8.4% | +4.7% | 3.7pp |
-| **Investment (I)** | +1.0% | +7.3% | 6.3pp |
-| **Government (G)** | +6.5% | +4.1% | 2.4pp |
-| **Exports (X)** | +1.3% | +5.2% | 3.9pp |
-| **Imports (M)** | +5.8% | +4.6% | 1.2pp |
+| **Consumption (C)** | +5.6% | +4.7% | 0.9pp |
+| **Investment (I)** | +7.5% | +7.3% | 0.2pp |
+| **Government (G)** | +5.8% | +4.1% | 1.7pp |
+| **Exports (X)** | +6.1% | +5.2% | 0.9pp |
+| **Imports (M)** | +7.4% | +4.6% | 2.8pp |
 
 ---
 
@@ -109,6 +109,7 @@
 | 2026-06-03 | 2026-Q2 | +6.2% | +5.1% | — | +5.7% | — |
 | 2026-06-04 | 2026-Q2 | +5.6% | — | — | +5.6% | — |
 | 2026-06-05 | 2026-Q2 | +5.4% | — | — | +5.4% | — |
+| 2026-06-06 | 2026-Q2 | +10.6% | +5.1% | — | +7.8% | — |
 
 ---
 
