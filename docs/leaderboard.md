@@ -1,6 +1,6 @@
 # Malaysia GDP Nowcasting — Live Leaderboard
 
-**Updated:** 2026-06-12 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
+**Updated:** 2026-06-13 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
 
 ## GDP Nowcast (YoY %)
 
@@ -8,9 +8,9 @@
 
 | Model | Nowcast |
 |-------|--------|
-| DFM | `+4.5%` |
+| DFM | `+5.8%` |
 | BVAR | `+5.1%` |
-| ENSEMBLE | `+4.8%` |
+| ENSEMBLE | `+5.5%` |
 
 ## GDP by Expenditure Category (YoY %)
 
@@ -18,11 +18,11 @@
 
 | Component | BVAR | DFM | Actual (target Q) | Error |
 |-----------|------|-----|-------------------|-------|
-| **Private Consumption** (C) | +5.6% | +13.9% | pending | pending |
-| **Gross Fixed Capital Formation** (I) | +7.6% | -1.8% | pending | pending |
+| **Private Consumption** (C) | +5.6% | +14.0% | pending | pending |
+| **Gross Fixed Capital Formation** (I) | +7.6% | +0.4% | pending | pending |
 | **Government Consumption** (G) | +5.8% | +3.6% | pending | pending |
-| **Exports** (X) | +6.2% | -1.6% | pending | pending |
-| **Imports** (M) | +7.4% | +6.1% | pending | pending |
+| **Exports** (X) | +6.2% | -4.2% | pending | pending |
+| **Imports** (M) | +7.4% | +6.0% | pending | pending |
 
 ## GDP by Economic Sector (YoY %)
 
@@ -47,7 +47,7 @@
 
 *Not enough scored observations per horizon yet.*
 
-## Recent Nowcasts (17 days)
+## Recent Nowcasts (18 days)
 
 | Date | Target Q | DFM | BVAR | BEQ | ENSEMBLE |
 |------|----------|-----|------|-----|----------|
@@ -68,13 +68,14 @@
 | 2026-06-10 | 2026-Q2 | +4.5% | +5.1% | — | +4.8% |
 | 2026-06-11 | 2026-Q2 | +9.5% | +5.1% | — | +7.3% |
 | 2026-06-12 | 2026-Q2 | +4.5% | +5.1% | — | +4.8% |
+| 2026-06-13 | 2026-Q2 | +5.8% | +5.1% | — | +5.5% |
 
 ## Data Sources
 
 - **GDP:** DOSM `gdp_qtr_real` (YoY), `gdp_qtr_real_sa` (QoQ)
 - **Expenditure:** DOSM `gdp_qtr_real_demand`; **Sectors:** `gdp_qtr_real_supply`
 - **Vintages:** `docs/actuals_vintage.csv` (first-release frozen, revisions tracked)
-- **Last updated:** 2026-06-12
+- **Last updated:** 2026-06-13
 
 ---
 *Auto-generated daily via GitHub Actions. [Source](https://github.com/pengkodammaya/BM-ECB)*
