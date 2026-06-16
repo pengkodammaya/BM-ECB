@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-06-15",
+  "lastUpdated": "2026-06-16",
   "targetQuarter": "2026-Q2",
   "latestActual": {
     "quarter": "Q1 2026",
@@ -7,10 +7,10 @@
   },
   "nowcast": {
     "quarter": "Q2 2026",
-    "dfm": 6.83,
+    "dfm": 5.1,
     "bvar": 5.13,
     "ar1": 5.4,
-    "ensemble": 5.98,
+    "ensemble": 5.12,
     "bvar_ci_10": null,
     "bvar_ci_90": null
   },
@@ -35,9 +35,9 @@
       "error": 0.9
     },
     "investment": {
-      "bvar": 7.6,
+      "bvar": 7.5,
       "actual": 7.3,
-      "error": 0.3
+      "error": 0.2
     },
     "government": {
       "bvar": 5.8,
@@ -65,7 +65,7 @@
   "sectorNowcast": {
     "agriculture": 0.8,
     "mining": -1.1,
-    "manufacturing": 4.3,
+    "manufacturing": 4.0,
     "construction": 9.2,
     "services": 7.6
   },
@@ -250,6 +250,15 @@
       "bvar": 5.1,
       "beq": null,
       "ensemble": 6.0,
+      "actual": null
+    },
+    {
+      "date": "2026-06-16",
+      "target_quarter": "2026-Q2",
+      "dfm": 5.1,
+      "bvar": 5.1,
+      "beq": null,
+      "ensemble": 5.1,
       "actual": null
     }
   ],
