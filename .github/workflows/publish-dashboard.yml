@@ -24,6 +24,11 @@ jobs:
       - name: Install dependencies
         run: pip install numpy scipy pandas openpyxl pyarrow scikit-learn statsmodels pydantic click httpx rich yfinance
 
+      - name: Run full multi-quarter backtest
+        run: |
+          export PYTHONPATH="$GITHUB_WORKSPACE/src"
+          python scripts/backtest_all_models.py
+
       - name: Generate standalone dashboard
         run: |
           export PYTHONPATH="$GITHUB_WORKSPACE/src"

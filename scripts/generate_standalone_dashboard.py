@@ -7,6 +7,7 @@ import csv
 from pathlib import Path
 
 DATA_PATH = Path("docs/data.json")
+BACKTEST_LEADERBOARD = Path("output/malaysia/leaderboard.csv")
 LEADERBOARD_PATH = Path("docs/leaderboard_full.csv")
 LEADERBOARD_FALLBACK = Path("docs/leaderboard.csv")
 DASHBOARD_TEMPLATE = Path("docs/dashboard.html")
@@ -15,24 +16,52 @@ OUT_DASHBOARD = Path("docs/dashboard_standalone.html")
 OUT_REPORT = Path("docs/report.html")
 
 
+def _num(row, *names, default=0.0):
+    """First parseable numeric value found under any of the given column names."""
+    for n in names:
+        v = row.get(n)
+        if v not in (None, ""):
+            try:
+                return float(v)
+            except (ValueError, TypeError):
+                pass
+    return default
+
+
 def load_leaderboard_csv():
-    """Load leaderboard_full.csv (with components) and convert to list of dicts."""
-    path = LEADERBOARD_PATH if LEADERBOARD_PATH.exists() else LEADERBOARD_FALLBACK
-    if not path.exists():
+    """Load the best available leaderboard CSV and normalise to dashboard rows.
+
+    Preference order: the full multi-quarter backtest
+    (output/malaysia/leaderboard.csv) → docs/leaderboard_full.csv →
+    docs/leaderboard.csv. Handles both column conventions: the backtest writes
+    lowercase mae/rmse/fda/n with fda as a 0-1 fraction and a `type` column
+    (model/benchmark); the daily pipeline writes MAE (pp)/RMSE (pp)/FDA (%)/N
+    with fda as 0-100. Benchmark rows (e.g. DOSM Advance, not comparable to the
+    model metrics) are dropped when a type column is present.
+    """
+    for path in (BACKTEST_LEADERBOARD, LEADERBOARD_PATH, LEADERBOARD_FALLBACK):
+        if path.exists():
+            break
+    else:
         return []
     try:
         rows = []
-        with open(path, 'r') as f:
+        with open(path, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
+                if row.get("type") and row.get("type") != "model":
+                    continue
+                fda = _num(row, "FDA (%)", "fda")
+                if "fda" in row and fda <= 1.0:
+                    fda *= 100.0
                 rows.append({
-                    "target": row.get("target", "GDP"),
+                    "target": row.get("target") or "GDP",
                     "model": row.get("model", ""),
-                    "mae": float(row.get("MAE (pp)", 0) or 0),
-                    "rmse": float(row.get("RMSE (pp)", 0) or 0),
-                    "fda": float(row.get("FDA (%)", 0) or 0),
-                    "n": int(row.get("N", 0) or 0),
-                    "latest": float(row.get("last_nowcast", 0) or 0),
+                    "mae": _num(row, "MAE (pp)", "mae"),
+                    "rmse": _num(row, "RMSE (pp)", "rmse"),
+                    "fda": round(fda, 1),
+                    "n": int(_num(row, "N", "n", default=0)),
+                    "latest": _num(row, "last_nowcast"),
                 })
         return rows
     except Exception:
