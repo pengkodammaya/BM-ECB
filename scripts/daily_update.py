@@ -359,16 +359,26 @@ def score_log(log, vintage, metric, models):
     (actual not yet published) are skipped automatically."""
     overall, by_h = [], []
     if log is None or len(log) == 0:
+        logger.warning("score_log(%s): daily log is empty — nothing to score.", metric)
         return overall, by_h
     vmap = vintage_first_map(vintage, metric)
     if not vmap:
+        logger.warning("score_log(%s): no frozen first-release actuals in vintage — cannot score.", metric)
         return overall, by_h
 
     work = log.copy()
     work["_tq"] = work.apply(resolve_target_quarter, axis=1)
     work["_actual"] = work["_tq"].map(vmap)
+    tq_seen = sorted(str(x) for x in work["_tq"].dropna().unique())
+    n_pending = int(work["_actual"].isna().sum())
     work = work.dropna(subset=["_actual"])
     if work.empty:
+        latest_pub = sorted(vmap.keys())[-1] if len(vmap) else "?"
+        logger.warning(
+            "score_log(%s): all %d log rows target unpublished quarters (seen=%s); "
+            "latest published quarter in vintage is %s. Leaderboard will be empty until "
+            "the log accumulates nowcasts for a published quarter.",
+            metric, n_pending, tq_seen[:5], latest_pub)
         return overall, by_h
     work["_horizon"] = work.apply(lambda r: horizon_bucket(r["date"], r["_tq"]), axis=1)
 
