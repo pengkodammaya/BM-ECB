@@ -106,6 +106,14 @@ def main():
         if lb:
             data["leaderboard"] = lb
             print(f"Loaded {len(lb)} entries from leaderboard.csv")
+            # Persist the backfill into data.json so the copy shipped by
+            # publish-dashboard.yml (which copies docs/data.json verbatim)
+            # stays consistent with the embedded HTML instead of carrying
+            # an empty leaderboard.
+            tmp = DATA_PATH.with_suffix(".json.tmp")
+            tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
+            tmp.replace(DATA_PATH)
+            print(f"Backfilled leaderboard written to {DATA_PATH}")
 
     # Generate standalone dashboard
     if DASHBOARD_TEMPLATE.exists():
