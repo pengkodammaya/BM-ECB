@@ -1223,7 +1223,22 @@ if not df_gdp_yoy.empty:
                     nowcasts["bvar_yoy"] = round((float(res_by.X_sm[cqy, -1]) * sigma_y[-1] + mu_y[-1]) * 100, 2)
             except Exception as e:
                 logger.warning("YoY BVAR failed: %s", e)
-            yv = [v for v in [nowcasts.get("dfm_yoy"), nowcasts.get("bvar_yoy")] if v is not None]
+            # BEQ on the YoY target so beq has a primary YoY value (matching
+            # dfm/bvar). Without this the migration renames beq->beq_qoq and
+            # leaves the primary beq column blank.
+            try:
+                beq_y = BEQ(BEQParams(lagM=1, lagQ=1, lagY=1, type=901))
+                res_ey = beq_y.fit(Xy_filled, datet[ff_y:], MN + ["gdp"])
+                _qe_y = np.where(datet[ff_y:, 1] % 3 == 0)[0]
+                _ysm_y = res_ey.X_sm[_qe_y, -1] if len(_qe_y) else np.array([])
+                _valid_y = _ysm_y[~np.isnan(_ysm_y)]
+                if 0 <= cqy < res_ey.X_sm.shape[0] and not np.isnan(res_ey.X_sm[cqy, -1]):
+                    nowcasts["beq_yoy"] = round((float(res_ey.X_sm[cqy, -1]) * sigma_y[-1] + mu_y[-1]) * 100, 2)
+                elif len(_valid_y):
+                    nowcasts["beq_yoy"] = round((float(_valid_y[-1]) * sigma_y[-1] + mu_y[-1]) * 100, 2)
+            except Exception as e:
+                logger.warning("YoY BEQ failed: %s", e)
+            yv = [v for v in [nowcasts.get("dfm_yoy"), nowcasts.get("bvar_yoy"), nowcasts.get("beq_yoy")] if v is not None]
             if yv:
                 nowcasts["ensemble_yoy"] = round(float(np.median(yv)), 2)
             
@@ -1251,7 +1266,7 @@ for base in ["dfm", "bvar", "beq", "ensemble"]:
         nowcasts[f"{base}_forecast_qoq"] = nowcasts.pop(f"{base}_forecast")
 
 # YoY → primary (drop _yoy suffix)
-for base in ["dfm", "bvar", "ensemble"]:
+for base in ["dfm", "bvar", "beq", "ensemble"]:
     if f"{base}_yoy" in nowcasts:
         nowcasts[base] = nowcasts.pop(f"{base}_yoy")
 
