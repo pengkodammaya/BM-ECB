@@ -843,15 +843,25 @@ try:
     nowcasts["bvar_backcast"] = _extract(res_b, last_actual_idx, sigma, mu)
     nowcasts["bvar_forecast"] = _extract(res_b, next_q_idx, sigma, mu)
     if res_b.B_draws is not None and res_b.Sigma_draws is not None and current_q_idx >= 0:
-        from nowcasting_toolbox.fan_chart import bvar_fan_chart
-        lags, N = 3, X_filled.shape[1]
-        x_last = X_filled[current_q_idx - lags + 1:current_q_idx + 1].flatten()
-        if len(x_last) == N * lags:
-            fc = bvar_fan_chart(res_b.B_draws, res_b.Sigma_draws, x_last,
-                                n_forecast=1, lags=lags, target_idx=-1,
-                                sigma_y=sigma[-1], mu_y=mu[-1])
-            nowcasts["bvar_ci_10"] = round(float(fc["percentiles"][10][0]) * 100, 2)
-            nowcasts["bvar_ci_90"] = round(float(fc["percentiles"][90][0]) * 100, 2)
+        try:
+            from nowcasting_toolbox.fan_chart import bvar_fan_chart
+            # The block-BVAR fits in quarter-block space, so x_last must match
+            # B_draws (N_block * bvar_lags). The previous call used the monthly
+            # N (X_filled) with a hardcoded lag count of 3, producing a length-84
+            # vector against the 164-dim state -> matmul error that, via the
+            # outer except, nulled the whole BVAR nowcast. Isolated here so a CI
+            # failure can never discard the nowcast computed above.
+            ci_lags = int(bvar.params.bvar_lags)
+            need = int(res_b.B_draws.shape[1]) * ci_lags
+            x_last = res_b.X_sm[current_q_idx - ci_lags + 1:current_q_idx + 1].flatten()
+            if len(x_last) == need:
+                fc = bvar_fan_chart(res_b.B_draws, res_b.Sigma_draws, x_last,
+                                    n_forecast=1, lags=ci_lags, target_idx=-1,
+                                    sigma_y=sigma[-1], mu_y=mu[-1])
+                nowcasts["bvar_ci_10"] = round(float(fc["percentiles"][10][0]) * 100, 2)
+                nowcasts["bvar_ci_90"] = round(float(fc["percentiles"][90][0]) * 100, 2)
+        except Exception as ci_err:
+            logger.warning("BVAR CI computation skipped (non-fatal): %s", ci_err)
 except Exception as e:
     logger.warning("BVAR failed: %s", e)
     nowcasts["bvar"] = None
