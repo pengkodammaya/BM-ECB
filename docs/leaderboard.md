@@ -8,9 +8,9 @@
 
 | Model | Nowcast |
 |-------|--------|
-| DFM | `+2.6%` |
+| DFM | `+11.8%` |
 | BVAR | `+5.1%` |
-| ENSEMBLE | `+3.9%` |
+| ENSEMBLE | `+8.5%` |
 
 ## GDP by Expenditure Category (YoY %)
 
@@ -18,11 +18,11 @@
 
 | Component | BVAR | DFM | Actual (target Q) | Error |
 |-----------|------|-----|-------------------|-------|
-| **Private Consumption** (C) | +5.6% | +11.1% | pending | pending |
-| **Gross Fixed Capital Formation** (I) | +7.6% | -0.3% | pending | pending |
-| **Government Consumption** (G) | +5.8% | +3.5% | pending | pending |
-| **Exports** (X) | +6.2% | -5.9% | pending | pending |
-| **Imports** (M) | +7.5% | +4.1% | pending | pending |
+| **Private Consumption** (C) | +5.5% | +11.2% | pending | pending |
+| **Gross Fixed Capital Formation** (I) | +7.7% | -6.8% | pending | pending |
+| **Government Consumption** (G) | +5.8% | +3.3% | pending | pending |
+| **Exports** (X) | +6.3% | +0.6% | pending | pending |
+| **Imports** (M) | +7.4% | +5.9% | pending | pending |
 
 ## GDP by Economic Sector (YoY %)
 
@@ -74,7 +74,7 @@
 | 2026-06-16 | 2026-Q2 | +5.1% | +5.1% | — | +5.1% |
 | 2026-06-17 | 2026-Q2 | +8.5% | +5.1% | — | +6.8% |
 | 2026-06-18 | 2026-Q2 | +7.2% | +5.1% | — | +6.2% |
-| 2026-06-19 | 2026-Q2 | +2.6% | +5.1% | — | +3.9% |
+| 2026-06-19 | 2026-Q2 | +11.8% | +5.1% | — | +8.5% |
 
 ## Data Sources
 
