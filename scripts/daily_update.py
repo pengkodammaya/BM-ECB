@@ -418,7 +418,7 @@ def score_log(log, vintage, metric, models):
 # 1. Indicator manifest
 # ---------------------------------------------------------------------------
 DATASETS = {
-    "ipi": ("ipi", "index", 0, "industry", {"series": "growth_mom"}),
+    "ipi": ("ipi", "index_sa", 0, "industry", {"series": "growth_mom"}),
     "cpi_headline": ("cpi_headline", "index", 1, "prices", {"division": "overall"}),
     "cpi_core": ("cpi_core", "index", 1, "prices", {"division": "overall"}),
     "ppi": ("ppi", "index", 1, "prices", {"series": "abs"}),
