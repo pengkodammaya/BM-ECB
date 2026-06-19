@@ -111,7 +111,22 @@ def bridge_forecast(
     X_fit = np.column_stack(X_regs_aligned)
     Y_fit = Y[-min_rows:]  # align Y to the same window
 
-    # OLS estimation on valid rows (where Y is available and X is complete)
+    # OLS estimation. Impute NaN in monthly/quarterly regressors with 0.0 —
+    # consistent with the prediction phase below ("missing monthly data = no
+    # contribution") — so a few sparse regressors don't discard entire
+    # quarters. Previously a row was valid only if ALL regressors were non-NaN,
+    # which starved the 27-variable GDP equation of fit rows and yielded an
+    # all-NaN forecast. Y_lag is the second-to-last column (Constant is last);
+    # leave its NaN intact so rows with an unknown lagged target still drop.
+    ylag_col = X_fit.shape[1] - 2 if lagY > 0 else None
+    for k in range(X_fit.shape[1]):
+        if k == ylag_col:
+            continue
+        col = X_fit[:, k]
+        nan_mask = np.isnan(col)
+        if np.any(nan_mask):
+            X_fit[:, k] = np.where(nan_mask, 0.0, col)
+
     valid_rows = ~np.any(np.isnan(X_fit), axis=1) & ~np.isnan(Y_fit)
     if np.sum(valid_rows) < max(lagM, lagQ, lagY) + 2:
         return np.full(Tq, np.nan), dateQ[:Tq], np.zeros((Tq, len(var_names))), np.zeros(len(var_names))
