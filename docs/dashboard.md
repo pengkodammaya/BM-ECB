@@ -2,7 +2,7 @@
 
 > *Comparable to [OpenDOSM GDP Dashboard](https://open.dosm.gov.my/dashboard/gdp)*
 
-**Last updated:** 2026-06-23 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
+**Last updated:** 2026-06-24 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
 
 ---
 
@@ -18,7 +18,7 @@
 
 | Model | Nowcast | vs AR(1) | Description |
 |-------|:-------:|:--------:|-------------|
-| **DFM** | `+11.0%` | 5.6pp | Dynamic Factor Model |
+| **DFM** | `+11.8%` | 6.4pp | Dynamic Factor Model |
 | **BVAR** | `+5.1%` | -0.3pp | Bayesian VAR |
 | **AR(1)** | `+5.4%` | — | Persistence (baseline) |
 | **Ensemble** | `+5.1%` | -0.3pp | Median of DFM + BVAR |
@@ -62,8 +62,8 @@
 |--------|:------:|:-------:|:-----:|
 | Agriculture | `+2.6%` | `+0.9%` | `1.7pp` |
 | Mining & Quarrying | `-2.1%` | `-1.0%` | `1.1pp` |
-| Manufacturing | `+5.9%` | `+3.9%` | `2.0pp` |
-| Construction | `+7.7%` | `-4.0%` | `11.7pp` |
+| Manufacturing | `+5.9%` | `+4.3%` | `1.6pp` |
+| Construction | `+7.7%` | `-3.7%` | `11.4pp` |
 | Services | `+5.6%` | `+7.9%` | `2.3pp` |
 | **Overall GDP** | **`+5.4%`** | **`+3.9%`** | 1.5pp |
 
@@ -127,6 +127,7 @@
 | 2026-06-21 | 2026-Q2 | +11.2% | +5.1% | — | +5.1% | — |
 | 2026-06-22 | 2026-Q2 | +11.0% | +5.1% | — | +5.1% | — |
 | 2026-06-23 | 2026-Q2 | +11.0% | +5.1% | — | +5.1% | — |
+| 2026-06-24 | 2026-Q2 | +11.8% | +5.1% | — | +5.1% | — |
 
 ---
 
