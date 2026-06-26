@@ -1,6 +1,6 @@
 # Malaysia GDP Nowcasting — Live Leaderboard
 
-**Updated:** 2026-06-25 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
+**Updated:** 2026-06-26 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
 
 ## GDP Nowcast (YoY %)
 
@@ -8,7 +8,7 @@
 
 | Model | Nowcast |
 |-------|--------|
-| DFM | `+11.6%` |
+| DFM | `+11.2%` |
 | BVAR | `+5.1%` |
 | ENSEMBLE | `+5.1%` |
 
@@ -18,11 +18,11 @@
 
 | Component | BVAR | DFM | Actual (target Q) | Error |
 |-----------|------|-----|-------------------|-------|
-| **Private Consumption** (C) | +5.5% | +10.9% | pending | pending |
-| **Gross Fixed Capital Formation** (I) | +7.7% | -7.9% | pending | pending |
-| **Government Consumption** (G) | +5.8% | +3.1% | pending | pending |
-| **Exports** (X) | +6.2% | -4.3% | pending | pending |
-| **Imports** (M) | +7.4% | +4.2% | pending | pending |
+| **Private Consumption** (C) | +5.5% | +11.5% | pending | pending |
+| **Gross Fixed Capital Formation** (I) | +7.7% | -7.6% | pending | pending |
+| **Government Consumption** (G) | +5.8% | +3.2% | pending | pending |
+| **Exports** (X) | +6.1% | -3.2% | pending | pending |
+| **Imports** (M) | +7.4% | +4.3% | pending | pending |
 
 ## GDP by Economic Sector (YoY %)
 
@@ -51,7 +51,6 @@
 
 | Date | Target Q | DFM | BVAR | BEQ | ENSEMBLE |
 |------|----------|-----|------|-----|----------|
-| 2026-05-26 | 2026-Q2 | +2.1% | +0.9% | +1.1% | +1.1% |
 | 2026-05-27 | 2026-Q2 | +2.4% | +0.9% | +1.1% | +1.1% |
 | 2026-05-28 | 2026-Q2 | +9.9% | +4.2% | +1.1% | +7.0% |
 | 2026-05-29 | 2026-Q2 | +8.2% | +4.2% | +1.1% | +6.2% |
@@ -81,13 +80,14 @@
 | 2026-06-23 | 2026-Q2 | +11.0% | +5.1% | +4.6% | +5.1% |
 | 2026-06-24 | 2026-Q2 | +11.8% | +5.1% | +4.7% | +5.1% |
 | 2026-06-25 | 2026-Q2 | +11.6% | +5.1% | +4.7% | +5.1% |
+| 2026-06-26 | 2026-Q2 | +11.2% | +5.1% | +4.7% | +5.1% |
 
 ## Data Sources
 
 - **GDP:** DOSM `gdp_qtr_real` (YoY), `gdp_qtr_real_sa` (QoQ)
 - **Expenditure:** DOSM `gdp_qtr_real_demand`; **Sectors:** `gdp_qtr_real_supply`
 - **Vintages:** `docs/actuals_vintage.csv` (first-release frozen, revisions tracked)
-- **Last updated:** 2026-06-25
+- **Last updated:** 2026-06-26
 
 ---
 *Auto-generated daily via GitHub Actions. [Source](https://github.com/pengkodammaya/BM-ECB)*
