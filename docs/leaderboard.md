@@ -1,6 +1,6 @@
 # Malaysia GDP Nowcasting — Live Leaderboard
 
-**Updated:** 2026-06-29 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
+**Updated:** 2026-06-30 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
 
 ## GDP Nowcast (YoY %)
 
@@ -8,7 +8,7 @@
 
 | Model | Nowcast |
 |-------|--------|
-| DFM | `+11.9%` |
+| DFM | `+11.3%` |
 | BVAR | `+5.1%` |
 | ENSEMBLE | `+5.1%` |
 
@@ -18,10 +18,10 @@
 
 | Component | BVAR | DFM | Actual (target Q) | Error |
 |-----------|------|-----|-------------------|-------|
-| **Private Consumption** (C) | +5.5% | +11.3% | pending | pending |
-| **Gross Fixed Capital Formation** (I) | +7.6% | -6.3% | pending | pending |
-| **Government Consumption** (G) | +5.8% | +3.4% | pending | pending |
-| **Exports** (X) | +6.2% | -0.9% | pending | pending |
+| **Private Consumption** (C) | +5.5% | +11.0% | pending | pending |
+| **Gross Fixed Capital Formation** (I) | +7.6% | -4.9% | pending | pending |
+| **Government Consumption** (G) | +5.8% | +3.5% | pending | pending |
+| **Exports** (X) | +6.1% | -1.2% | pending | pending |
 | **Imports** (M) | +7.4% | +4.3% | pending | pending |
 
 ## GDP by Economic Sector (YoY %)
@@ -51,7 +51,6 @@
 
 | Date | Target Q | DFM | BVAR | BEQ | ENSEMBLE |
 |------|----------|-----|------|-----|----------|
-| 2026-05-30 | 2026-Q2 | +9.0% | +4.1% | — | +6.6% |
 | 2026-06-01 | 2026-Q2 | +8.5% | +3.9% | — | +6.2% |
 | 2026-06-02 | 2026-Q2 | +8.6% | — | — | — |
 | 2026-06-03 | 2026-Q2 | +6.2% | +5.1% | — | +5.7% |
@@ -81,13 +80,14 @@
 | 2026-06-27 | 2026-Q2 | +12.0% | +5.1% | +4.7% | +5.1% |
 | 2026-06-28 | 2026-Q2 | +11.8% | +5.1% | +4.7% | +5.1% |
 | 2026-06-29 | 2026-Q2 | +11.9% | +5.1% | +4.7% | +5.1% |
+| 2026-06-30 | 2026-Q2 | +11.3% | +5.1% | +4.7% | +5.1% |
 
 ## Data Sources
 
 - **GDP:** DOSM `gdp_qtr_real` (YoY), `gdp_qtr_real_sa` (QoQ)
 - **Expenditure:** DOSM `gdp_qtr_real_demand`; **Sectors:** `gdp_qtr_real_supply`
 - **Vintages:** `docs/actuals_vintage.csv` (first-release frozen, revisions tracked)
-- **Last updated:** 2026-06-29
+- **Last updated:** 2026-06-30
 
 ---
 *Auto-generated daily via GitHub Actions. [Source](https://github.com/pengkodammaya/BM-ECB)*
