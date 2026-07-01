@@ -1,43 +1,43 @@
 {
-  "lastUpdated": "2026-06-30",
-  "targetQuarter": "2026-Q2",
+  "lastUpdated": "2026-07-01",
+  "targetQuarter": "2026-Q3",
   "latestActual": {
     "quarter": "Q1 2026",
     "yoy": 5.4
   },
   "nowcast": {
-    "quarter": "Q2 2026",
-    "dfm": 11.28,
-    "bvar": 5.11,
+    "quarter": "Q3 2026",
+    "dfm": 2.19,
+    "bvar": 4.6,
     "ar1": 5.4,
-    "ensemble": 5.11,
+    "ensemble": 4.31,
     "bvar_ci_10": null,
     "bvar_ci_90": null
   },
   "backcast": {
     "dfm": {
-      "estimate": 5.4,
-      "error": 0.0
+      "estimate": 5.5,
+      "error": 0.1
     },
     "bvar": {
-      "estimate": 3.9,
-      "error": 1.5
+      "estimate": 3.5,
+      "error": 1.9
     },
     "ensemble": {
-      "estimate": 4.7,
-      "error": 0.7
+      "estimate": 4.5,
+      "error": 0.9
     }
   },
   "components": {
     "consumption": {
-      "bvar": 5.5,
+      "bvar": 5.1,
       "actual": 4.7,
-      "error": 0.8
+      "error": 0.4
     },
     "investment": {
-      "bvar": 7.6,
+      "bvar": 7.4,
       "actual": 7.3,
-      "error": 0.3
+      "error": 0.1
     },
     "government": {
       "bvar": 5.8,
@@ -45,14 +45,14 @@
       "error": 1.7
     },
     "exports": {
-      "bvar": 6.1,
+      "bvar": 5.2,
       "actual": 5.2,
-      "error": 0.9
+      "error": 0.0
     },
     "imports": {
-      "bvar": 7.4,
+      "bvar": 7.3,
       "actual": 4.6,
-      "error": 2.8
+      "error": 2.7
     }
   },
   "sectors": {
@@ -64,23 +64,14 @@
   },
   "sectorNowcast": {
     "agriculture": 0.9,
-    "mining": -1.0,
-    "manufacturing": 4.2,
-    "construction": -0.5,
-    "services": 7.9
+    "mining": -0.7,
+    "manufacturing": 4.3,
+    "construction": 3.3,
+    "services": 7.5
   },
   "leaderboard": [],
   "byHorizon": [],
   "recent": [
-    {
-      "date": "2026-06-01",
-      "target_quarter": "2026-Q2",
-      "dfm": 8.5,
-      "bvar": 3.9,
-      "beq": null,
-      "ensemble": 6.2,
-      "actual": null
-    },
     {
       "date": "2026-06-02",
       "target_quarter": "2026-Q2",
@@ -341,6 +332,15 @@
       "beq": 4.7,
       "ensemble": 5.1,
       "actual": null
+    },
+    {
+      "date": "2026-07-01",
+      "target_quarter": "2026-Q3",
+      "dfm": 2.2,
+      "bvar": 4.6,
+      "beq": 4.3,
+      "ensemble": 4.3,
+      "actual": null
     }
   ],
   "arc_next": [
@@ -461,49 +461,49 @@
     "components": {
       "investment": {
         "levels": {
-          "Q2 2026": 104933.0,
-          "Q3 2026": 101149.0,
-          "Q4 2026": 101212.0,
+          "Q2 2026": 101438.0,
+          "Q3 2026": 101309.0,
+          "Q4 2026": 105096.0,
           "Q1 2027": 105497.0
         },
         "unit": "MYR Million",
         "yoy": {
-          "Q2 2026": 5.2,
-          "Q3 2026": 4.9,
-          "Q4 2026": 4.7,
+          "Q2 2026": 1.7,
+          "Q3 2026": 5.1,
+          "Q4 2026": 8.7,
           "Q1 2027": 5.1
         }
       },
       "imports": {
         "levels": {
-          "Q2 2026": 128000.0,
-          "Q3 2026": 130000.0,
-          "Q4 2026": 131000.0,
-          "Q1 2027": 122000.0
+          "Q2 2026": 148000.0,
+          "Q3 2026": 150000.0,
+          "Q4 2026": 151000.0,
+          "Q1 2027": 172000.0
         },
         "unit": "MYR Million"
       },
       "exports": {
         "levels": {
-          "Q2 2026": 136000.0,
-          "Q3 2026": 139000.0,
-          "Q4 2026": 141000.0,
-          "Q1 2027": 140000.0
+          "Q2 2026": 190000.0,
+          "Q3 2026": 190000.0,
+          "Q4 2026": 201000.0,
+          "Q1 2027": 180000.0
         },
         "unit": "MYR Million"
       },
       "consumption": {
         "levels": {
-          "Q2 2026": 270230.0,
-          "Q3 2026": 285011.0,
-          "Q4 2026": 277160.0,
+          "Q2 2026": 285826.0,
+          "Q3 2026": 277424.0,
+          "Q4 2026": 282153.0,
           "Q1 2027": 283231.0
         },
         "unit": "MYR Million",
         "yoy": {
-          "Q2 2026": 5.2,
-          "Q3 2026": 4.9,
-          "Q4 2026": 4.7,
+          "Q2 2026": 11.3,
+          "Q3 2026": 2.1,
+          "Q4 2026": 6.6,
           "Q1 2027": 5.1
         }
       }

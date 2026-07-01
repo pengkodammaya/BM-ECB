@@ -2,7 +2,7 @@
 
 > *Comparable to [OpenDOSM GDP Dashboard](https://open.dosm.gov.my/dashboard/gdp)*
 
-**Last updated:** 2026-06-30 | **Latest actual:** Q1 2026 | **Nowcasting:** Q2 2026
+**Last updated:** 2026-07-01 | **Latest actual:** Q1 2026 | **Nowcasting:** Q3 2026
 
 ---
 
@@ -14,16 +14,16 @@
 |---|:---:|---|
 | **GDP Growth** | **`+5.4%`** | DOSM Official |
 
-### Q2 2026 Nowcast (YoY) — No ground truth yet
+### Q3 2026 Nowcast (YoY) — No ground truth yet
 
 | Model | Nowcast | vs AR(1) | Description |
 |-------|:-------:|:--------:|-------------|
-| **DFM** | `+11.3%` | 5.9pp | Dynamic Factor Model |
-| **BVAR** | `+5.1%` | -0.3pp | Bayesian VAR |
+| **DFM** | `+2.2%` | -3.2pp | Dynamic Factor Model |
+| **BVAR** | `+4.6%` | -0.8pp | Bayesian VAR |
 | **AR(1)** | `+5.4%` | — | Persistence (baseline) |
-| **Ensemble** | `+5.1%` | -0.3pp | Median of DFM + BVAR |
+| **Ensemble** | `+4.3%` | -1.1pp | Median of DFM + BVAR |
 
-> *Q2 2026 actuals expected via DOSM ARC*
+> *Q3 2026 actuals expected via DOSM ARC*
 
 ---
 
@@ -61,11 +61,11 @@
 | Sector | Actual | Nowcast | Error |
 |--------|:------:|:-------:|:-----:|
 | Agriculture | `+2.6%` | `+0.9%` | `1.7pp` |
-| Mining & Quarrying | `-2.1%` | `-1.0%` | `1.1pp` |
-| Manufacturing | `+5.9%` | `+4.2%` | `1.7pp` |
-| Construction | `+7.7%` | `-0.5%` | `8.2pp` |
-| Services | `+5.6%` | `+7.9%` | `2.3pp` |
-| **Overall GDP** | **`+5.4%`** | **`+3.9%`** | 1.5pp |
+| Mining & Quarrying | `-2.1%` | `-0.7%` | `1.4pp` |
+| Manufacturing | `+5.9%` | `+4.3%` | `1.6pp` |
+| Construction | `+7.7%` | `+3.3%` | `4.4pp` |
+| Services | `+5.6%` | `+7.5%` | `1.9pp` |
+| **Overall GDP** | **`+5.4%`** | **`+3.5%`** | 1.9pp |
 
 ---
 
@@ -75,11 +75,11 @@
 
 | Component | BVAR | Actual | Error |
 |-----------|:----:|:------:|:-----:|
-| **Consumption (C)** | +5.5% | +4.7% | 0.8pp |
-| **Investment (I)** | +7.6% | +7.3% | 0.3pp |
+| **Consumption (C)** | +5.1% | +4.7% | 0.4pp |
+| **Investment (I)** | +7.4% | +7.3% | 0.1pp |
 | **Government (G)** | +5.8% | +4.1% | 1.7pp |
-| **Exports (X)** | +6.1% | +5.2% | 0.9pp |
-| **Imports (M)** | +7.4% | +4.6% | 2.8pp |
+| **Exports (X)** | +5.2% | +5.2% | 0.0pp |
+| **Imports (M)** | +7.3% | +4.6% | 2.7pp |
 
 ---
 
@@ -99,7 +99,6 @@
 
 | Date | Target | DFM | BVAR | AR(1) | Ensemble | Actual |
 |------|:------:|:---:|:----:|:-----:|:--------:|:------:|
-| 2026-06-01 | 2026-Q2 | +8.5% | +3.9% | — | +6.2% | — |
 | 2026-06-02 | 2026-Q2 | +8.6% | — | — | — | — |
 | 2026-06-03 | 2026-Q2 | +6.2% | +5.1% | — | +5.7% | — |
 | 2026-06-04 | 2026-Q2 | +5.6% | — | — | +5.6% | — |
@@ -129,6 +128,7 @@
 | 2026-06-28 | 2026-Q2 | +11.8% | +5.1% | — | +5.1% | — |
 | 2026-06-29 | 2026-Q2 | +11.9% | +5.1% | — | +5.1% | — |
 | 2026-06-30 | 2026-Q2 | +11.3% | +5.1% | — | +5.1% | — |
+| 2026-07-01 | 2026-Q3 | +2.2% | +4.6% | — | +4.3% | — |
 
 ---
 
