@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-07-06",
+  "lastUpdated": "2026-07-07",
   "targetQuarter": "2026-Q3",
   "latestActual": {
     "quarter": "Q1 2026",
@@ -7,10 +7,10 @@
   },
   "nowcast": {
     "quarter": "Q3 2026",
-    "dfm": 4.41,
-    "bvar": 4.56,
+    "dfm": 4.35,
+    "bvar": 4.6,
     "ar1": 5.4,
-    "ensemble": 4.41,
+    "ensemble": 4.35,
     "bvar_ci_10": null,
     "bvar_ci_90": null
   },
@@ -20,19 +20,19 @@
       "error": 0.2
     },
     "bvar": {
-      "estimate": 3.5,
-      "error": 1.9
+      "estimate": 3.7,
+      "error": 1.7
     },
     "ensemble": {
-      "estimate": 4.5,
-      "error": 0.9
+      "estimate": 4.7,
+      "error": 0.7
     }
   },
   "components": {
     "consumption": {
-      "bvar": 4.8,
+      "bvar": 4.7,
       "actual": 4.7,
-      "error": 0.1
+      "error": 0.0
     },
     "investment": {
       "bvar": 7.4,
@@ -45,9 +45,9 @@
       "error": 1.7
     },
     "exports": {
-      "bvar": 5.6,
+      "bvar": 5.2,
       "actual": 5.2,
-      "error": 0.4
+      "error": 0.0
     },
     "imports": {
       "bvar": 7.2,
@@ -72,15 +72,6 @@
   "leaderboard": [],
   "byHorizon": [],
   "recent": [
-    {
-      "date": "2026-06-07",
-      "target_quarter": "2026-Q2",
-      "dfm": 10.7,
-      "bvar": 5.1,
-      "beq": null,
-      "ensemble": 7.9,
-      "actual": null
-    },
     {
       "date": "2026-06-08",
       "target_quarter": "2026-Q2",
@@ -340,6 +331,15 @@
       "bvar": 4.6,
       "beq": 4.3,
       "ensemble": 4.4,
+      "actual": null
+    },
+    {
+      "date": "2026-07-07",
+      "target_quarter": "2026-Q3",
+      "dfm": 4.3,
+      "bvar": 4.6,
+      "beq": 4.3,
+      "ensemble": 4.3,
       "actual": null
     }
   ],
