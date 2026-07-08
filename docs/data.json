@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-07-07",
+  "lastUpdated": "2026-07-08",
   "targetQuarter": "2026-Q3",
   "latestActual": {
     "quarter": "Q1 2026",
@@ -7,10 +7,10 @@
   },
   "nowcast": {
     "quarter": "Q3 2026",
-    "dfm": 4.35,
-    "bvar": 4.6,
+    "dfm": 5.06,
+    "bvar": 4.59,
     "ar1": 5.4,
-    "ensemble": 4.35,
+    "ensemble": 4.59,
     "bvar_ci_10": null,
     "bvar_ci_90": null
   },
@@ -66,21 +66,12 @@
     "agriculture": 0.9,
     "mining": -0.7,
     "manufacturing": 4.3,
-    "construction": 3.4,
+    "construction": 3.5,
     "services": 7.5
   },
   "leaderboard": [],
   "byHorizon": [],
   "recent": [
-    {
-      "date": "2026-06-08",
-      "target_quarter": "2026-Q2",
-      "dfm": 10.6,
-      "bvar": 5.1,
-      "beq": null,
-      "ensemble": 7.9,
-      "actual": null
-    },
     {
       "date": "2026-06-09",
       "target_quarter": "2026-Q2",
@@ -340,6 +331,15 @@
       "bvar": 4.6,
       "beq": 4.3,
       "ensemble": 4.3,
+      "actual": null
+    },
+    {
+      "date": "2026-07-08",
+      "target_quarter": "2026-Q3",
+      "dfm": 5.1,
+      "bvar": 4.6,
+      "beq": 4.3,
+      "ensemble": 4.6,
       "actual": null
     }
   ],
