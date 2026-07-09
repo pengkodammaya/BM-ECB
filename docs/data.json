@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-07-08",
+  "lastUpdated": "2026-07-09",
   "targetQuarter": "2026-Q3",
   "latestActual": {
     "quarter": "Q1 2026",
@@ -7,10 +7,10 @@
   },
   "nowcast": {
     "quarter": "Q3 2026",
-    "dfm": 5.06,
-    "bvar": 4.59,
+    "dfm": 5.26,
+    "bvar": 4.56,
     "ar1": 5.4,
-    "ensemble": 4.59,
+    "ensemble": 4.56,
     "bvar_ci_10": null,
     "bvar_ci_90": null
   },
@@ -45,14 +45,14 @@
       "error": 1.7
     },
     "exports": {
-      "bvar": 5.2,
+      "bvar": 5.4,
       "actual": 5.2,
-      "error": 0.0
+      "error": 0.2
     },
     "imports": {
-      "bvar": 7.2,
+      "bvar": 7.3,
       "actual": 4.6,
-      "error": 2.6
+      "error": 2.7
     }
   },
   "sectors": {
@@ -72,15 +72,6 @@
   "leaderboard": [],
   "byHorizon": [],
   "recent": [
-    {
-      "date": "2026-06-09",
-      "target_quarter": "2026-Q2",
-      "dfm": 9.3,
-      "bvar": 5.1,
-      "beq": null,
-      "ensemble": 7.2,
-      "actual": null
-    },
     {
       "date": "2026-06-10",
       "target_quarter": "2026-Q2",
@@ -337,6 +328,15 @@
       "date": "2026-07-08",
       "target_quarter": "2026-Q3",
       "dfm": 5.1,
+      "bvar": 4.6,
+      "beq": 4.3,
+      "ensemble": 4.6,
+      "actual": null
+    },
+    {
+      "date": "2026-07-09",
+      "target_quarter": "2026-Q3",
+      "dfm": 5.3,
       "bvar": 4.6,
       "beq": 4.3,
       "ensemble": 4.6,
