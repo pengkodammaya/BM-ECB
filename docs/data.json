@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-07-20",
+  "lastUpdated": "2026-07-21",
   "targetQuarter": "2026-Q3",
   "latestActual": {
     "quarter": "Q1 2026",
@@ -7,21 +7,21 @@
   },
   "nowcast": {
     "quarter": "Q3 2026",
-    "dfm": 7.23,
-    "bvar": 4.43,
+    "dfm": 6.2,
+    "bvar": 4.56,
     "ar1": 5.4,
-    "ensemble": 4.43,
+    "ensemble": 4.56,
     "bvar_ci_10": null,
     "bvar_ci_90": null
   },
   "backcast": {
     "dfm": {
-      "estimate": 5.4,
-      "error": 0.0
+      "estimate": 5.5,
+      "error": 0.1
     },
     "bvar": {
-      "estimate": 3.5,
-      "error": 1.9
+      "estimate": 3.6,
+      "error": 1.8
     },
     "ensemble": {
       "estimate": 4.5,
@@ -30,14 +30,14 @@
   },
   "components": {
     "consumption": {
-      "bvar": 4.8,
+      "bvar": 4.7,
       "actual": 4.7,
-      "error": 0.1
+      "error": 0.0
     },
     "investment": {
-      "bvar": 7.4,
+      "bvar": 7.5,
       "actual": 7.3,
-      "error": 0.1
+      "error": 0.2
     },
     "government": {
       "bvar": 5.8,
@@ -45,9 +45,9 @@
       "error": 1.7
     },
     "exports": {
-      "bvar": 4.9,
+      "bvar": 5.2,
       "actual": 5.2,
-      "error": 0.3
+      "error": 0.0
     },
     "imports": {
       "bvar": 7.4,
@@ -63,7 +63,7 @@
     "services": 5.6
   },
   "sectorNowcast": {
-    "agriculture": 1.0,
+    "agriculture": 0.9,
     "mining": -0.7,
     "manufacturing": 4.3,
     "construction": 3.5,
@@ -72,15 +72,6 @@
   "leaderboard": [],
   "byHorizon": [],
   "recent": [
-    {
-      "date": "2026-06-21",
-      "target_quarter": "2026-Q2",
-      "dfm": 11.2,
-      "bvar": 5.1,
-      "beq": 4.6,
-      "ensemble": 5.1,
-      "actual": null
-    },
     {
       "date": "2026-06-22",
       "target_quarter": "2026-Q2",
@@ -340,6 +331,15 @@
       "bvar": 4.4,
       "beq": 4.1,
       "ensemble": 4.4,
+      "actual": null
+    },
+    {
+      "date": "2026-07-21",
+      "target_quarter": "2026-Q3",
+      "dfm": 6.2,
+      "bvar": 4.6,
+      "beq": 4.1,
+      "ensemble": 4.6,
       "actual": null
     }
   ],
