@@ -2,7 +2,7 @@
 
 > *Comparable to [OpenDOSM GDP Dashboard](https://open.dosm.gov.my/dashboard/gdp)*
 
-**Last updated:** 2026-07-22 | **Latest actual:** Q1 2026 | **Nowcasting:** Q3 2026
+**Last updated:** 2026-07-23 | **Latest actual:** Q1 2026 | **Nowcasting:** Q3 2026
 
 ---
 
@@ -18,10 +18,10 @@
 
 | Model | Nowcast | vs AR(1) | Description |
 |-------|:-------:|:--------:|-------------|
-| **DFM** | `+6.2%` | 0.8pp | Dynamic Factor Model |
-| **BVAR** | `+4.5%` | -0.9pp | Bayesian VAR |
+| **DFM** | `+6.7%` | 1.3pp | Dynamic Factor Model |
+| **BVAR** | `+4.5%` | -1.0pp | Bayesian VAR |
 | **AR(1)** | `+5.4%` | — | Persistence (baseline) |
-| **Ensemble** | `+4.5%` | -0.9pp | Median of DFM + BVAR |
+| **Ensemble** | `+4.5%` | -1.0pp | Median of DFM + BVAR |
 
 > *Q3 2026 actuals expected via DOSM ARC*
 
@@ -65,7 +65,7 @@
 | Manufacturing | `+5.9%` | `+4.3%` | `1.6pp` |
 | Construction | `+7.7%` | `+3.5%` | `4.2pp` |
 | Services | `+5.6%` | `+7.3%` | `1.7pp` |
-| **Overall GDP** | **`+5.4%`** | **`+3.6%`** | 1.8pp |
+| **Overall GDP** | **`+5.4%`** | **`+3.5%`** | 1.9pp |
 
 ---
 
@@ -77,8 +77,8 @@
 |-----------|:----:|:------:|:-----:|
 | **Consumption (C)** | +4.8% | +4.7% | 0.1pp |
 | **Investment (I)** | +7.5% | +7.3% | 0.2pp |
-| **Government (G)** | +5.8% | +4.1% | 1.7pp |
-| **Exports (X)** | +4.9% | +5.2% | 0.3pp |
+| **Government (G)** | +5.9% | +4.1% | 1.8pp |
+| **Exports (X)** | +5.0% | +5.2% | 0.2pp |
 | **Imports (M)** | +7.4% | +4.6% | 2.8pp |
 
 ---
@@ -99,7 +99,6 @@
 
 | Date | Target | DFM | BVAR | AR(1) | Ensemble | Actual |
 |------|:------:|:---:|:----:|:-----:|:--------:|:------:|
-| 2026-06-23 | 2026-Q2 | +11.0% | +5.1% | — | +5.1% | — |
 | 2026-06-24 | 2026-Q2 | +11.8% | +5.1% | — | +5.1% | — |
 | 2026-06-25 | 2026-Q2 | +11.6% | +5.1% | — | +5.1% | — |
 | 2026-06-26 | 2026-Q2 | +11.2% | +5.1% | — | +5.1% | — |
@@ -129,6 +128,7 @@
 | 2026-07-20 | 2026-Q3 | +7.2% | +4.4% | — | +4.4% | — |
 | 2026-07-21 | 2026-Q3 | +6.2% | +4.6% | — | +4.6% | — |
 | 2026-07-22 | 2026-Q3 | +6.2% | +4.5% | — | +4.5% | — |
+| 2026-07-23 | 2026-Q3 | +6.7% | +4.5% | — | +4.5% | — |
 
 ---
 
