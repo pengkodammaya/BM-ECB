@@ -2,7 +2,7 @@
 
 > *Comparable to [OpenDOSM GDP Dashboard](https://open.dosm.gov.my/dashboard/gdp)*
 
-**Last updated:** 2026-07-23 | **Latest actual:** Q1 2026 | **Nowcasting:** Q3 2026
+**Last updated:** 2026-07-24 | **Latest actual:** Q1 2026 | **Nowcasting:** Q3 2026
 
 ---
 
@@ -18,10 +18,10 @@
 
 | Model | Nowcast | vs AR(1) | Description |
 |-------|:-------:|:--------:|-------------|
-| **DFM** | `+6.7%` | 1.3pp | Dynamic Factor Model |
-| **BVAR** | `+4.5%` | -1.0pp | Bayesian VAR |
+| **DFM** | `+7.1%` | 1.7pp | Dynamic Factor Model |
+| **BVAR** | `+4.5%` | -0.9pp | Bayesian VAR |
 | **AR(1)** | `+5.4%` | — | Persistence (baseline) |
-| **Ensemble** | `+4.5%` | -1.0pp | Median of DFM + BVAR |
+| **Ensemble** | `+4.5%` | -0.9pp | Median of DFM + BVAR |
 
 > *Q3 2026 actuals expected via DOSM ARC*
 
@@ -77,9 +77,9 @@
 |-----------|:----:|:------:|:-----:|
 | **Consumption (C)** | +4.8% | +4.7% | 0.1pp |
 | **Investment (I)** | +7.5% | +7.3% | 0.2pp |
-| **Government (G)** | +5.9% | +4.1% | 1.8pp |
+| **Government (G)** | +5.8% | +4.1% | 1.7pp |
 | **Exports (X)** | +5.0% | +5.2% | 0.2pp |
-| **Imports (M)** | +7.4% | +4.6% | 2.8pp |
+| **Imports (M)** | +7.5% | +4.6% | 2.9pp |
 
 ---
 
@@ -99,7 +99,6 @@
 
 | Date | Target | DFM | BVAR | AR(1) | Ensemble | Actual |
 |------|:------:|:---:|:----:|:-----:|:--------:|:------:|
-| 2026-06-24 | 2026-Q2 | +11.8% | +5.1% | — | +5.1% | — |
 | 2026-06-25 | 2026-Q2 | +11.6% | +5.1% | — | +5.1% | — |
 | 2026-06-26 | 2026-Q2 | +11.2% | +5.1% | — | +5.1% | — |
 | 2026-06-27 | 2026-Q2 | +12.0% | +5.1% | — | +5.1% | — |
@@ -129,6 +128,7 @@
 | 2026-07-21 | 2026-Q3 | +6.2% | +4.6% | — | +4.6% | — |
 | 2026-07-22 | 2026-Q3 | +6.2% | +4.5% | — | +4.5% | — |
 | 2026-07-23 | 2026-Q3 | +6.7% | +4.5% | — | +4.5% | — |
+| 2026-07-24 | 2026-Q3 | +7.1% | +4.5% | — | +4.5% | — |
 
 ---
 
