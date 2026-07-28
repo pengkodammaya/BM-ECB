@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-07-27",
+  "lastUpdated": "2026-07-28",
   "targetQuarter": "2026-Q3",
   "latestActual": {
     "quarter": "Q1 2026",
@@ -7,10 +7,10 @@
   },
   "nowcast": {
     "quarter": "Q3 2026",
-    "dfm": 6.82,
-    "bvar": 4.59,
+    "dfm": 6.75,
+    "bvar": 4.49,
     "ar1": 5.4,
-    "ensemble": 4.59,
+    "ensemble": 4.49,
     "bvar_ci_10": null,
     "bvar_ci_90": null
   },
@@ -20,8 +20,8 @@
       "error": 0.0
     },
     "bvar": {
-      "estimate": 3.6,
-      "error": 1.8
+      "estimate": 3.5,
+      "error": 1.9
     },
     "ensemble": {
       "estimate": 4.5,
@@ -40,9 +40,9 @@
       "error": 0.4
     },
     "government": {
-      "bvar": 5.9,
+      "bvar": 5.8,
       "actual": 4.1,
-      "error": 1.8
+      "error": 1.7
     },
     "exports": {
       "bvar": 4.9,
@@ -72,15 +72,6 @@
   "leaderboard": [],
   "byHorizon": [],
   "recent": [
-    {
-      "date": "2026-06-28",
-      "target_quarter": "2026-Q2",
-      "dfm": 11.8,
-      "bvar": 5.1,
-      "beq": 4.7,
-      "ensemble": 5.1,
-      "actual": null
-    },
     {
       "date": "2026-06-29",
       "target_quarter": "2026-Q2",
@@ -341,6 +332,15 @@
       "beq": 4.1,
       "ensemble": 4.6,
       "actual": null
+    },
+    {
+      "date": "2026-07-28",
+      "target_quarter": "2026-Q3",
+      "dfm": 6.8,
+      "bvar": 4.5,
+      "beq": 4.1,
+      "ensemble": 4.5,
+      "actual": null
     }
   ],
   "arc_next": [
@@ -456,7 +456,7 @@
       "Q2 2026": 1.5,
       "Q3 2026": -0.4,
       "Q4 2026": 0.7,
-      "Q1 2027": 1.0
+      "Q1 2027": 0.1
     },
     "components": {
       "investment": {
@@ -476,19 +476,19 @@
       },
       "imports": {
         "levels": {
-          "Q2 2026": 150000.0,
+          "Q2 2026": 140000.0,
           "Q3 2026": 151000.0,
-          "Q4 2026": 172000.0,
+          "Q4 2026": 152000.0,
           "Q1 2027": 178000.0
         },
         "unit": "MYR Million"
       },
       "exports": {
         "levels": {
-          "Q2 2026": 190000.0,
-          "Q3 2026": 201000.0,
+          "Q2 2026": 165000.0,
+          "Q3 2026": 187000.0,
           "Q4 2026": 180000.0,
-          "Q1 2027": 220000.0
+          "Q1 2027": 210000.0
         },
         "unit": "MYR Million"
       },
