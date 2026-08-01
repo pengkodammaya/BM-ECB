@@ -2,7 +2,7 @@
 
 > *Comparable to [OpenDOSM GDP Dashboard](https://open.dosm.gov.my/dashboard/gdp)*
 
-**Last updated:** 2026-07-31 | **Latest actual:** Q1 2026 | **Nowcasting:** Q3 2026
+**Last updated:** 2026-08-01 | **Latest actual:** Q1 2026 | **Nowcasting:** Q3 2026
 
 ---
 
@@ -18,10 +18,10 @@
 
 | Model | Nowcast | vs AR(1) | Description |
 |-------|:-------:|:--------:|-------------|
-| **DFM** | `+7.4%` | 2.0pp | Dynamic Factor Model |
-| **BVAR** | `+4.5%` | -0.9pp | Bayesian VAR |
+| **DFM** | `+7.5%` | 2.1pp | Dynamic Factor Model |
+| **BVAR** | `+4.6%` | -0.8pp | Bayesian VAR |
 | **AR(1)** | `+5.4%` | — | Persistence (baseline) |
-| **Ensemble** | `+4.5%` | -0.9pp | Median of DFM + BVAR |
+| **Ensemble** | `+4.6%` | -0.8pp | Median of DFM + BVAR |
 
 > *Q3 2026 actuals expected via DOSM ARC*
 
@@ -65,7 +65,7 @@
 | Manufacturing | `+5.9%` | `+4.3%` | `1.6pp` |
 | Construction | `+7.7%` | `+3.4%` | `4.3pp` |
 | Services | `+5.6%` | `+7.3%` | `1.7pp` |
-| **Overall GDP** | **`+5.4%`** | **`+3.5%`** | 1.9pp |
+| **Overall GDP** | **`+5.4%`** | **`+3.6%`** | 1.8pp |
 
 ---
 
@@ -77,7 +77,7 @@
 |-----------|:----:|:------:|:-----:|
 | **Consumption (C)** | +4.8% | +4.7% | 0.1pp |
 | **Investment (I)** | +7.7% | +7.3% | 0.4pp |
-| **Government (G)** | +5.8% | +4.1% | 1.7pp |
+| **Government (G)** | +5.9% | +4.1% | 1.8pp |
 | **Exports (X)** | +4.9% | +5.2% | 0.3pp |
 | **Imports (M)** | +7.1% | +4.6% | 2.5pp |
 
@@ -99,7 +99,6 @@
 
 | Date | Target | DFM | BVAR | AR(1) | Ensemble | Actual |
 |------|:------:|:---:|:----:|:-----:|:--------:|:------:|
-| 2026-07-02 | 2026-Q3 | +3.6% | +4.7% | — | +4.3% | — |
 | 2026-07-03 | 2026-Q3 | +4.2% | +4.7% | — | +4.3% | — |
 | 2026-07-04 | 2026-Q3 | +4.4% | +4.6% | — | +4.4% | — |
 | 2026-07-05 | 2026-Q3 | +4.4% | +4.6% | — | +4.4% | — |
@@ -129,6 +128,7 @@
 | 2026-07-29 | 2026-Q3 | +7.5% | +4.5% | — | +4.5% | — |
 | 2026-07-30 | 2026-Q3 | +8.1% | +4.5% | — | +4.5% | — |
 | 2026-07-31 | 2026-Q3 | +7.4% | +4.5% | — | +4.5% | — |
+| 2026-08-01 | 2026-Q3 | +7.5% | +4.6% | — | +4.6% | — |
 
 ---
 
