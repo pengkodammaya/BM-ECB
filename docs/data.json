@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-08-01",
+  "lastUpdated": "2026-08-02",
   "targetQuarter": "2026-Q3",
   "latestActual": {
     "quarter": "Q1 2026",
@@ -72,15 +72,6 @@
   "leaderboard": [],
   "byHorizon": [],
   "recent": [
-    {
-      "date": "2026-07-03",
-      "target_quarter": "2026-Q3",
-      "dfm": 4.2,
-      "bvar": 4.7,
-      "beq": 4.3,
-      "ensemble": 4.3,
-      "actual": null
-    },
     {
       "date": "2026-07-04",
       "target_quarter": "2026-Q3",
@@ -335,6 +326,15 @@
     },
     {
       "date": "2026-08-01",
+      "target_quarter": "2026-Q3",
+      "dfm": 7.5,
+      "bvar": 4.6,
+      "beq": 4.1,
+      "ensemble": 4.6,
+      "actual": null
+    },
+    {
+      "date": "2026-08-02",
       "target_quarter": "2026-Q3",
       "dfm": 7.5,
       "bvar": 4.6,
