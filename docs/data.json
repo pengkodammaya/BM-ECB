@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-08-07",
+  "lastUpdated": "2026-08-08",
   "targetQuarter": "2026-Q3",
   "latestActual": {
     "quarter": "Q1 2026",
@@ -7,10 +7,10 @@
   },
   "nowcast": {
     "quarter": "Q3 2026",
-    "dfm": 4.02,
-    "bvar": 4.56,
+    "dfm": 8.71,
+    "bvar": 4.51,
     "ar1": 5.4,
-    "ensemble": 4.17,
+    "ensemble": 4.51,
     "bvar_ci_10": null,
     "bvar_ci_90": null
   },
@@ -45,14 +45,14 @@
       "error": 1.7
     },
     "exports": {
-      "bvar": 5.0,
+      "bvar": 4.8,
       "actual": 5.2,
-      "error": 0.2
+      "error": 0.4
     },
     "imports": {
-      "bvar": 7.1,
+      "bvar": 7.2,
       "actual": 4.6,
-      "error": 2.5
+      "error": 2.6
     }
   },
   "sectors": {
@@ -66,21 +66,12 @@
     "agriculture": 0.9,
     "mining": -0.7,
     "manufacturing": 4.3,
-    "construction": 4.5,
+    "construction": 4.4,
     "services": 7.3
   },
   "leaderboard": [],
   "byHorizon": [],
   "recent": [
-    {
-      "date": "2026-07-09",
-      "target_quarter": "2026-Q3",
-      "dfm": 5.3,
-      "bvar": 4.6,
-      "beq": 4.3,
-      "ensemble": 4.6,
-      "actual": null
-    },
     {
       "date": "2026-07-10",
       "target_quarter": "2026-Q3",
@@ -340,6 +331,15 @@
       "bvar": 4.6,
       "beq": 4.2,
       "ensemble": 4.2,
+      "actual": null
+    },
+    {
+      "date": "2026-08-08",
+      "target_quarter": "2026-Q3",
+      "dfm": 8.7,
+      "bvar": 4.5,
+      "beq": 4.1,
+      "ensemble": 4.5,
       "actual": null
     }
   ],
