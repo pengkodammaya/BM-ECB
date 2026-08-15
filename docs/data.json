@@ -1,86 +1,199 @@
 {
-  "lastUpdated": "2026-08-14",
+  "lastUpdated": "2026-08-15",
   "targetQuarter": "2026-Q3",
   "latestActual": {
-    "quarter": "Q1 2026",
-    "yoy": 5.4
+    "quarter": "Q2 2026",
+    "yoy": 6.0
   },
   "nowcast": {
     "quarter": "Q3 2026",
-    "dfm": 6.5,
-    "bvar": 4.4,
-    "ar1": 5.4,
-    "ensemble": 4.4,
+    "dfm": 7.12,
+    "bvar": 4.86,
+    "ar1": 6.0,
+    "ensemble": 4.86,
     "bvar_ci_10": null,
     "bvar_ci_90": null
   },
   "backcast": {
     "dfm": {
-      "estimate": 5.6,
-      "error": 0.2
+      "estimate": 5.4,
+      "error": 0.6
     },
     "bvar": {
-      "estimate": 3.5,
-      "error": 1.9
+      "estimate": 3.9,
+      "error": 2.1
     },
     "ensemble": {
-      "estimate": 4.5,
-      "error": 0.9
+      "estimate": 4.7,
+      "error": 1.3
     }
   },
   "components": {
     "consumption": {
-      "bvar": 4.7,
-      "actual": 4.7,
-      "error": 0.0
+      "bvar": 5.5,
+      "actual": 4.8,
+      "error": 0.7
     },
     "investment": {
-      "bvar": 7.9,
-      "actual": 7.3,
-      "error": 0.6
+      "bvar": 7.6,
+      "actual": 4.6,
+      "error": 3.0
     },
     "government": {
       "bvar": 5.8,
-      "actual": 4.1,
-      "error": 1.7
+      "actual": 7.6,
+      "error": 1.8
     },
     "exports": {
-      "bvar": 4.8,
-      "actual": 5.2,
-      "error": 0.4
+      "bvar": 6.1,
+      "actual": 17.0,
+      "error": 10.9
     },
     "imports": {
-      "bvar": 7.2,
-      "actual": 4.6,
-      "error": 2.6
+      "bvar": 7.4,
+      "actual": 13.9,
+      "error": 6.5
     }
   },
   "sectors": {
-    "agriculture": 2.6,
-    "mining": -2.1,
-    "manufacturing": 5.9,
-    "construction": 7.7,
-    "services": 5.6
+    "agriculture": -3.7,
+    "mining": 9.2,
+    "manufacturing": 7.3,
+    "construction": 6.5,
+    "services": 5.9
   },
   "sectorNowcast": {
     "agriculture": 0.9,
-    "mining": -0.7,
-    "manufacturing": 4.3,
-    "construction": 4.5,
-    "services": 7.3
+    "mining": -1.0,
+    "manufacturing": 4.2,
+    "construction": -0.5,
+    "services": 7.9
   },
-  "leaderboard": [],
-  "byHorizon": [],
-  "recent": [
+  "leaderboard": [
     {
-      "date": "2026-07-16",
-      "target_quarter": "2026-Q3",
-      "dfm": 6.4,
-      "bvar": 4.5,
-      "beq": 4.3,
-      "ensemble": 4.5,
-      "actual": null
+      "model": "DFM",
+      "mae": 3.375,
+      "rmse": 3.906,
+      "fda": NaN,
+      "n": 35,
+      "latest": 7.1
     },
+    {
+      "model": "BVAR",
+      "mae": 1.273,
+      "rmse": 1.646,
+      "fda": NaN,
+      "n": 32,
+      "latest": 4.9
+    },
+    {
+      "model": "BEQ",
+      "mae": 2.237,
+      "rmse": 2.722,
+      "fda": NaN,
+      "n": 16,
+      "latest": 4.2
+    },
+    {
+      "model": "AR1",
+      "mae": 4.54,
+      "rmse": 4.54,
+      "fda": NaN,
+      "n": 35,
+      "latest": 0.3
+    },
+    {
+      "model": "NAIVE",
+      "mae": 6.01,
+      "rmse": 6.01,
+      "fda": NaN,
+      "n": 34,
+      "latest": 2.5
+    },
+    {
+      "model": "ENSEMBLE",
+      "mae": 1.092,
+      "rmse": 1.519,
+      "fda": NaN,
+      "n": 34,
+      "latest": 4.9
+    }
+  ],
+  "byHorizon": [
+    {
+      "model": "DFM",
+      "horizon": "m2",
+      "MAE (pp)": 3.316,
+      "N": 5
+    },
+    {
+      "model": "DFM",
+      "horizon": "m3",
+      "MAE (pp)": 3.385,
+      "N": 30
+    },
+    {
+      "model": "BVAR",
+      "horizon": "m2",
+      "MAE (pp)": 3.146,
+      "N": 5
+    },
+    {
+      "model": "BVAR",
+      "horizon": "m3",
+      "MAE (pp)": 0.926,
+      "N": 27
+    },
+    {
+      "model": "BEQ",
+      "horizon": "m2",
+      "MAE (pp)": 4.922,
+      "N": 4
+    },
+    {
+      "model": "BEQ",
+      "horizon": "m3",
+      "MAE (pp)": 1.342,
+      "N": 12
+    },
+    {
+      "model": "AR1",
+      "horizon": "m2",
+      "MAE (pp)": 4.54,
+      "N": 5
+    },
+    {
+      "model": "AR1",
+      "horizon": "m3",
+      "MAE (pp)": 4.54,
+      "N": 30
+    },
+    {
+      "model": "NAIVE",
+      "horizon": "m2",
+      "MAE (pp)": 6.01,
+      "N": 4
+    },
+    {
+      "model": "NAIVE",
+      "horizon": "m3",
+      "MAE (pp)": 6.01,
+      "N": 30
+    },
+    {
+      "model": "ENSEMBLE",
+      "horizon": "m2",
+      "MAE (pp)": 2.324,
+      "N": 5
+    },
+    {
+      "model": "ENSEMBLE",
+      "horizon": "m3",
+      "MAE (pp)": 0.879,
+      "N": 29
+    }
+  ],
+  "recent": [
     {
       "date": "2026-07-17",
       "target_quarter": "2026-Q3",
@@ -341,6 +454,15 @@
       "beq": 4.1,
       "ensemble": 4.4,
       "actual": null
+    },
+    {
+      "date": "2026-08-15",
+      "target_quarter": "2026-Q3",
+      "dfm": 7.1,
+      "bvar": 4.9,
+      "beq": 4.2,
+      "ensemble": 4.9,
+      "actual": null
     }
   ],
   "arc_next": [
@@ -464,14 +586,14 @@
           "Q2 2026": 101149.0,
           "Q3 2026": 101212.0,
           "Q4 2026": 105497.0,
-          "Q1 2027": 105397.0
+          "Q1 2027": 109587.0
         },
         "unit": "MYR Million",
         "yoy": {
           "Q2 2026": 1.4,
           "Q3 2026": 5.0,
           "Q4 2026": 9.1,
-          "Q1 2027": 5.0
+          "Q1 2027": 9.2
         }
       },
       "imports": {
@@ -497,14 +619,14 @@
           "Q2 2026": 285011.0,
           "Q3 2026": 277160.0,
           "Q4 2026": 283231.0,
-          "Q1 2027": 282961.0
+          "Q1 2027": 282550.0
         },
         "unit": "MYR Million",
         "yoy": {
           "Q2 2026": 11.0,
           "Q3 2026": 2.0,
           "Q4 2026": 7.0,
-          "Q1 2027": 5.0
+          "Q1 2027": 4.8
         }
       }
     },
