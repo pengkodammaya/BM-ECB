@@ -2,7 +2,7 @@
 
 > *Comparable to [OpenDOSM GDP Dashboard](https://open.dosm.gov.my/dashboard/gdp)*
 
-**Last updated:** 2026-09-23 | **Latest actual:** Q2 2026 | **Nowcasting:** Q3 2026
+**Last updated:** 2026-09-24 | **Latest actual:** Q2 2026 | **Nowcasting:** Q3 2026
 
 ---
 
@@ -18,10 +18,10 @@
 
 | Model | Nowcast | vs AR(1) | Description |
 |-------|:-------:|:--------:|-------------|
-| **DFM** | `+5.8%` | -0.2pp | Dynamic Factor Model |
+| **DFM** | `+3.7%` | -2.3pp | Dynamic Factor Model |
 | **BVAR** | `+4.9%` | -1.1pp | Bayesian VAR |
 | **AR(1)** | `+6.0%` | — | Persistence (baseline) |
-| **Ensemble** | `+4.9%` | -1.1pp | Median of DFM + BVAR |
+| **Ensemble** | `+4.2%` | -1.8pp | Median of DFM + BVAR |
 
 > *Q3 2026 actuals expected via DOSM ARC*
 
@@ -99,7 +99,6 @@
 
 | Date | Target | DFM | BVAR | AR(1) | Ensemble | Actual |
 |------|:------:|:---:|:----:|:-----:|:--------:|:------:|
-| 2026-08-25 | 2026-Q3 | +6.0% | +4.8% | — | +4.8% | — |
 | 2026-08-26 | 2026-Q3 | +7.2% | +4.8% | — | +4.8% | — |
 | 2026-08-27 | 2026-Q3 | +7.0% | +4.9% | — | +4.9% | — |
 | 2026-08-28 | 2026-Q3 | +6.9% | +4.9% | — | +4.9% | — |
@@ -129,6 +128,7 @@
 | 2026-09-21 | 2026-Q3 | +2.8% | +4.9% | — | +4.5% | — |
 | 2026-09-22 | 2026-Q3 | +3.3% | +4.9% | — | +4.2% | — |
 | 2026-09-23 | 2026-Q3 | +5.8% | +4.9% | — | +4.9% | — |
+| 2026-09-24 | 2026-Q3 | +3.7% | +4.9% | — | +4.2% | — |
 
 ---
 
