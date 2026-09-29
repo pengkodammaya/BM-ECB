@@ -1,6 +1,6 @@
 # Malaysia GDP Nowcasting — Live Leaderboard
 
-**Updated:** 2026-09-28 | **Latest actual:** Q2 2026 | **Nowcasting:** Q3 2026
+**Updated:** 2026-09-29 | **Latest actual:** Q2 2026 | **Nowcasting:** Q3 2026
 
 ## GDP Nowcast (YoY %)
 
@@ -8,9 +8,9 @@
 
 | Model | Nowcast |
 |-------|--------|
-| DFM | `+6.9%` |
-| BVAR | `+4.9%` |
-| ENSEMBLE | `+4.9%` |
+| DFM | `+3.7%` |
+| BVAR | `+4.7%` |
+| ENSEMBLE | `+4.4%` |
 
 ## GDP by Expenditure Category (YoY %)
 
@@ -18,11 +18,11 @@
 
 | Component | BVAR | DFM | Actual (target Q) | Error |
 |-----------|------|-----|-------------------|-------|
-| **Private Consumption** (C) | +4.2% | +9.2% | pending | pending |
-| **Gross Fixed Capital Formation** (I) | +7.0% | +5.1% | pending | pending |
-| **Government Consumption** (G) | +4.1% | +4.2% | pending | pending |
-| **Exports** (X) | +4.1% | +8.9% | pending | pending |
-| **Imports** (M) | +5.1% | +4.9% | pending | pending |
+| **Private Consumption** (C) | +4.0% | +6.0% | pending | pending |
+| **Gross Fixed Capital Formation** (I) | +6.8% | +1.2% | pending | pending |
+| **Government Consumption** (G) | +4.2% | +4.9% | pending | pending |
+| **Exports** (X) | +3.9% | +4.8% | pending | pending |
+| **Imports** (M) | +5.1% | +4.8% | pending | pending |
 
 ## GDP by Economic Sector (YoY %)
 
@@ -71,7 +71,6 @@
 
 | Date | Target Q | DFM | BVAR | BEQ | ENSEMBLE |
 |------|----------|-----|------|-----|----------|
-| 2026-08-30 | 2026-Q3 | +6.3% | +4.9% | +4.2% | +4.9% |
 | 2026-08-31 | 2026-Q3 | +6.0% | +4.9% | +4.2% | +4.9% |
 | 2026-09-01 | 2026-Q3 | +5.8% | +4.9% | +4.2% | +4.9% |
 | 2026-09-02 | 2026-Q3 | +9.4% | +4.7% | +4.4% | +4.7% |
@@ -101,13 +100,14 @@
 | 2026-09-26 | 2026-Q3 | +6.1% | +4.9% | +4.3% | +4.9% |
 | 2026-09-27 | 2026-Q3 | +7.0% | +4.7% | +4.3% | +4.7% |
 | 2026-09-28 | 2026-Q3 | +6.9% | +4.9% | +4.3% | +4.9% |
+| 2026-09-29 | 2026-Q3 | +3.7% | +4.7% | +4.4% | +4.4% |
 
 ## Data Sources
 
 - **GDP:** DOSM `gdp_qtr_real` (YoY), `gdp_qtr_real_sa` (QoQ)
 - **Expenditure:** DOSM `gdp_qtr_real_demand`; **Sectors:** `gdp_qtr_real_supply`
 - **Vintages:** `docs/actuals_vintage.csv` (first-release frozen, revisions tracked)
-- **Last updated:** 2026-09-28
+- **Last updated:** 2026-09-29
 
 ---
 *Auto-generated daily via GitHub Actions. [Source](https://github.com/pengkodammaya/BM-ECB)*
