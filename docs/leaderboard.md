@@ -1,6 +1,6 @@
 # Malaysia GDP Nowcasting — Live Leaderboard
 
-**Updated:** 2026-10-03 | **Latest actual:** Q2 2026 | **Nowcasting:** Q4 2026
+**Updated:** 2026-10-04 | **Latest actual:** Q2 2026 | **Nowcasting:** Q4 2026
 
 ## GDP Nowcast (YoY %)
 
@@ -71,7 +71,6 @@
 
 | Date | Target Q | DFM | BVAR | BEQ | ENSEMBLE |
 |------|----------|-----|------|-----|----------|
-| 2026-09-04 | 2026-Q3 | +9.0% | +4.8% | +4.3% | +4.8% |
 | 2026-09-05 | 2026-Q3 | +7.9% | +4.8% | +4.3% | +4.8% |
 | 2026-09-06 | 2026-Q3 | +8.8% | +4.8% | +4.3% | +4.8% |
 | 2026-09-07 | 2026-Q3 | +8.4% | +4.7% | +4.3% | +4.7% |
@@ -101,13 +100,14 @@
 | 2026-10-01 | 2026-Q4 | +5.3% | +5.5% | +4.5% | +5.3% |
 | 2026-10-02 | 2026-Q4 | +5.5% | +5.5% | +4.7% | +5.5% |
 | 2026-10-03 | 2026-Q4 | +5.4% | +5.4% | +4.6% | +5.4% |
+| 2026-10-04 | 2026-Q4 | +5.4% | +5.4% | +4.6% | +5.4% |
 
 ## Data Sources
 
 - **GDP:** DOSM `gdp_qtr_real` (YoY), `gdp_qtr_real_sa` (QoQ)
 - **Expenditure:** DOSM `gdp_qtr_real_demand`; **Sectors:** `gdp_qtr_real_supply`
 - **Vintages:** `docs/actuals_vintage.csv` (first-release frozen, revisions tracked)
-- **Last updated:** 2026-10-03
+- **Last updated:** 2026-10-04
 
 ---
 *Auto-generated daily via GitHub Actions. [Source](https://github.com/pengkodammaya/BM-ECB)*
