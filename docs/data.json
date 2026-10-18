@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-10-17",
+  "lastUpdated": "2026-10-18",
   "targetQuarter": "2026-Q4",
   "latestActual": {
     "quarter": "Q2 2026",
@@ -7,10 +7,10 @@
   },
   "nowcast": {
     "quarter": "Q4 2026",
-    "dfm": 4.49,
+    "dfm": 4.5,
     "bvar": 5.6,
     "ar1": 6.0,
-    "ensemble": 4.49,
+    "ensemble": 4.5,
     "bvar_ci_10": null,
     "bvar_ci_90": null
   },
@@ -194,15 +194,6 @@
     }
   ],
   "recent": [
-    {
-      "date": "2026-09-18",
-      "target_quarter": "2026-Q3",
-      "dfm": 6.9,
-      "bvar": 4.8,
-      "beq": 4.5,
-      "ensemble": 4.8,
-      "actual": null
-    },
     {
       "date": "2026-09-19",
       "target_quarter": "2026-Q3",
@@ -457,6 +448,15 @@
     },
     {
       "date": "2026-10-17",
+      "target_quarter": "2026-Q4",
+      "dfm": 4.5,
+      "bvar": 5.6,
+      "beq": 4.4,
+      "ensemble": 4.5,
+      "actual": null
+    },
+    {
+      "date": "2026-10-18",
       "target_quarter": "2026-Q4",
       "dfm": 4.5,
       "bvar": 5.6,
