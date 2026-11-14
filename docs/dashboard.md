@@ -2,7 +2,7 @@
 
 > *Comparable to [OpenDOSM GDP Dashboard](https://open.dosm.gov.my/dashboard/gdp)*
 
-**Last updated:** 2026-11-13 | **Latest actual:** Q2 2026 | **Nowcasting:** Q4 2026
+**Last updated:** 2026-11-14 | **Latest actual:** Q2 2026 | **Nowcasting:** Q4 2026
 
 ---
 
@@ -18,7 +18,7 @@
 
 | Model | Nowcast | vs AR(1) | Description |
 |-------|:-------:|:--------:|-------------|
-| **DFM** | `+11.9%` | 5.9pp | Dynamic Factor Model |
+| **DFM** | `+11.3%` | 5.3pp | Dynamic Factor Model |
 | **BVAR** | `+5.6%` | -0.4pp | Bayesian VAR |
 | **AR(1)** | `+6.0%` | — | Persistence (baseline) |
 | **Ensemble** | `+5.6%` | -0.4pp | Median of DFM + BVAR |
@@ -87,7 +87,11 @@
 
 | Date | Release |
 |------|---------|
-| — | — |
+| 2026-01-16 | Advance Gross Domestic Product (GDP) Estimates Fourth Quarter 2025 |
+| 2026-01-23 | Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, November 2025 |
+| 2026-02-13 | Gross Domestic Product Fourth Quarter 2025 |
+| 2026-02-20 | Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, December 2025 |
+| 2026-03-19 | Malaysian Economic Indicators: Leading, Coincident & Lagging Indexes, January 2026 |
 
 ---
 
@@ -95,7 +99,6 @@
 
 | Date | Target | DFM | BVAR | AR(1) | Ensemble | Actual |
 |------|:------:|:---:|:----:|:-----:|:--------:|:------:|
-| 2026-10-15 | 2026-Q4 | +4.0% | +5.6% | — | +4.4% | — |
 | 2026-10-16 | 2026-Q4 | +4.4% | +5.6% | — | +4.4% | — |
 | 2026-10-17 | 2026-Q4 | +4.5% | +5.6% | — | +4.5% | — |
 | 2026-10-18 | 2026-Q4 | +4.5% | +5.6% | — | +4.5% | — |
@@ -125,6 +128,7 @@
 | 2026-11-11 | 2026-Q4 | +11.2% | +5.6% | — | +5.6% | — |
 | 2026-11-12 | 2026-Q4 | +12.5% | +5.6% | — | +5.6% | — |
 | 2026-11-13 | 2026-Q4 | +11.9% | +5.6% | — | +5.6% | — |
+| 2026-11-14 | 2026-Q4 | +11.3% | +5.6% | — | +5.6% | — |
 
 ---
 
