@@ -2,26 +2,26 @@
 
 > *Comparable to [OpenDOSM GDP Dashboard](https://open.dosm.gov.my/dashboard/gdp)*
 
-**Last updated:** 2026-11-18 | **Latest actual:** Q2 2026 | **Nowcasting:** Q4 2026
+**Last updated:** 2026-11-19 | **Latest actual:** Q3 2026 | **Nowcasting:** Q4 2026
 
 ---
 
 ## How is GDP trending?
 
-### Q2 2026 Actual (YoY)
+### Q3 2026 Actual (YoY)
 
 | | Value | Source |
 |---|:---:|---|
-| **GDP Growth** | **`+6.0%`** | DOSM Official |
+| **GDP Growth** | **`+5.5%`** | DOSM Official |
 
 ### Q4 2026 Nowcast (YoY) — No ground truth yet
 
 | Model | Nowcast | vs AR(1) | Description |
 |-------|:-------:|:--------:|-------------|
-| **DFM** | `+13.0%` | 7.0pp | Dynamic Factor Model |
-| **BVAR** | `+5.6%` | -0.4pp | Bayesian VAR |
-| **AR(1)** | `+6.0%` | — | Persistence (baseline) |
-| **Ensemble** | `+5.6%` | -0.4pp | Median of DFM + BVAR |
+| **DFM** | `+13.7%` | 8.2pp | Dynamic Factor Model |
+| **BVAR** | `+5.3%` | -0.2pp | Bayesian VAR |
+| **AR(1)** | `+5.5%` | — | Persistence (baseline) |
+| **Ensemble** | `+5.3%` | -0.2pp | Median of DFM + BVAR |
 
 > *Q4 2026 actuals expected via DOSM ARC*
 
@@ -56,30 +56,30 @@
 
 ## A deeper look at GDP by economic sector
 
-*Q2 2026 | YoY Growth | Source: DOSM `gdp_qtr_real_supply`*
+*Q3 2026 | YoY Growth | Source: DOSM `gdp_qtr_real_supply`*
 
 | Sector | Actual | Nowcast | Error |
 |--------|:------:|:-------:|:-----:|
-| Agriculture | `-3.7%` | `+0.9%` | `4.6pp` |
-| Mining & Quarrying | `+9.2%` | `-1.0%` | `10.2pp` |
-| Manufacturing | `+7.3%` | `+4.2%` | `3.1pp` |
-| Construction | `+6.5%` | `-0.5%` | `7.0pp` |
-| Services | `+5.9%` | `+7.9%` | `2.0pp` |
-| **Overall GDP** | **`+6.0%`** | **`+3.9%`** | 2.1pp |
+| Agriculture | `+1.4%` | `+0.8%` | `0.6pp` |
+| Mining & Quarrying | `-6.1%` | `-0.9%` | `5.2pp` |
+| Manufacturing | `+7.7%` | `+4.3%` | `3.4pp` |
+| Construction | `+5.9%` | `+3.0%` | `2.9pp` |
+| Services | `+5.8%` | `+7.5%` | `1.7pp` |
+| **Overall GDP** | **`+5.5%`** | **`+5.2%`** | 0.3pp |
 
 ---
 
 ## A deeper look at GDP by expenditure category
 
-*Q2 2026 | YoY Growth | BVAR primary model*
+*Q3 2026 | YoY Growth | BVAR primary model*
 
 | Component | BVAR | Actual | Error |
 |-----------|:----:|:------:|:-----:|
-| **Consumption (C)** | +5.5% | +4.8% | 0.7pp |
-| **Investment (I)** | +7.6% | +4.6% | 3.0pp |
-| **Government (G)** | +5.8% | +7.6% | 1.8pp |
-| **Exports (X)** | +6.1% | +17.0% | 10.9pp |
-| **Imports (M)** | +7.4% | +13.9% | 6.5pp |
+| **Consumption (C)** | +4.1% | +4.3% | 0.2pp |
+| **Investment (I)** | +6.8% | +8.1% | 1.3pp |
+| **Government (G)** | +4.2% | +1.2% | 3.0pp |
+| **Exports (X)** | +4.2% | +25.2% | 21.0pp |
+| **Imports (M)** | +5.1% | +26.7% | 21.6pp |
 
 ---
 
@@ -99,7 +99,6 @@
 
 | Date | Target | DFM | BVAR | AR(1) | Ensemble | Actual |
 |------|:------:|:---:|:----:|:-----:|:--------:|:------:|
-| 2026-10-20 | 2026-Q4 | +6.5% | +5.6% | — | +5.6% | — |
 | 2026-10-21 | 2026-Q4 | +6.6% | +5.7% | — | +5.7% | — |
 | 2026-10-22 | 2026-Q4 | +6.5% | +5.6% | — | +5.6% | — |
 | 2026-10-23 | 2026-Q4 | +6.9% | +5.6% | — | +5.6% | — |
@@ -129,6 +128,7 @@
 | 2026-11-16 | 2026-Q4 | +11.6% | +5.6% | — | +5.6% | — |
 | 2026-11-17 | 2026-Q4 | +12.6% | +5.6% | — | +5.6% | — |
 | 2026-11-18 | 2026-Q4 | +13.0% | +5.6% | — | +5.6% | — |
+| 2026-11-19 | 2026-Q4 | +13.7% | +5.3% | — | +5.3% | — |
 
 ---
 

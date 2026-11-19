@@ -1,7 +1,7 @@
 model,MAE (pp),RMSE (pp),FDA (%),N,target
-DFM,3.375,3.906,,35,"GDP (Real, Aggregate)"
-BVAR,1.273,1.646,,32,"GDP (Real, Aggregate)"
-BEQ,2.237,2.722,,16,"GDP (Real, Aggregate)"
-AR1,4.54,4.54,,35,"GDP (Real, Aggregate)"
-NAIVE,6.01,6.01,,34,"GDP (Real, Aggregate)"
-ENSEMBLE,1.092,1.519,,34,"GDP (Real, Aggregate)"
+DFM,2.097,2.589,100.0,127,"GDP (Real, Aggregate)"
+BVAR,0.937,1.103,100.0,124,"GDP (Real, Aggregate)"
+BEQ,1.411,1.574,100.0,108,"GDP (Real, Aggregate)"
+AR1,4.603,4.629,0.0,127,"GDP (Real, Aggregate)"
+NAIVE,4.701,4.889,0.0,126,"GDP (Real, Aggregate)"
+ENSEMBLE,0.937,1.103,100.0,126,"GDP (Real, Aggregate)"
