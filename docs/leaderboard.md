@@ -1,6 +1,6 @@
 # Malaysia GDP Nowcasting — Live Leaderboard
 
-**Updated:** 2026-11-19 | **Latest actual:** Q3 2026 | **Nowcasting:** Q4 2026
+**Updated:** 2026-11-20 | **Latest actual:** Q3 2026 | **Nowcasting:** Q4 2026
 
 ## GDP Nowcast (YoY %)
 
@@ -8,7 +8,7 @@
 
 | Model | Nowcast |
 |-------|--------|
-| DFM | `+13.7%` |
+| DFM | `+13.6%` |
 | BVAR | `+5.3%` |
 | ENSEMBLE | `+5.3%` |
 
@@ -18,11 +18,11 @@
 
 | Component | BVAR | DFM | Actual (target Q) | Error |
 |-----------|------|-----|-------------------|-------|
-| **Private Consumption** (C) | +4.9% | +12.0% | pending | pending |
+| **Private Consumption** (C) | +4.9% | +12.2% | pending | pending |
 | **Gross Fixed Capital Formation** (I) | +5.1% | +3.4% | pending | pending |
 | **Government Consumption** (G) | +6.5% | +5.3% | pending | pending |
-| **Exports** (X) | +13.6% | +13.3% | pending | pending |
-| **Imports** (M) | +11.0% | +8.4% | pending | pending |
+| **Exports** (X) | +13.6% | +14.0% | pending | pending |
+| **Imports** (M) | +11.1% | +8.4% | pending | pending |
 
 ## GDP by Economic Sector (YoY %)
 
@@ -77,7 +77,6 @@
 
 | Date | Target Q | DFM | BVAR | BEQ | ENSEMBLE |
 |------|----------|-----|------|-----|----------|
-| 2026-10-21 | 2026-Q4 | +6.6% | +5.7% | +4.5% | +5.7% |
 | 2026-10-22 | 2026-Q4 | +6.5% | +5.6% | +4.5% | +5.6% |
 | 2026-10-23 | 2026-Q4 | +6.9% | +5.6% | +4.5% | +5.6% |
 | 2026-10-24 | 2026-Q4 | +7.0% | +5.6% | +4.5% | +5.6% |
@@ -107,13 +106,14 @@
 | 2026-11-17 | 2026-Q4 | +12.6% | +5.6% | +4.7% | +5.6% |
 | 2026-11-18 | 2026-Q4 | +13.0% | +5.6% | +4.8% | +5.6% |
 | 2026-11-19 | 2026-Q4 | +13.7% | +5.3% | +4.8% | +5.3% |
+| 2026-11-20 | 2026-Q4 | +13.6% | +5.3% | +4.8% | +5.3% |
 
 ## Data Sources
 
 - **GDP:** DOSM `gdp_qtr_real` (YoY), `gdp_qtr_real_sa` (QoQ)
 - **Expenditure:** DOSM `gdp_qtr_real_demand`; **Sectors:** `gdp_qtr_real_supply`
 - **Vintages:** `docs/actuals_vintage.csv` (first-release frozen, revisions tracked)
-- **Last updated:** 2026-11-19
+- **Last updated:** 2026-11-20
 
 ---
 *Auto-generated daily via GitHub Actions. [Source](https://github.com/pengkodammaya/BM-ECB)*
